@@ -1,4 +1,7 @@
 import { encode } from "he";
+import type { Patches } from "../incr/patch";
+import type { Forward } from "../incr/types";
+import type { Dispatch } from "./mount";
 import type {
 	AttrValue,
 	Attrs,
@@ -7,13 +10,15 @@ import type {
 	ElementConstruction,
 	Events,
 } from "./types";
-import type { Patches } from "../incr/patch";
-import type { Forward } from "../incr/types";
-import type { Dispatch } from "./mount";
 
-export type RenderFunc<State, Action> = (state: State, dispatch: Dispatch<Action>) => ElementConstruction;
+export type RenderFunc<State, Action> = (
+	state: State,
+	dispatch: Dispatch<Action>,
+) => ElementConstruction;
 
-export type RenderForward<State, Action> = (dispatch: Dispatch<Action>) => Forward<State, ElementConstruction, Action, Patches>;
+export type RenderForward<State, Action> = (
+	dispatch: Dispatch<Action>,
+) => Forward<State, ElementConstruction, Action, Patches>;
 
 export const fromAttrValue = (x: AttrValue): string =>
 	typeof x === "string" ? x : `${x}`;
@@ -32,7 +37,10 @@ export const constructChild = (
 	return fromAttrValue(child);
 };
 
-export const setEventHandlers = (el: Element, events: Events | null | undefined) => {
+export const setEventHandlers = (
+	el: Element,
+	events: Events | null | undefined,
+) => {
 	if (!events) {
 		return;
 	}

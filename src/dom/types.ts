@@ -5,12 +5,18 @@ export interface Events {
 	[eventName: string]: Handler;
 }
 
-export type AttrValue = string | number | boolean | bigint;
+export type AttrValue = string | number | bigint | boolean | bigint;
 export interface Attrs {
 	[attr: string]: AttrValue | null | undefined;
 }
 
-export type TextConstruction = string | number | null | undefined | false;
+export type TextConstruction =
+	| string
+	| number
+	| bigint
+	| boolean
+	| null
+	| undefined;
 
 export type ChildConstruction = TextConstruction | ElementConstruction;
 

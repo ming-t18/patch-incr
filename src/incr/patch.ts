@@ -29,30 +29,31 @@ export interface PatchReplace<V = any> {
 	value: V;
 }
 
+export const __ApplyPatchInvariant = Symbol("__ApplyPatchInvariant");
+
+export type Targeted<T> = { [__ApplyPatchInvariant]?: (target: T) => T };
+
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-export type PatchEntry<V = any> = PatchRemove | PatchAdd<V> | PatchReplace<V>;
+export type PatchEntry<Target = any> = (PatchRemove | PatchAdd | PatchReplace) &
+	Targeted<Target>;
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export type Patches<V = any> = PatchEntry<V>[];
-
-export interface ForwardElement<Input, Output> {
-	remove(patch: PatchRemove, input: Input, output: Output): Patches | null;
-	add(patch: PatchAdd, input: Input, output: Output): Patches | null;
-	replace(patch: PatchReplace, input: Input, output: Output): Patches | null;
-}
 
 export const isEmptyPatches = (entry: Patches) => {
 	return entry.length === 0;
 };
 
-export const removePatch = (path = [] as Path): Patches => [
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+export const removePatch = <V = any>(path = [] as Path): Patches<V> => [
 	{
 		op: PatchOp.Remove,
 		path,
 	},
 ];
 
-export const addPatch = <V>(value: V, path = [] as Path): Patches => [
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+export const addPatch = <V = any>(value: V, path = [] as Path): Patches<V> => [
 	{
 		op: PatchOp.Add,
 		path,
@@ -60,7 +61,11 @@ export const addPatch = <V>(value: V, path = [] as Path): Patches => [
 	},
 ];
 
-export const replacePatch = <V>(value: V, path = [] as Path): Patches => [
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+export const replacePatch = <V = any>(
+	value: V,
+	path = [] as Path,
+): Patches<V> => [
 	{
 		op: PatchOp.Replace,
 		path,
@@ -80,15 +85,37 @@ export const tryDeconsPath = (path: Path): [string | number, Path] | null => {
 	return [path[0], path.slice(1)];
 };
 
-export const liftPatch = (prefix: string | number, patches: Patches): Patches =>
+export const liftPatch = <Out>(
+	prefix: string | number,
+	patches: Patches,
+): Patches<Out> =>
 	patches.map((x) => ({
 		...x,
 		path: [prefix, ...x.path],
 	}));
 
+export const unliftPatchEntry = <Out>(
+	prefix: string | number,
+	{ path, ...rest }: PatchEntry,
+): PatchEntry<Out> => {
+	if (path.length === 0 || path[0] !== prefix) {
+		throw new Error("unliftPatch: invalid prefix");
+	}
+	return {
+		...rest,
+		path: path.slice(1),
+	};
+};
+
+export const unliftPatch = <Out>(
+	prefix: string | number,
+	patches: Patches,
+): Patches<Out> => patches.map((entry) => unliftPatchEntry(prefix, entry));
+
 export const combinePatches = (a: Patches, b: Patches): Patches => [...a, ...b];
 
-export class PatchBuilder {
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+export class PatchBuilder<Target = any> {
 	private readonly patches: Patches;
 
 	static empty() {
@@ -123,7 +150,7 @@ export class PatchBuilder {
 		return this;
 	}
 
-	build() {
+	build(): Patches<Target> {
 		return this.patches;
 	}
 }
@@ -137,13 +164,22 @@ export const applyPatches = <T>(value: T, patches: Patches): T => {
 	}
 
 	for (const patch of patches) {
-		if (patch.op === PatchOp.Remove) {
-			throw new Error("applyPatches: cannot remove root");
+		if (patch.path.length === 0 && patch.op === PatchOp.Remove) {
+			// deletes key makes value undefined
+			return undefined as T;
 		}
 	}
 
 	if (value !== null && typeof value === "object") {
-		return applyPatchesImmer(value, patches);
+		try {
+			return applyPatchesImmer(value, patches);
+		} catch (e) {
+			console.error("failed to apply patched through immer", {
+				value,
+				patches,
+			});
+			throw e;
+		}
 	}
 
 	let value1: unknown = value;
@@ -152,7 +188,6 @@ export const applyPatches = <T>(value: T, patches: Patches): T => {
 		const patch = patches[i];
 		if (patch.path.length > 0) {
 			if (value1 === null || typeof value1 !== "object") {
-				// console.error("non-root on atomic", { value: value1, patch });
 				throw new Error(
 					`applyPatches: cannot apply non-root patch on atomic value: ${value1}, index=${i}`,
 				);
@@ -178,41 +213,45 @@ export const applyPatches = <T>(value: T, patches: Patches): T => {
 	}
 	return value1 as T;
 };
+export const CannotReduce = Symbol("CannotReduce");
 
-export const forwardFromElements = <Input, Output>(
-	handler: ForwardElement<Input, Output>,
-	invoke?: Invoke<Input, Output>,
-): Forward<Input, Output> => {
-	return (input0, change, output0) => {
-		let input = input0;
-		let output = output0;
-		const patches: Patches = [];
-		for (const patch of change) {
-			let outChange: Patches = [];
-			if (
-				patch.op === PatchOp.Remove ||
-				patch.op === PatchOp.Add ||
-				patch.op === PatchOp.Replace
-			) {
-				const res = handler[patch.op](patch as never, input, output);
-				if (res === null) {
-					// bail out: use replace instead
-					const inputEnd = applyPatches(input0, change);
-					if (!invoke) {
-						throw new Error("need to use invoke but is absent");
-					}
-					return replacePatch(invoke(inputEnd));
+export const reducePatches =
+	<Input, Output>(
+		invoke: Invoke<Input, Output>,
+		reduceEntry: (
+			input: Input,
+			entry: PatchEntry,
+			output: Output,
+		) => Patches | typeof CannotReduce,
+	): Forward<Input, Output> =>
+	(input: Input, patches: Patches, output: Output) =>
+		patches.reduce(
+			({ input, patches, output }, entry: PatchEntry) => {
+				const res = reduceEntry(input, entry, output);
+				const input1 = applyPatches(input, [entry]);
+				if (res === CannotReduce) {
+					const output1 = invoke(input1);
+					return {
+						input: input1,
+						patches: [
+							{
+								op: PatchOp.Replace,
+								path: [],
+								value: output1,
+							},
+						],
+						output: output1,
+					};
 				}
-				outChange = res;
-			} else {
-				// @ts-expect-error patch.op should have type never
-				throw new Error(`Unsupported patch: ${patch.op}`);
-			}
-
-			input = applyPatches(input, [patch]);
-			output = applyPatches(output, outChange);
-			patches.push(...outChange);
-		}
-		return patches;
-	};
-};
+				return {
+					input: input1,
+					patches: [...patches, ...res],
+					output: applyPatches(output, res),
+				};
+			},
+			{
+				input,
+				patches: [] as Patches,
+				output,
+			},
+		).patches;

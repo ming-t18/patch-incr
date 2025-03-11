@@ -1,9 +1,5 @@
 import fc from "fast-check";
-import {
-	type TodoAction,
-	TodoActionType,
-	type TodoState,
-} from "../todo_state";
+import { type TodoAction, TodoActionType, type TodoState } from "../todo_state";
 
 const arbText = fc.string({ maxLength: 80 });
 
@@ -65,7 +61,6 @@ export const arbTodoState: fc.Arbitrary<TodoState> = fc
 			),
 		}),
 	);
-
 
 export const arbTodoStateAction = arbTodoState.chain((state) =>
 	fc.record({ state: fc.constant(state), action: arbTodoAction(state) }),

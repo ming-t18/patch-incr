@@ -136,7 +136,8 @@ const initState: TodoState = {
 const load = () => {
 	const root = document.getElementById("root");
 	if (!root) {
-		throw new Error("root not found");
+		console.error("root not found");
+		return;
 	}
 
 	new DOMRoot(root, initState, todoReducer, renderTodo);

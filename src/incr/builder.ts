@@ -1,9 +1,13 @@
 import {
+	CannotReduce,
 	PatchBuilder,
+	PatchOp,
 	type Patches,
+	type Path,
 	applyPatches,
 	combinePatches,
 	liftPatch,
+	reducePatches,
 	replacePatch,
 } from "./patch";
 import { type IF, type InferIFOutput, type Invoke, isIF } from "./types";
@@ -44,10 +48,12 @@ export type InferOutput<T> = T extends {
 	invoke: (...args: any[]) => infer Output;
 }
 	? Output
-	: never;
+	: "FAILED_TO_INFER_OUTPUT";
 
 // biome-ignore lint/suspicious/noExplicitAny: used in infer
-export type FirstArg<T> = T extends (v: infer Arg) => any ? Arg : never;
+export type FirstArg<T> = T extends (v: infer Arg, ...args: any[]) => any
+	? Arg
+	: never;
 
 export type InferRecordInput<Entries extends TupleOrRecord> = FirstArg<
 	{
@@ -135,25 +141,76 @@ export const access = <
 >(
 	key: Key,
 ): IF<Input, Output> => {
+	const invoke = (input: Input) => input[key];
 	return {
-		invoke: (input: Input) => input[key],
-		forward: (input, changes, _output) => {
-			if (changes.findIndex(({ path }) => path.length === 0) !== -1) {
-				return replacePatch(applyPatches(input, changes)[key]);
+		invoke,
+		// @ts-expect-error Can't be checked
+		forward: reducePatches(invoke, (_input, entry, _output) => {
+			const { path } = entry;
+			if (path.length === 0) {
+				return CannotReduce;
 			}
 
-			const patches: Patches = [];
-			for (const entry of changes) {
-				const { path } = entry;
-				if (path.length >= 1 && path[0] === key) {
-					patches.push({
+			if (path[0] === key) {
+				if (entry.op === PatchOp.Replace && path.length === 1) {
+					return CannotReduce;
+				}
+
+				return [
+					{
 						...entry,
 						path: path.slice(1),
-					});
+					},
+				];
+			}
+
+			return [];
+		}),
+	};
+};
+
+export const accessPath = <Output, Input>(
+	pathPrefix: Path,
+): IF<Input, Output> => {
+	const invoke = (input: Input): Output => {
+		let v: unknown = input;
+		for (const elem of pathPrefix) {
+			// @ts-expect-error avoid checking
+			v = v[elem];
+		}
+		return v as never;
+	};
+	return {
+		invoke,
+		forward: reducePatches(invoke, (_input, entry, _output) => {
+			const { path } = entry;
+			if (path.length < pathPrefix.length) {
+				return CannotReduce;
+			}
+
+			let match = true;
+			for (let i = 0; i < pathPrefix.length; i++) {
+				if (pathPrefix[i] === path[i]) {
+					match = false;
+					break;
 				}
 			}
-			return patches;
-		},
+
+			if (match) {
+				if (entry.op === PatchOp.Replace && path.length === pathPrefix.length) {
+					return CannotReduce;
+				}
+
+				return [
+					{
+						...entry,
+						path: path.slice(1),
+					},
+				];
+			}
+
+			return [];
+		}),
 	};
 };
 
@@ -215,9 +272,22 @@ export type InferArgs<
 	Deps extends DepsList,
 > = Deps extends []
 	? []
-	: Deps extends [infer N extends number, ...infer Rest extends DepsList]
-		? [Def[N]["output"], ...InferArgs<Def, Rest>]
-		: never;
+	: // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+		[number, ...any[]] extends Deps
+		? [
+				{
+					$FailedToInferDepsList: "`as const` is required for deps list";
+					$InferArgs: [Def, Deps];
+				},
+			]
+		: Deps extends [infer N extends number, ...infer Rest extends DepsList]
+			? [Def[N]["output"], ...InferArgs<Def, Rest>]
+			: [
+					{
+						$FailedToInferDepsList: "deps must be a list of number with `as const`";
+						$InferArgs: [Def, Deps];
+					},
+				];
 
 export type InferBuildOutput<Def extends IFGraphNodeDef[]> = Def extends []
 	? []
@@ -236,14 +306,14 @@ export class IFGraphBuilder<Input, Def extends IFGraphNodeDef[]> {
 		return new IFGraphBuilder([]);
 	}
 
-	add<
-		Deps extends DepsList,
-		// biome-ignore lint/suspicious/noExplicitAny: used in constraint
-		Func extends IF<[Input, ...InferArgs<Def, Deps>], any>,
-		Output = InferIFOutput<Func>,
-	>(
+	add<Deps extends DepsList, Output>(
 		deps: Deps,
-		func: Func,
+		func: IF<
+			[Input, ...InferArgs<Def, Deps>],
+			Output,
+			Patches<[Input, ...InferArgs<Def, Deps>]>,
+			Patches<Output>
+		>,
 	): IFGraphBuilder<Input, [...Def, IFGraphNodeDef<Deps, Output>]> {
 		return new IFGraphBuilder([...this.edges, [deps, func as never]]);
 	}

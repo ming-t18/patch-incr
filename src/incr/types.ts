@@ -5,15 +5,15 @@ export type Invoke<Input, Output> = (input: Input) => Output;
 export type Forward<
 	Input,
 	Output,
-	InputChange = Patches,
-	OutputChange = Patches,
+	InputChange = Patches<Input>,
+	OutputChange = Patches<Output>,
 > = (input: Input, change: InputChange, output: Output) => OutputChange;
 
 export interface IncrementalFunction<
 	Input,
 	Output,
-	InputChange = Patches,
-	OutputChange = Patches,
+	InputChange = Patches<Input>,
+	OutputChange = Patches<Output>,
 > {
 	invoke: Invoke<Input, Output>;
 	forward: Forward<Input, Output, InputChange, OutputChange>;
@@ -22,8 +22,8 @@ export interface IncrementalFunction<
 export type IF<
 	Input,
 	Output,
-	InputChange = Patches,
-	OutputChange = Patches,
+	InputChange = Patches<Input>,
+	OutputChange = Patches<Output>,
 > = IncrementalFunction<Input, Output, InputChange, OutputChange>;
 
 export const isIF = <

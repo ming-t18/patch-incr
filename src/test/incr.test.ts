@@ -10,20 +10,14 @@ import {
 } from "../incr/builder";
 import {
 	PatchBuilder,
-	PatchOp,
-	type Patches,
 	type Path,
 	applyPatches,
 	isAtomicValue,
 	replacePatch,
 } from "../incr/patch";
 import type { IF } from "../incr/types";
-import {
-	arbValidPatchesOnValue,
-	arbValuePatches,
-	arbValueWithReplace,
-} from "./genPatched.test";
-import { ensurePatchCoherent } from "./helpers.test";
+import * as gp from "./helpers/genPatched.test";
+import { ensurePatchCoherent } from "./helpers/props.test";
 
 const arbAtomic = <
 	T = unknown,
@@ -146,7 +140,8 @@ describe("arbValidPatchesOnValue", () => {
 	it("split patch", () => {
 		fc.assert(
 			fc.property(
-				arbValuePatches()
+				gp
+					.valuePatches()
 					.filter(({ patches }) => patches.length > 1)
 					.chain(({ value, patches }) =>
 						fc.integer({ min: 0, max: patches.length - 1 }).map((i) => ({
@@ -167,7 +162,7 @@ describe("arbValidPatchesOnValue", () => {
 
 	it("allow applyPatches without error, first patch entry only", () => {
 		fc.assert(
-			fc.property(arbValuePatches(), ({ value, patches }) => {
+			fc.property(gp.valuePatches(), ({ value, patches }) => {
 				applyPatches(value, patches.slice(0, 1));
 				return true;
 			}),
@@ -175,14 +170,14 @@ describe("arbValidPatchesOnValue", () => {
 	});
 
 	it.skip("sample with patches", () => {
-		for (const e of fc.sample(arbValuePatches(), 100)) {
+		for (const e of fc.sample(gp.valuePatches(), 100)) {
 			console.log(e);
 		}
 	});
 
 	it("allow applyPatches without error", () => {
 		fc.assert(
-			fc.property(arbValuePatches(), ({ value, patches }) => {
+			fc.property(gp.valuePatches(), ({ value, patches }) => {
 				applyPatches(value, patches);
 				return true;
 			}),
@@ -199,7 +194,7 @@ describe("identity", () => {
 
 	it("forward returns patches as-is", () => {
 		fc.assert(
-			fc.property(arbValuePatches(), ({ value, patches }) => {
+			fc.property(gp.valuePatches(), ({ value, patches }) => {
 				const id = identity();
 				const y = id.invoke(value);
 				return expect(id.forward(value, patches, y)).toStrictEqual(patches);
@@ -209,7 +204,7 @@ describe("identity", () => {
 
 	it("patch coherent", () => {
 		fc.assert(
-			fc.property(arbValuePatches(), ({ value, patches }) => {
+			fc.property(gp.valuePatches(), ({ value, patches }) => {
 				ensurePatchCoherent(value, patches, identity());
 			}),
 		);
@@ -229,7 +224,7 @@ describe("constant", () => {
 
 	it("forward returns empty patches", () => {
 		fc.assert(
-			fc.property(anything(), arbValuePatches(), (c, { value, patches }) => {
+			fc.property(anything(), gp.valuePatches(), (c, { value, patches }) => {
 				const f = constant(c);
 				const y = f.invoke(value);
 				return expect(f.forward(value, patches, y)).toStrictEqual([]);
@@ -239,7 +234,7 @@ describe("constant", () => {
 
 	it("patch coherent", () => {
 		fc.assert(
-			fc.property(anything(), arbValuePatches(), (c, { value, patches }) => {
+			fc.property(anything(), gp.valuePatches(), (c, { value, patches }) => {
 				ensurePatchCoherent(value, patches, constant(c));
 			}),
 		);
@@ -250,7 +245,7 @@ describe("atomic", () => {
 	it("patch coherent", () => {
 		fc.assert(
 			fc.property(
-				arbValuePatches(),
+				gp.valuePatches(),
 				arbAtomic(),
 				({ value, patches }, atomic) => {
 					ensurePatchCoherent(value, patches, atomic);
@@ -274,7 +269,7 @@ describe("record", () => {
 	it("patch coherent for record of atomics", () => {
 		fc.assert(
 			fc.property(
-				arbValueWithReplace(fc.integer({ min: -5, max: 5 })),
+				gp.atomic(fc.integer({ min: -5, max: 5 })),
 				arbRecord(),
 				({ value, patches }, rec) => {
 					ensurePatchCoherent(value, patches, rec);
@@ -288,7 +283,7 @@ describe("compose", () => {
 	it("compose from left to right", () => {
 		fc.assert(
 			fc.property(
-				arbValueWithReplace(anything()),
+				gp.atomic(anything()),
 				arbAtomic(),
 				arbAtomic(),
 				({ value, patches }, f1, f2) => {
@@ -303,7 +298,7 @@ describe("compose", () => {
 	it("patch coherent", () => {
 		fc.assert(
 			fc.property(
-				arbValuePatches(),
+				gp.valuePatches(),
 				arbAtomic(),
 				arbAtomic(),
 				({ value, patches }, f1, f2) => {
@@ -357,7 +352,8 @@ describe("access", () => {
 	it("patch coherent", () => {
 		fc.assert(
 			fc.property(
-				arbValuePatches()
+				gp
+					.valuePatches()
 					.filter(
 						({ value: x }) =>
 							x !== null &&
@@ -406,6 +402,15 @@ describe("arbIF", () => {
 });
 
 describe("GraphBuilder", () => {
+	type F3Args = [number, string, number[], number];
+	type F3Out = { input: number; str: string; arr: number[]; mod: number };
+	const f3: IF<F3Args, F3Out> = record({
+		input: atomicFunc<F3Args, number>(([input, str, arr, mod]) => input),
+		str: atomicFunc<F3Args, string>(([input, str, arr, mod]) => str),
+		arr: atomicFunc<F3Args, number[]>(([input, str, arr, mod]) => arr),
+		mod: atomicFunc<F3Args, number>(([input, str, arr, mod]) => mod),
+	});
+
 	const testCompose = IFGraphBuilder.empty<number>()
 		.add(
 			[] as const,
@@ -424,25 +429,13 @@ describe("GraphBuilder", () => {
 			atomicFunc(([input]: [number]) => input % 10),
 		)
 		.add(
-			[0, 1, 2],
-			record({
-				input: atomicFunc<[number, string, number[], number], number>(
-					([input, str, arr, mod]) => input,
-				),
-				str: atomicFunc<[number, string, number[], number], string>(
-					([input, str, arr, mod]) => str,
-				),
-				arr: atomicFunc<[number, string, number[], number], number[]>(
-					([input, str, arr, mod]) => arr,
-				),
-				mod: atomicFunc<[number, string, number[], number], number>(
-					([input, str, arr, mod]) => mod,
-				),
-			}),
+			[0, 1, 2] as const,
+			// TODO fix type error
+			f3,
 		)
 		.build();
 
-	describe("example", () => {
+	it("example", () => {
 		const input = 5;
 		const res = testCompose.invoke(input);
 		// console.log(res);
