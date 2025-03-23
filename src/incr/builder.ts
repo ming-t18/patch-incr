@@ -5,12 +5,11 @@ import {
 	type Patches,
 	type Path,
 	applyPatches,
-	combinePatches,
 	liftPatch,
 	reducePatches,
 	replacePatch,
 } from "./patch";
-import { type IF, type InferIFOutput, type Invoke, isIF } from "./types";
+import { type IF, type Invoke, isIF } from "./types";
 
 const _identity = <T>(x: T) => x;
 
@@ -55,16 +54,14 @@ export type FirstArg<T> = T extends (v: infer Arg, ...args: any[]) => any
 	? Arg
 	: never;
 
-export type InferRecordInput<Entries extends TupleOrRecord> = FirstArg<
-	{
-		[key in keyof Entries]: Entries[key] extends {
-			// biome-ignore lint/suspicious/noExplicitAny: used in infer
-			invoke: (arg: infer Input) => any;
-		}
-			? (_arg: Input) => unknown
-			: never;
-	}[keyof Entries]
->;
+export type InferRecordInput<Entries extends TupleOrRecord> = {
+	[key in keyof Entries]: Entries[key] extends {
+		// biome-ignore lint/suspicious/noExplicitAny: used in infer
+		invoke: (arg: infer Input) => any;
+	}
+		? Input
+		: never;
+}[keyof Entries];
 
 export type InferRecordOutput<Entries extends TupleOrRecord> = {
 	[key in keyof Entries]: Entries[key] extends {
@@ -75,27 +72,74 @@ export type InferRecordOutput<Entries extends TupleOrRecord> = {
 		: Entries[key];
 };
 
-export const compose = <Input, Interm, Output>(
-	f1: IF<Input, Interm>,
-	f2: IF<Interm, Output>,
-): IF<Input, [Output, Interm]> => {
+// biome-ignore lint/suspicious/noExplicitAny: for default type
+export interface StructuralChangeBuilder<Obj = any, P = Patches> {
+	fromReplace: (value: Obj) => P;
+	readonly empty: P;
+	liftIndex: (index: number, patch: P) => P;
+	liftKey: (key: string, patch: P) => P;
+	combine: (a: P, b: P) => P;
+}
+
+export const patchesBuilder: StructuralChangeBuilder<unknown, Patches> = {
+	fromReplace: <T>(value: T): Patches<T> => [
+		{ op: PatchOp.Replace, path: [], value },
+	],
+	empty: Object.freeze([]) as never,
+	combine: <T>(a: Patches<T>, b: Patches<T>): Patches<T> => [...a, ...b],
+	liftIndex: <T, I extends number = number>(
+		index: I,
+		p: Patches<T>,
+	): Patches<Record<I, T>> => liftPatch(index, p),
+	liftKey: <T, K extends string = string>(
+		key: K,
+		p: Patches<T>,
+	): Patches<Record<K, T>> => liftPatch(key, p),
+};
+
+export const compose = <
+	Input,
+	Interm,
+	Output,
+	InputChange,
+	IntermChange = Patches,
+	OutputChange = IntermChange,
+>(
+	f1: IF<Input, Interm, InputChange, IntermChange>,
+	f2: IF<Interm, Output, IntermChange, OutputChange>,
+	outBuilder = patchesBuilder as never as StructuralChangeBuilder<
+		unknown,
+		IntermChange | OutputChange
+	>,
+): IF<Input, [Output, Interm], InputChange, OutputChange> => {
 	return {
 		invoke: (x) => {
 			const v = f1.invoke(x);
 			return [f2.invoke(v), v];
 		},
-		forward: (input, change, [y, v]) => {
+		forward: (input, change, [y, v]): OutputChange => {
 			const dv = f1.forward(input, change, v);
 			const dy = f2.forward(v, dv, y);
-			return combinePatches(liftPatch(0, dy), liftPatch(1, dv));
+			return outBuilder.combine(
+				outBuilder.liftIndex(0, dy),
+				outBuilder.liftIndex(1, dv),
+			) as OutputChange;
 		},
 	};
 };
 
-export const record = <Input, Entries extends TupleOrRecord>(
+export const record = <
+	Entries extends TupleOrRecord,
+	Input = InferRecordInput<Entries>,
+	InputChange = Patches<Input>,
+	OutputChange = Patches<InferRecordOutput<Entries>>,
+>(
 	entries: Entries,
-	_inferInput?: ((x: Input) => unknown) | undefined,
-): IF<Input, InferRecordOutput<Entries>> => {
+	outBuilder = patchesBuilder as never as StructuralChangeBuilder<
+		unknown,
+		OutputChange
+	>,
+): IF<Input, InferRecordOutput<Entries>, InputChange, OutputChange> => {
 	const isTuple = Array.isArray(entries);
 	const keys = isTuple
 		? Array(entries.length)
@@ -108,7 +152,7 @@ export const record = <Input, Entries extends TupleOrRecord>(
 		for (const key of keys) {
 			// @ts-expect-error Can't be checked
 			const v = entries[key] as unknown;
-			o[key] = isIF(v) ? v.invoke(input) : v;
+			o[key] = isIF<Input, unknown, InputChange>(v) ? v.invoke(input) : v;
 		}
 		// @ts-expect-error Can't be checked
 		return o;
@@ -116,18 +160,24 @@ export const record = <Input, Entries extends TupleOrRecord>(
 
 	return {
 		invoke,
-		forward: (input, change, output) => {
-			const outChange: Patches = [];
+		forward: (input: Input, change: InputChange, output) => {
+			let outChange: OutputChange = outBuilder.empty;
 			for (const key of keys) {
 				// @ts-expect-error Can't be checked
 				const v = entries[key] as unknown;
-				if (!isIF(v)) {
+				if (!isIF<Input, unknown, InputChange>(v)) {
 					continue;
 				}
 
 				// @ts-expect-error Can't be checked
 				const outV = output[key] as never;
-				outChange.push(...liftPatch(key, v.forward(input, change, outV)));
+				const dv = v.forward(input, change, outV) as never;
+				outChange = outBuilder.combine(
+					outChange,
+					isTuple
+						? outBuilder.liftIndex(key as number, dv)
+						: outBuilder.liftKey(key as string, dv),
+				);
 			}
 			return outChange;
 		},

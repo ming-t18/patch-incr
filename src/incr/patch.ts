@@ -1,4 +1,6 @@
 import { applyPatches as applyPatchesImmer, enablePatches } from "immer";
+import type { HasType } from "typescript";
+import type { HasTypes } from "./typeHelpers";
 import type { Forward, Invoke } from "./types";
 enablePatches();
 
@@ -29,16 +31,14 @@ export interface PatchReplace<V = any> {
 	value: V;
 }
 
-export const __ApplyPatchInvariant = Symbol("__ApplyPatchInvariant");
-
-export type Targeted<T> = { [__ApplyPatchInvariant]?: (target: T) => T };
+export type Targeted<T> = HasTypes<"patchTarget", T>;
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export type PatchEntry<Target = any> = (PatchRemove | PatchAdd | PatchReplace) &
 	Targeted<Target>;
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-export type Patches<V = any> = PatchEntry<V>[];
+export type Patches<V = any> = PatchEntry<V>[] & Targeted<V>;
 
 export const isEmptyPatches = (entry: Patches) => {
 	return entry.length === 0;

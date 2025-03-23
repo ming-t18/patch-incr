@@ -252,11 +252,14 @@ const arbLiftPatches = <Input, T>(
 	arbKey: fc.Arbitrary<string | number>,
 	arbPatches: ArbPatches<Input>,
 ): ArbPatches<T> =>
-	fc.tuple(arbPatches, arbKey).map(([patches, key]) => {
-		const lifted = liftPatches(key, patches);
-		// console.log({ patches, lifted });
-		return lifted;
-	});
+	// @ts-expect-error can't be checked
+	fc
+		.tuple(arbPatches, arbKey)
+		.map(([patches, key]) => {
+			const lifted = liftPatches(key, patches);
+			// console.log({ patches, lifted });
+			return lifted;
+		});
 
 const arbRemovePatches = <T>(
 	arbKey: fc.Arbitrary<string | number>,
@@ -310,6 +313,7 @@ export const array = <T>(
 		}
 
 		const arbIndex = fc.integer({ min: 0, max: arr.length - 1 });
+		// @ts-expect-error can't be checked
 		const arbPatches: ArbPatches<T[]> = fc.oneof(
 			{
 				weight: 3,
@@ -339,6 +343,7 @@ export const record = <O extends Record<string, ArbWithPatches>>(
 ): ArbWithPatches<InferArbRecordType<O>> => {
 	return fc.record(arb).chain((obj): ArbWithPatches<InferArbRecordType<O>> => {
 		const arbKey = fc.constantFrom(...Object.keys(obj));
+		// @ts-expect-error can't be checked
 		const arbPatches: ArbPatches<InferArbRecordType<O>> = arbKey.chain(
 			(key) => {
 				const oneof: { weight: number; arbitrary: ArbPatches<never> }[] = [

@@ -1,6 +1,15 @@
 import { type Draft, enablePatches, produce, produceWithPatches } from "immer";
+import {
+	type DRO,
+	type ReplaceOnly,
+	maybeCombineDRO as combineDROUnion,
+	getDRO,
+	getReplaceOnly,
+	isReplaceOnly,
+	makeReplaceOnly,
+} from "../memo/replaceOnly";
 import type { Patches } from "./patch";
-import type { IF } from "./types";
+import type { ApplyCombine, IF } from "./types";
 enablePatches();
 
 export const fromReducerOnDraft = <State, Action>(
@@ -14,5 +23,39 @@ export const fromReducerOnDraft = <State, Action>(
 			});
 			return patches as never[] as Patches;
 		},
+	};
+};
+
+export const applyFromReducer = <State, Action>(
+	funcOnDraft: (draft: Draft<State>, action: Action) => void,
+): ApplyCombine<State, Action[] | DRO<State>> => {
+	const apply = (state: State, change: Action[] | DRO<State>): State => {
+		if (change === null || (Array.isArray(change) && change.length === 0)) {
+			return state;
+		}
+
+		if (isReplaceOnly(change)) {
+			return getReplaceOnly(change);
+		}
+
+		return produce(state, (draft) => {
+			for (const action of change) {
+				funcOnDraft(draft, action);
+			}
+		});
+	};
+	return {
+		empty: null,
+		apply,
+		fromReplace: makeReplaceOnly,
+		isEmpty: (xs) => xs === null || (Array.isArray(xs) && xs.length === 0),
+		isReplace: getDRO,
+		combine: (a, b) =>
+			combineDROUnion<State, Action[] | DRO<State>>(
+				a,
+				b,
+				(s, c) => makeReplaceOnly(apply(s, c)),
+				(a1, b1) => [...a1, ...b1],
+			),
 	};
 };
