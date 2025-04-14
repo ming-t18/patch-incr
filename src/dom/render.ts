@@ -1,6 +1,6 @@
 import { encode } from "he";
+import type { DP } from "../dual";
 import type { Patches } from "../incr/patch";
-import type { Forward } from "../incr/types";
 import type { Dispatch } from "./mount";
 import type {
 	AttrValue,
@@ -12,13 +12,9 @@ import type {
 } from "./types";
 
 export type RenderFunc<State, Action> = (
-	state: State,
+	state: DP<State, Patches>,
 	dispatch: Dispatch<Action>,
-) => ElementConstruction;
-
-export type RenderForward<State, Action> = (
-	dispatch: Dispatch<Action>,
-) => Forward<State, ElementConstruction, Action, Patches>;
+) => DP<ElementConstruction, Patches>;
 
 export const fromAttrValue = (x: AttrValue): string =>
 	typeof x === "string" ? x : `${x}`;

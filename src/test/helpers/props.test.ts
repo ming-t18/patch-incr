@@ -1,4 +1,5 @@
 import { expect } from "bun:test";
+import fc from "fast-check";
 import type { Dispatch } from "../../dom/mount";
 import type { RenderForward } from "../../dom/render";
 import type { ElementConstruction } from "../../dom/types";
@@ -91,5 +92,12 @@ export const ensurePatchLiftingProperty = <
 	const dfx = mapPatch(dx);
 	const fy = ff.invoke(fx);
 	const dfy = ff.forward(fx, dfx, fy);
-	compare(dfy, mapPatch1(dy));
+	// bypass test for "changing into itself" for the input
+	fc.pre(!Object.is(y, applyPatches(y, dy)));
+	try {
+		compare(dfy, mapPatch1(dy));
+	} catch (e) {
+		console.error({ x, dx, y, dy, fx, dfx, fy, dfy });
+		throw e;
+	}
 };

@@ -1,10 +1,13 @@
+import { forwardMapPatches, forwardScanPatches } from "./forwardList";
 import {
 	CannotReduce,
 	type PatchEntry,
 	PatchOp,
 	type Patches,
+	applyPatches,
 	liftPatch,
 	reducePatches,
+	replacePatch,
 	unliftPatch,
 } from "./patch";
 import type { IF } from "./types";
@@ -12,38 +15,12 @@ import type { IF } from "./types";
 export const map = <Input, Output>(
 	f: IF<Input, Output>,
 ): IF<Input[], Output[]> => {
-	const invoke = (xs: Input[]) => xs.map((x) => f.invoke(x));
+	const invokeMap = (xs: Input[]) => xs.map((x) => f.invoke(x));
+	const fmp = forwardMapPatches(f);
 	return {
-		invoke,
-		forward: reducePatches(invoke, (input, entry: PatchEntry, output) => {
-			const { path, op } = entry;
-			if (path.length === 0) {
-				return CannotReduce;
-			}
-
-			if (path.length === 1) {
-				if (op === PatchOp.Replace || op === PatchOp.Add) {
-					return [
-						{
-							...entry,
-							value: f.invoke(entry.value as Input),
-						},
-					];
-				}
-				if (op === PatchOp.Remove) {
-					return [entry];
-				}
-				throw new Error("Invalid op");
-			}
-
-			const index = entry.path[0];
-			const forwarded = f.forward(
-				input[index as number],
-				unliftPatch(index, [entry]),
-				output[index as number],
-			);
-			return liftPatch(index, forwarded);
-		}),
+		invoke: invokeMap,
+		forward: (xs, dxs, ys) =>
+			fmp(xs, dxs, ys) ?? replacePatch(invokeMap(applyPatches(xs, dxs))),
 	};
 };
 
@@ -51,23 +28,25 @@ export const scan = <T, Acc>(
 	func: (acc: Acc, value: T) => Acc,
 	init: Acc,
 ): IF<T[], Acc[]> => {
-	const invoke = (xs: T[]): Acc[] => {
-		const values = [init];
+	const invokeScan = (xs: T[], init0 = init): Acc[] => {
+		let acc = init0;
+		const values: Acc[] = [];
 		for (let i = 0; i < xs.length; i++) {
-			values.push(func(values[i], xs[i]));
+			acc = func(acc, xs[i]);
+			values.push(acc);
 		}
 		return values;
 	};
+	const fsp = forwardScanPatches(invokeScan);
 	return {
-		invoke,
-		forward: reducePatches(invoke, (input, entry, output) => {
-			return CannotReduce;
-		}),
+		invoke: invokeScan,
+		forward: (xs, dxs, ys) =>
+			fsp(xs, dxs, ys) ?? replacePatch(invokeScan(applyPatches(xs, dxs))),
 	};
 };
 
 export const concat = <T>(): IF<T[][], [number[], T[]]> => {
-	const invoke = (xs: T[][]): [number[], T[]] => {
+	const invokeConcat = (xs: T[][]): [number[], T[]] => {
 		const lens: number[] = [];
 		const combined: T[] = [];
 		for (let i = 0; i < xs.length; i++) {
@@ -77,8 +56,8 @@ export const concat = <T>(): IF<T[][], [number[], T[]]> => {
 		return [lens, combined];
 	};
 	return {
-		invoke,
-		forward: reducePatches(invoke, (input, entry, output) => {
+		invoke: invokeConcat,
+		forward: reducePatches(invokeConcat, (input, entry, output) => {
 			return CannotReduce;
 		}),
 	};

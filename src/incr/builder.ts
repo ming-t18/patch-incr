@@ -1,9 +1,11 @@
+import { doAccess, filterAccessPatches } from "../dual/access";
 import {
 	CannotReduce,
 	PatchBuilder,
 	PatchOp,
 	type Patches,
 	type Path,
+	type Targeted,
 	applyPatches,
 	liftPatch,
 	reducePatches,
@@ -72,30 +74,39 @@ export type InferRecordOutput<Entries extends TupleOrRecord> = {
 		: Entries[key];
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: for default type
-export interface StructuralChangeBuilder<Obj = any, P = Patches> {
-	fromReplace: (value: Obj) => P;
-	readonly empty: P;
-	liftIndex: (index: number, patch: P) => P;
-	liftKey: (key: string, patch: P) => P;
-	combine: (a: P, b: P) => P;
+export interface StructuralChangeBuilder<Obj = unknown, P = Patches> {
+	fromReplace: <R extends Obj>(value: R) => P & Targeted<R>;
+	readonly empty: P & Targeted<Obj>;
+	liftIndex: <R extends Obj, I extends number>(
+		index: I,
+		patch: P & Targeted<R>,
+	) => P & Targeted<Record<I, R>>;
+	liftKey: <R extends Obj, K extends string>(
+		key: K,
+		patch: P & Targeted<R>,
+	) => P & Targeted<Record<K, R>>;
+	combine: <R extends Obj>(
+		a: P & Targeted<R>,
+		b: P & Targeted<R>,
+	) => P & Targeted<R>;
 }
 
-export const patchesBuilder: StructuralChangeBuilder<unknown, Patches> = {
-	fromReplace: <T>(value: T): Patches<T> => [
-		{ op: PatchOp.Replace, path: [], value },
-	],
-	empty: Object.freeze([]) as never,
-	combine: <T>(a: Patches<T>, b: Patches<T>): Patches<T> => [...a, ...b],
-	liftIndex: <T, I extends number = number>(
-		index: I,
-		p: Patches<T>,
-	): Patches<Record<I, T>> => liftPatch(index, p),
-	liftKey: <T, K extends string = string>(
-		key: K,
-		p: Patches<T>,
-	): Patches<Record<K, T>> => liftPatch(key, p),
-};
+export const patchesBuilder: StructuralChangeBuilder<unknown & never, Patches> =
+	{
+		fromReplace: <T>(value: T): Patches<T> => [
+			{ op: PatchOp.Replace, path: [], value },
+		],
+		empty: Object.freeze([]) as never,
+		combine: <T>(a: Patches<T>, b: Patches<T>): Patches<T> => [...a, ...b],
+		liftIndex: <T, I extends number = number>(
+			index: I,
+			p: Patches<T>,
+		): Patches<Record<I, T>> => liftPatch(index, p),
+		liftKey: <T, K extends string = string>(
+			key: K,
+			p: Patches<T>,
+		): Patches<Record<K, T>> => liftPatch(key, p),
+	};
 
 export const compose = <
 	Input,
@@ -121,8 +132,8 @@ export const compose = <
 			const dv = f1.forward(input, change, v);
 			const dy = f2.forward(v, dv, y);
 			return outBuilder.combine(
-				outBuilder.liftIndex(0, dy),
-				outBuilder.liftIndex(1, dv),
+				outBuilder.liftIndex(0, dy as never),
+				outBuilder.liftIndex(1, dv as never) as never,
 			) as OutputChange;
 		},
 	};
@@ -173,7 +184,7 @@ export const record = <
 				const outV = output[key] as never;
 				const dv = v.forward(input, change, outV) as never;
 				outChange = outBuilder.combine(
-					outChange,
+					outChange as never,
 					isTuple
 						? outBuilder.liftIndex(key as number, dv)
 						: outBuilder.liftKey(key as string, dv),
@@ -191,31 +202,14 @@ export const access = <
 >(
 	key: Key,
 ): IF<Input, Output> => {
-	const invoke = (input: Input) => input[key];
+	const path = [key];
+	const invoke = (input: Input) => doAccess(input, path) as never;
 	return {
 		invoke,
 		// @ts-expect-error Can't be checked
-		forward: reducePatches(invoke, (_input, entry, _output) => {
-			const { path } = entry;
-			if (path.length === 0) {
-				return CannotReduce;
-			}
-
-			if (path[0] === key) {
-				if (entry.op === PatchOp.Replace && path.length === 1) {
-					return CannotReduce;
-				}
-
-				return [
-					{
-						...entry,
-						path: path.slice(1),
-					},
-				];
-			}
-
-			return [];
-		}),
+		forward: (input, change, _output) => {
+			return filterAccessPatches(path, input, change);
+		},
 	};
 };
 

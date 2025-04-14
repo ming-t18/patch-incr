@@ -6,11 +6,11 @@ export type ToRecord<T extends Record<string, DP>> = {
 };
 
 export const record =
-	<T extends Record<string, DP>, DT, DC = T[keyof T][1]>({
+	<T extends Record<string, DP>, DT>({
 		combine,
 		liftKey: lift,
 		empty,
-	}: StructuralChangeBuilder<T, DT>) =>
+	}: StructuralChangeBuilder<unknown, DT>) =>
 	(rec: T): DP<ToRecord<T>, DT> => {
 		const keys = Object.keys(rec);
 		return dp(
@@ -19,9 +19,6 @@ export const record =
 				o[k] = rec[k][0];
 				return o;
 			}, {} as T),
-			keys.reduce((d, k) => {
-				// @ts-expect-error indexing by key
-				return combine(d, lift(k, rec[k][1]));
-			}, empty),
+			keys.reduce((d, k) => combine(d, lift(k, rec[k][1])), empty),
 		);
 	};

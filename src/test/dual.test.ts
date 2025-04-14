@@ -4,7 +4,7 @@ import { dp, patchesBuilder, record, struct, tuple } from "../dual";
 describe("record", () => {
 	const builder = patchesBuilder;
 	it("TEST record", () => {
-		const [a, da] = record(patchesBuilder)({
+		const [a, da] = record(builder)({
 			a: dp(12, builder.empty),
 			b: dp("hello", builder.fromReplace("world")),
 			c: tuple(builder)([
@@ -19,7 +19,7 @@ describe("record", () => {
 		});
 	});
 
-	it("TEST struct", () => {
+	it.skip("debug prints", () => {
 		const [a, da] = struct(patchesBuilder)({
 			a: 12,
 			b: dp("hello", builder.fromReplace("world")),

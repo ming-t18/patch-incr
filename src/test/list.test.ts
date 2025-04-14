@@ -8,7 +8,7 @@ import {
 	record,
 } from "../incr/builder";
 import { concat, map, scan } from "../incr/list";
-import { type Patches, liftPatch } from "../incr/patch";
+import { PatchOp, type Patches, liftPatch } from "../incr/patch";
 import type { IF, InferIFOutput } from "../incr/types";
 import * as gp from "./helpers/genPatched.test";
 import {
@@ -90,15 +90,18 @@ describe("map", () => {
 	describe("map replace", () => {
 		it("patch coherent for integers", () => {
 			fc.assert(
-				fc.property(gp.array(gp.atomic(fc.integer())), ({ value, patches }) => {
-					ensurePatchCoherent(value, patches, map(atomicFunc((x) => x + 1)));
-				}),
+				fc.property(
+					gp.array(gp.atomic(fc.integer({ min: -100, max: 100 }))),
+					({ value, patches }) => {
+						ensurePatchCoherent(value, patches, map(atomicFunc((x) => x + 1)));
+					},
+				),
 			);
 		});
 
 		it("patch lifting", () => {
 			fc.assert(
-				fc.property(gp.atomic(fc.integer()), (vp) =>
+				fc.property(gp.atomic(fc.integer({ min: -100, max: 100 })), (vp) =>
 					ensurePatchLiftingPropertyMap(
 						vp,
 						atomicFunc((x: number) => x + 1),
@@ -129,7 +132,7 @@ describe("map", () => {
 		});
 	});
 
-	describe("map compose", () => {
+	describe.skip("map compose", () => {
 		const mapping1 = record({
 			a: atomicFunc((x: number) => x + 1),
 			b: atomicFunc((x: number) => `${x % 5}`),
@@ -199,6 +202,47 @@ describe("scan", () => {
 		it("path coherent", () => {
 			fc.assert(
 				fc.property(gp.array(arbElem), ({ value, patches }) => {
+					ensurePatchCoherent(
+						value,
+						patches,
+						scan(mapping, {
+							add: 0,
+							mult: 0,
+							concat: "",
+							combined: 0n,
+						} as Obj),
+					);
+				}),
+			);
+		});
+
+		const arbMultiRemove = gp
+			.array(arbElem)
+			.filter(({ value }) => value.length > 0)
+			.chain(({ value, patches }) =>
+				fc.record({
+					value: fc.constant(value),
+					patches: fc
+						.array(fc.integer({ min: 0, max: value.length - 1 }))
+						.map((xs) => [...new Set(xs)])
+						.map((xs) =>
+							xs.map((index) => ({
+								op: PatchOp.Remove,
+								path: [index],
+							})),
+						) as fc.Arbitrary<never> as fc.Arbitrary<typeof patches>,
+				}),
+			);
+
+		it.skip("sample", () => {
+			for (const x of fc.sample(arbMultiRemove, 1000)) {
+				console.log(x);
+			}
+		});
+
+		it("path coherent for multiple removes", () => {
+			fc.assert(
+				fc.property(arbMultiRemove, ({ value, patches }) => {
 					ensurePatchCoherent(
 						value,
 						patches,

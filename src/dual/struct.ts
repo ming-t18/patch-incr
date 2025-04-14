@@ -5,14 +5,6 @@ import type {
 } from "../incr/builder";
 import { type DP, dp, isDP } from "./types";
 
-const keys = <Obj extends TupleOrRecord, K extends keyof Obj>(xs: Obj) => {};
-
-type M1<T extends unknown[] | Record<string, unknown>> = {
-	[k in keyof T]: { value: T[k] };
-};
-
-type Test = M1<[string, number]>;
-
 export type StructReturnArray<T extends unknown[]> = T extends []
 	? []
 	: T extends [infer Head, infer Tail extends unknown[]]
@@ -38,7 +30,13 @@ export const struct = <T, DT>(builder: StructuralChangeBuilder<T, DT>) => {
 				obj.map((v) => (isDP(v) ? v[0] : sb(v)[0])) as never,
 				obj.reduce(
 					(d, v, i) =>
-						combine(d, liftIndex(i, (isDP(v) ? (v as never) : sb(v))[1])),
+						combine(
+							d,
+							liftIndex(
+								i,
+								(isDP(v) ? (v as never) : sb(v))[1] as never,
+							) as never,
+						),
 					empty,
 				),
 			);
@@ -57,7 +55,10 @@ export const struct = <T, DT>(builder: StructuralChangeBuilder<T, DT>) => {
 				keys.reduce((d, k) => {
 					// @ts-expect-error indexing by key
 					const v = obj[k];
-					return combine(d, liftKey(k, (isDP(v) ? v : sb(v))[1] as never));
+					return combine(
+						d,
+						liftKey(k, (isDP(v) ? v : sb(v))[1] as never) as never,
+					);
 				}, empty),
 			);
 		}
