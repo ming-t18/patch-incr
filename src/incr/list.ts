@@ -1,3 +1,4 @@
+import { makeReplaceOnly } from "../memo/replaceOnly";
 import { forwardMapPatches, forwardScanPatches } from "./forwardList";
 import {
 	CannotReduce,
@@ -42,6 +43,116 @@ export const scan = <T, Acc>(
 		invoke: invokeScan,
 		forward: (xs, dxs, ys) =>
 			fsp(xs, dxs, ys) ?? replacePatch(invokeScan(applyPatches(xs, dxs))),
+	};
+};
+
+export const filter = <T>(
+	pred: (value: T) => boolean,
+): IF<T[], [T[], number[]]> => {
+	const csum = scan(
+		(acc: number, value: T) => (pred(value) ? acc + 1 : acc),
+		0,
+	);
+	const invokeFilterLeft = (xs: T[]): T[] => {
+		return xs.filter(pred);
+	};
+	const invokeFilter = (xs: T[]): [T[], number[]] => {
+		return [xs.filter(pred), csum.invoke(xs)];
+	};
+	return {
+		invoke: invokeFilter,
+		forward: (xs, dxs, [ys, cys]) => {
+			const csumPatches = csum.forward(xs, dxs, cys);
+			const listPatches = reducePatches(
+				invokeFilterLeft,
+				(xs1, entry, _output) => {
+					if (entry.path.length === 0) {
+						return CannotReduce;
+					}
+
+					const index = entry.path[0];
+					if (typeof index !== "number") {
+						return CannotReduce;
+					}
+					const index1 = index === 0 ? 0 : cys[index - 1];
+
+					if (entry.path.length > 1) {
+						// internal change
+						const value = xs1[index];
+						const valueUpdated = applyPatches(
+							value,
+							unliftPatch(index, [entry]),
+						);
+						const prev = pred(value);
+						const next = pred(valueUpdated);
+						if (!prev && !next) {
+							return [];
+						}
+						if (prev && next) {
+							return [
+								{
+									...entry,
+									path: [index1, ...entry.path.slice(1)],
+								},
+							] as Patches<never>;
+						}
+						if (prev && !next) {
+							return [
+								{
+									op: PatchOp.Remove,
+									path: [index1],
+								},
+							] as Patches<never>;
+						}
+
+						// !prev && next
+						return [
+							{
+								op: PatchOp.Add,
+								path: [index1],
+								value: valueUpdated,
+							},
+						] as Patches<never>;
+					}
+
+					const { op } = entry;
+					if (op === PatchOp.Add) {
+						if (!pred(entry.value)) {
+							return [];
+						}
+					} else if (op === PatchOp.Remove) {
+						if (!pred(xs1[index])) {
+							return [];
+						}
+					} else if (op === PatchOp.Replace) {
+						const prev = pred(xs1[index]);
+						const next = pred(entry.value);
+						if (prev !== next) {
+							return [
+								{
+									op: next ? PatchOp.Add : PatchOp.Remove,
+									path: [index1],
+									value: entry.value,
+								},
+							] as Patches<never>;
+						}
+						if (!prev) {
+							return [];
+						}
+					}
+					return [
+						{
+							...entry,
+							path: [index1],
+						},
+					] as Patches<never>;
+				},
+			)(xs, dxs, ys);
+			return [
+				...liftPatch<[T[], number[]]>(0, listPatches),
+				...liftPatch<[T[], number[]]>(1, csumPatches),
+			];
+		},
 	};
 };
 

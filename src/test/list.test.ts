@@ -7,7 +7,7 @@ import {
 	identity,
 	record,
 } from "../incr/builder";
-import { concat, map, scan } from "../incr/list";
+import { concat, filter, map, scan } from "../incr/list";
 import { PatchOp, type Patches, liftPatch } from "../incr/patch";
 import type { IF, InferIFOutput } from "../incr/types";
 import * as gp from "./helpers/genPatched.test";
@@ -252,6 +252,69 @@ describe("scan", () => {
 							concat: "",
 							combined: 0n,
 						} as Obj),
+					);
+				}),
+			);
+		});
+	});
+});
+
+describe("filter", () => {
+	const arbElem0 = gp.atomic(fc.integer({ min: -100, max: 100 }));
+	describe("filter false", () => {
+		it("filter false is patch coherent", () => {
+			fc.assert(
+				fc.property(gp.array(arbElem0), ({ value, patches }) => {
+					ensurePatchCoherent(
+						value,
+						patches,
+						filter(() => false),
+					);
+				}),
+			);
+		});
+	});
+
+	describe("filter true", () => {
+		it("filter true is patch coherent", () => {
+			fc.assert(
+				fc.property(gp.array(arbElem0), ({ value, patches }) => {
+					ensurePatchCoherent(
+						value,
+						patches,
+						filter(() => true),
+					);
+				}),
+			);
+		});
+	});
+
+	describe("filter is even", () => {
+		it("filter is even is patch coherent", () => {
+			fc.assert(
+				fc.property(gp.array(arbElem0), ({ value, patches }) => {
+					ensurePatchCoherent(
+						value,
+						patches,
+						filter((x) => x % 2 === 0),
+					);
+				}),
+			);
+		});
+	});
+
+	describe("filter on record", () => {
+		const arbElem = gp.record({
+			str: gp.atomic(fc.string()),
+			num: gp.atomic(fc.integer({ min: -100, max: 100 })),
+		});
+		it("filter on record is patch coherent", () => {
+			fc.assert(
+				fc.property(gp.array(arbElem), ({ value, patches }) => {
+					ensurePatchCoherent(
+						value,
+						patches,
+						filter(({ str, num }) => (str.length + num) % 2 === 0),
 					);
 				}),
 			);

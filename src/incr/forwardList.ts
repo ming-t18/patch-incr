@@ -80,6 +80,9 @@ export const forwardScanPatches =
 			}
 
 			const index = patches[0].path[0];
+			if (index === "-") {
+				return null;
+			}
 			if (typeof index !== "number") {
 				throw new Error("index must be a number");
 			}
@@ -101,6 +104,9 @@ export const forwardScanPatches =
 		const reducedPatches: Patches<T[]> = [];
 		for (const patch of patches) {
 			const { path } = patch;
+			if (path[0] === "-") {
+				return null;
+			}
 			if (typeof path[0] !== "number") {
 				throw new TypeError("index must be a number");
 			}
@@ -116,7 +122,6 @@ export const forwardScanPatches =
 		}
 		const xsAfter = applyPatches(xs.slice(iInit), reducedPatches);
 		const rest = invokeScan(xsAfter, ys[iInit - 1]);
-		// TODO make splice patches
 		return [
 			...removePart,
 			...rest.map((value, i) => ({
