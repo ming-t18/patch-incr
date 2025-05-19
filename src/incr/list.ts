@@ -156,20 +156,96 @@ export const filter = <T>(
 	};
 };
 
-export const concat = <T>(): IF<T[][], [number[], T[]]> => {
-	const invokeConcat = (xs: T[][]): [number[], T[]] => {
-		const lens: number[] = [];
+export const concat = <T>(): IF<T[][], [T[], number[]]> => {
+	const csum = scan((acc: number, { length }: T[]) => acc + length, 0);
+	const invokeCombine = (xs: T[][]): T[] => {
 		const combined: T[] = [];
 		for (let i = 0; i < xs.length; i++) {
 			combined.push(...xs[i]);
-			lens.push(xs[i].length);
 		}
-		return [lens, combined];
+		return combined;
 	};
+	const invokeConcat = (xss: T[][]): [T[], number[]] => [
+		invokeCombine(xss),
+		csum.invoke(xss),
+	];
 	return {
 		invoke: invokeConcat,
-		forward: reducePatches(invokeConcat, (input, entry, output) => {
-			return CannotReduce;
-		}),
+		forward: (xs, dxs, [ys, cys]) => {
+			const csumPatches = csum.forward(xs, dxs, cys);
+			const listPatches = reducePatches(
+				invokeCombine,
+				(xs1, entry: PatchEntry<T[][]>, _output) => {
+					if (xs1.length === 0) {
+						return CannotReduce;
+					}
+
+					const path = entry.path;
+					if (path.length === 0) {
+						return CannotReduce;
+					}
+
+					const index = path[0];
+					if (typeof index !== "number") {
+						return CannotReduce;
+					}
+					const indexMapped = index === 0 ? 0 : cys[index - 1];
+					if (entry.path.length > 1) {
+						const off = path[index + 1];
+						if (typeof off !== "number") {
+							return CannotReduce;
+						}
+						const tail = path.slice(2);
+						return [
+							{
+								...entry,
+								path: [indexMapped + off, ...tail],
+							},
+						] as Patches<T[]>;
+					}
+
+					if (entry.op === PatchOp.Remove) {
+						const n = (xs[index] as T[]).length;
+						return Array(n)
+							.fill(null)
+							.map(() => ({
+								op: PatchOp.Remove,
+								path: [indexMapped],
+							})) as Patches<T[]>;
+					}
+
+					if (entry.op === PatchOp.Add) {
+						return [...entry.value].reverse().map((value: T) => ({
+							op: PatchOp.Add,
+							path: [indexMapped],
+							value,
+						})) as Patches<T[]>;
+					}
+
+					if (entry.op === PatchOp.Replace) {
+						const n = (xs[index] as T[]).length;
+						return [
+							...Array(n)
+								.fill(null)
+								.map(() => ({
+									op: PatchOp.Remove,
+									path: [indexMapped],
+								})),
+							...[...entry.value].reverse().map((value) => ({
+								op: PatchOp.Add,
+								path: [indexMapped],
+								value,
+							})),
+						] as Patches<T[]>;
+					}
+
+					return CannotReduce;
+				},
+			)(xs, dxs, ys);
+			return [
+				...liftPatch<[T[], number[]]>(0, listPatches),
+				...liftPatch<[T[], number[]]>(1, csumPatches),
+			];
+		},
 	};
 };

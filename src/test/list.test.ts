@@ -259,12 +259,38 @@ describe("scan", () => {
 	});
 });
 
+describe("concat", () => {
+	const arbElem0 = gp.atomic(fc.integer({ min: -100, max: 100 }));
+	it("concat is patch coherent", () => {
+		fc.assert(
+			fc.property(
+				gp.array(gp.array<number>(arbElem0)),
+				({ value, patches }) => {
+					ensurePatchCoherent(value, patches, concat());
+				},
+			),
+		);
+	});
+
+	const arbElem = gp.record({
+		str: gp.atomic(fc.string()),
+		num: gp.atomic(fc.integer({ min: -100, max: 100 })),
+	});
+	it("concat on record is patch coherent", () => {
+		fc.assert(
+			fc.property(gp.array(gp.array(arbElem)), ({ value, patches }) => {
+				ensurePatchCoherent(value, patches, concat());
+			}),
+		);
+	});
+});
+
 describe("filter", () => {
 	const arbElem0 = gp.atomic(fc.integer({ min: -100, max: 100 }));
 	describe("filter false", () => {
 		it("filter false is patch coherent", () => {
 			fc.assert(
-				fc.property(gp.array(arbElem0), ({ value, patches }) => {
+				fc.property(gp.array<number>(arbElem0), ({ value, patches }) => {
 					ensurePatchCoherent(
 						value,
 						patches,
@@ -278,7 +304,7 @@ describe("filter", () => {
 	describe("filter true", () => {
 		it("filter true is patch coherent", () => {
 			fc.assert(
-				fc.property(gp.array(arbElem0), ({ value, patches }) => {
+				fc.property(gp.array<number>(arbElem0), ({ value, patches }) => {
 					ensurePatchCoherent(
 						value,
 						patches,
@@ -292,7 +318,7 @@ describe("filter", () => {
 	describe("filter is even", () => {
 		it("filter is even is patch coherent", () => {
 			fc.assert(
-				fc.property(gp.array(arbElem0), ({ value, patches }) => {
+				fc.property(gp.array<number>(arbElem0), ({ value, patches }) => {
 					ensurePatchCoherent(
 						value,
 						patches,
