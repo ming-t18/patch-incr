@@ -20,13 +20,11 @@ export type InferArb<T extends Arbitrary<any>> = T extends {
 	? V
 	: never;
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-export type WithPatches<T = any> = { value: T; patches: Patches<T> };
+export type WithPatches<T = unknown> = { value: T; patches: Patches<T> };
 
 export type InferArbValue<T extends ArbWithPatches> = InferArb<T>["value"];
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-export type ArbWithPatches<T = any> = Arbitrary<WithPatches<T>>;
+export type ArbWithPatches<T = unknown> = Arbitrary<WithPatches<T>>;
 
 export const cleanUpKeys = (x: unknown): unknown => {
 	if (x === null || typeof x !== "object") {
