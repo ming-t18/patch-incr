@@ -1,12 +1,7 @@
 import fc from "fast-check";
 import { applyPatches } from "immer";
-import {
-	IFGraphBuilder,
-	access,
-	atomicFunc,
-	identity,
-	record,
-} from "../incr/builder";
+import { access, atomicFunc, identity, record } from "../incr/builder";
+import { IFGraphBuilder } from "../incr/graphBuilder";
 import { concat, filter, flatMap, map, scan } from "../incr/list";
 import { PatchOp, type Patches, liftPatch } from "../incr/patch";
 import type { IF, InferIFOutput } from "../incr/types";

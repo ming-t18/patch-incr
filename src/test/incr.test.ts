@@ -1,6 +1,5 @@
 import fc, { anything } from "fast-check";
 import {
-	IFGraphBuilder,
 	access,
 	atomicFunc,
 	constant,
@@ -8,6 +7,7 @@ import {
 	record,
 } from "../incr/builder";
 import { compose } from "../incr/compose";
+import { IFGraphBuilder } from "../incr/graphBuilder";
 import {
 	PatchBuilder,
 	type Path,

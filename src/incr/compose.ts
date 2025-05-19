@@ -2,6 +2,18 @@ import { type StructuralChangeBuilder, patchesBuilder } from "./builder";
 import type { Patches } from "./patch";
 import type { IF, IFInv } from "./types";
 
+/**
+ * Incremental function composition
+ */
+
+/**
+ *
+ * @param f1
+ * @param f2
+ * @param outBuilder
+ * @returns
+ */
+
 export const compose = <
 	Input,
 	Interm,
@@ -49,6 +61,40 @@ export const composeNoInterm = <
 		invoke: (x) => f2.invoke(f1.invoke(x)),
 		forward: (input, change, y): OutputChange => {
 			const v: Interm = f2.inverseInvoke(y);
+			const dv = f1.forward(input, change, v);
+			return f2.forward(v, dv, y);
+		},
+	};
+};
+
+export const composeMemo = <
+	Input,
+	Interm,
+	Output,
+	InputChange,
+	IntermChange = Patches<Interm>,
+	OutputChange = Patches<Output>,
+>(
+	f1: IF<Input, Interm, InputChange, IntermChange>,
+	f2: IF<Interm, Output, IntermChange, OutputChange>,
+	memo: Map<Input, Interm>,
+	outBuilder = patchesBuilder as never as StructuralChangeBuilder<
+		unknown,
+		IntermChange | OutputChange
+	>,
+): IF<Input, Output, InputChange, OutputChange> => {
+	const invoke1 = (x: Input): Interm => {
+		if (memo.has(x)) {
+			return memo.get(x) as Interm;
+		}
+		const v = f1.invoke(x);
+		memo.set(x, v);
+		return v;
+	};
+	return {
+		invoke: (x: Input): Output => f2.invoke(invoke1(x)),
+		forward: (input, change, y): OutputChange => {
+			const v = invoke1(input);
 			const dv = f1.forward(input, change, v);
 			return f2.forward(v, dv, y);
 		},
