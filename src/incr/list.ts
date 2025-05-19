@@ -1,5 +1,7 @@
 import { makeReplaceOnly } from "../memo/replaceOnly";
-import { IFGraphBuilder, compose, composeNoInterm } from "./builder";
+import { IFGraphBuilder } from "./builder";
+import { composeNoInterm } from "./compose";
+import { compose } from "./compose";
 import { forwardMapPatches, forwardScanPatches } from "./forwardList";
 import {
 	CannotReduce,

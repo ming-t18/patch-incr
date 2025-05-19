@@ -3,11 +3,11 @@ import {
 	IFGraphBuilder,
 	access,
 	atomicFunc,
-	compose,
 	constant,
 	identity,
 	record,
 } from "../incr/builder";
+import { compose } from "../incr/compose";
 import {
 	PatchBuilder,
 	type Path,
