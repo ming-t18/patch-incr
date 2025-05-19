@@ -1,7 +1,6 @@
 import { doAccess, filterAccessPatches } from "../dual/access";
 import {
 	CannotReduce,
-	PatchBuilder,
 	PatchOp,
 	type Patches,
 	type Path,
@@ -15,17 +14,30 @@ import { type IF, type Invoke, isIF } from "./types";
 
 const _identity = <T>(x: T) => x;
 
-export const identity = <Input>(): IF<Input, Input> => {
+export const identity = <Input, Change = Patches<Input>>(): IF<
+	Input,
+	Input,
+	Change,
+	Change
+> => {
 	return {
 		invoke: _identity,
 		forward: (_1, d, _2) => d,
 	};
 };
 
-export const constant = <T, Input = unknown>(value: T): IF<Input, T> => {
+export const constant = <
+	T,
+	Input = unknown,
+	InputChange = Patches<Input>,
+	OutputChange = Patches<T>,
+>(
+	value: T,
+	empty = [] as OutputChange,
+): IF<Input, T, InputChange, OutputChange> => {
 	return {
 		invoke: (_: Input) => value,
-		forward: (_1, _2, _3) => [],
+		forward: (_1, _2, _3) => empty,
 	};
 };
 
