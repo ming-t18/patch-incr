@@ -11,7 +11,7 @@ import {
 	reducePatches,
 	replacePatch,
 } from "./patch";
-import { type IF, type Invoke, isIF } from "./types";
+import { type IF, type IFInv, type Invoke, isIF } from "./types";
 
 const _identity = <T>(x: T) => x;
 
@@ -113,8 +113,9 @@ export const compose = <
 	Interm,
 	Output,
 	InputChange,
-	IntermChange = Patches,
-	OutputChange = IntermChange,
+	IntermChange = Patches<Interm>,
+	OutputChange = Patches<Output>,
+	ComposeOutputChange = Patches<[Output, Interm]>,
 >(
 	f1: IF<Input, Interm, InputChange, IntermChange>,
 	f2: IF<Interm, Output, IntermChange, OutputChange>,
@@ -122,19 +123,40 @@ export const compose = <
 		unknown,
 		IntermChange | OutputChange
 	>,
-): IF<Input, [Output, Interm], InputChange, OutputChange> => {
+): IF<Input, [Output, Interm], InputChange, ComposeOutputChange> => {
 	return {
-		invoke: (x) => {
+		invoke: (x: Input): [Output, Interm] => {
 			const v = f1.invoke(x);
 			return [f2.invoke(v), v];
 		},
-		forward: (input, change, [y, v]): OutputChange => {
+		forward: (input, change, [y, v]): ComposeOutputChange => {
 			const dv = f1.forward(input, change, v);
 			const dy = f2.forward(v, dv, y);
 			return outBuilder.combine(
-				outBuilder.liftIndex(0, dy as never),
+				outBuilder.liftIndex(0, dy as never) as never,
 				outBuilder.liftIndex(1, dv as never) as never,
-			) as OutputChange;
+			) as ComposeOutputChange;
+		},
+	};
+};
+
+export const composeNoInterm = <
+	Input,
+	Interm,
+	Output,
+	InputChange = Patches<Input>,
+	IntermChange = Patches<Interm>,
+	OutputChange = Patches<Output>,
+>(
+	f1: IF<Input, Interm, InputChange, IntermChange>,
+	f2: IFInv<Interm, Output, IntermChange, OutputChange>,
+): IF<Input, Output, InputChange, OutputChange> => {
+	return {
+		invoke: (x) => f2.invoke(f1.invoke(x)),
+		forward: (input, change, y): OutputChange => {
+			const v: Interm = f2.inverseInvoke(y);
+			const dv = f1.forward(input, change, v);
+			return f2.forward(v, dv, y);
 		},
 	};
 };

@@ -7,7 +7,7 @@ import {
 	identity,
 	record,
 } from "../incr/builder";
-import { concat, filter, map, scan } from "../incr/list";
+import { concat, filter, flatMap, map, scan } from "../incr/list";
 import { PatchOp, type Patches, liftPatch } from "../incr/patch";
 import type { IF, InferIFOutput } from "../incr/types";
 import * as gp from "./helpers/genPatched.test";
@@ -259,8 +259,13 @@ describe("scan", () => {
 	});
 });
 
+const arbElem0 = gp.atomic(fc.integer({ min: -100, max: 100 }));
+const arbElem = gp.record({
+	str: gp.atomic(fc.string()),
+	num: gp.atomic(fc.integer({ min: -100, max: 100 })),
+});
+
 describe("concat", () => {
-	const arbElem0 = gp.atomic(fc.integer({ min: -100, max: 100 }));
 	it("concat is patch coherent", () => {
 		fc.assert(
 			fc.property(
@@ -286,7 +291,6 @@ describe("concat", () => {
 });
 
 describe("filter", () => {
-	const arbElem0 = gp.atomic(fc.integer({ min: -100, max: 100 }));
 	describe("filter false", () => {
 		it("filter false is patch coherent", () => {
 			fc.assert(
@@ -330,10 +334,6 @@ describe("filter", () => {
 	});
 
 	describe("filter on record", () => {
-		const arbElem = gp.record({
-			str: gp.atomic(fc.string()),
-			num: gp.atomic(fc.integer({ min: -100, max: 100 })),
-		});
 		it("filter on record is patch coherent", () => {
 			fc.assert(
 				fc.property(gp.array(arbElem), ({ value, patches }) => {
@@ -346,4 +346,84 @@ describe("filter", () => {
 			);
 		});
 	});
+});
+
+describe("flatMap", () => {
+	const arbElem0 = gp.atomic(fc.integer({ min: 0, max: 100 }));
+
+	describe("flatMap on atomic values", () => {
+		it("flatMap is patch coherent", () => {
+			fc.assert(
+				fc.property(gp.array(arbElem0), ({ value, patches }) => {
+					ensurePatchCoherent(
+						value,
+						patches,
+						flatMap(
+							atomicFunc((x) =>
+								Array(x)
+									.fill(null)
+									.map((i) => i + 2),
+							),
+						),
+					);
+				}),
+			);
+		});
+	});
+
+	describe("flatMap on record values", () => {
+		it("flatMap is patch coherent", () => {
+			fc.assert(
+				fc.property(gp.array(arbElem), ({ value, patches }) => {
+					ensurePatchCoherent(
+						value,
+						patches,
+						flatMap(
+							atomicFunc((x) =>
+								Array(3 + (x.num % 2) + (x.str.length % 100))
+									.fill(null)
+									.map((i) => i + 2),
+							),
+						),
+					);
+				}),
+			);
+		});
+	});
+
+	it("filter can be expressed in terms of flatMap", () => {
+		const pred = ({ str, num }: gp.InferArbValue<typeof arbElem>) =>
+			str.length + (num % 2) === 0;
+		fc.assert(
+			fc.property(gp.array(arbElem), ({ value, patches }) => {
+				expect(
+					flatMap(
+						atomicFunc((x: gp.InferArbValue<typeof arbElem>) =>
+							pred(x) ? [x] : [],
+						),
+					).invoke(value)[0],
+				).toEqual(filter(pred).invoke(value)[0]);
+			}),
+		);
+	});
+
+	// const arbEntry = gp.record({
+	// 	id: gp.atomic(fc.string()),
+	// 	value: gp.atomic(fc.integer({ min: 0, max: 100 })),
+	// 	numbers: gp.array<number>(gp.atomic(fc.integer({ min: 0, max: 100 }))),
+	// });
+	// type Entry = gp.InferArbValue<typeof arbEntry>;
+	// // ({ value, numbers }) => numbers.filter(n => n > value)
+	// // ({ value, numbers }) => memo([value], (value) => (n => n > value), (cb) => numbers.filter(cb))
+	// const mapper: () => IF<Entry, [number[], number[]]> = compose(
+	// 	access('value')
+	// )
+
+	// it("complex example: join a filter", () => {
+	// 	fc.assert(
+	// 		fc.property(gp.array(arbEntry), ({ value, patches }) => {
+	// 			const fn = flatMap();
+	// 		}),
+	// 	);
+	// })
 });

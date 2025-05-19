@@ -1,4 +1,5 @@
 import { makeReplaceOnly } from "../memo/replaceOnly";
+import { IFGraphBuilder, compose, composeNoInterm } from "./builder";
 import { forwardMapPatches, forwardScanPatches } from "./forwardList";
 import {
 	CannotReduce,
@@ -11,6 +12,7 @@ import {
 	replacePatch,
 	unliftPatch,
 } from "./patch";
+import { assocLeft, assocRight } from "./tuple";
 import type { IF } from "./types";
 
 export const map = <Input, Output>(
@@ -248,4 +250,11 @@ export const concat = <T>(): IF<T[][], [T[], number[]]> => {
 			];
 		},
 	};
+};
+
+export const flatMap = <Input, Output>(
+	func: IF<Input, Output[]>,
+): IF<Input[], [Output[], [number[], Output[][]]]> => {
+	const composed = compose(map(func), concat());
+	return composeNoInterm(composed, assocRight());
 };
