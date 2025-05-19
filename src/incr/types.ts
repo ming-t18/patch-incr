@@ -62,6 +62,17 @@ export type IF<
 	OutputChange = Patches<Output>,
 > = IncrementalFunction<Input, Output, InputChange, OutputChange>;
 
+export interface InverseInvoke<Input, Output> {
+	inverseInvoke: (output: Output) => Input;
+}
+
+export type IFInv<
+	Input,
+	Output,
+	InputChange = Patches<Input>,
+	OutputChange = Patches<Output>,
+> = IF<Input, Output, InputChange, OutputChange> & InverseInvoke<Input, Output>;
+
 // biome-ignore lint/suspicious/noExplicitAny: used on constraints
 export type AnyIF = IF<any, any, any, any>;
 

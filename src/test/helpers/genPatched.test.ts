@@ -271,6 +271,26 @@ const arbRemovePatches = <T>(
 		},
 	]);
 
+const arbReplacePatches = <Input, T>(
+	arbKey: fc.Arbitrary<string | number>,
+	arb: ArbWithPatches<Input>,
+): ArbPatches<T> =>
+	fc
+		.tuple(
+			arb.map((x) => x.value),
+			arbKey,
+		)
+		.map(
+			([value, i]) =>
+				[
+					{
+						op: PatchOp.Replace,
+						path: [i],
+						value,
+					},
+				] as Patches,
+		);
+
 const arbAddReplacePatches = <Input, T>(
 	arbKey: fc.Arbitrary<string | number>,
 	arb: ArbWithPatches<Input>,
@@ -337,6 +357,10 @@ export type InferArbRecordType<O extends Record<string, ArbWithPatches>> = {
 	[key in keyof O]: InferArbValue<O[key]>;
 };
 
+export type InferArbTupleType<O extends ArbWithPatches[]> = {
+	[key in keyof O]: InferArbValue<O[key]>;
+};
+
 export const record = <O extends Record<string, ArbWithPatches>>(
 	arb: O,
 	allowDelete?: string[],
@@ -379,4 +403,40 @@ export const record = <O extends Record<string, ArbWithPatches>>(
 
 		return makeArbWithPatches(fc.constant(obj1), arbPatches);
 	});
+};
+
+export const tuple = <O extends ArbWithPatches[]>(
+	...arbs: O
+): ArbWithPatches<InferArbTupleType<O>> => {
+	const idxs = Array(arbs.length)
+		.fill(null)
+		.map((_, i) => i) as never[] as (number & keyof O)[];
+	return fc
+		.tuple(...arbs)
+		.chain((tup): ArbWithPatches<InferArbTupleType<O>> => {
+			const arbKey = fc.constantFrom(...idxs);
+			// @ts-expect-error can't be checked
+			const arbPatches: ArbPatches<InferArbTupleType<O>> = arbKey.chain(
+				(key) => {
+					const oneof: { weight: number; arbitrary: ArbPatches<never> }[] = [
+						{
+							weight: 3,
+							arbitrary: fc.constant(liftPatches(key, tup[key].patches)),
+						},
+						{
+							weight: 1,
+							arbitrary: arbReplacePatches<never, never>(
+								fc.constant(key),
+								fc.constant(tup[key] as never),
+							),
+						},
+					];
+
+					return fc.oneof(...oneof) as ArbPatches<unknown>;
+				},
+			);
+
+			const tup1 = idxs.map((i) => tup[i].value) as InferArbTupleType<O>;
+			return makeArbWithPatches(fc.constant(tup1), arbPatches);
+		});
 };
