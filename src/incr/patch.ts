@@ -1,5 +1,4 @@
 import { applyPatches as applyPatchesImmer, enablePatches } from "immer";
-import type { HasType } from "typescript";
 import type { HasTypes } from "./typeHelpers";
 import type { Forward, Invoke } from "./types";
 enablePatches();
@@ -215,17 +214,56 @@ export const applyPatches = <T>(value: T, patches: Patches): T => {
 };
 export const CannotReduce = Symbol("CannotReduce");
 
+const isReplaceRoot = <T>(
+	entry: PatchEntry<T>,
+): entry is { op: PatchOp.Replace; value: T; path: [] } => {
+	return entry.op === PatchOp.Replace && entry.path.length === 0;
+};
+
+/**
+ * If the patches contains a replace root, simplify it into the replacement value.
+ */
+export const reduceReplaceRoot = <T>(
+	patches: PatchEntry<T>[],
+): { replace: T } | PatchEntry<T>[] => {
+	if (patches.length === 0) {
+		return patches;
+	}
+
+	const hasReplaceRoot = patches.findIndex(isReplaceRoot);
+	if (hasReplaceRoot !== -1) {
+		const patches1 = patches.slice(hasReplaceRoot);
+		// @ts-expect-error selected entry is not Remove
+		const initValue: T = patches[hasReplaceRoot].value;
+		return { replace: applyPatches(initValue, patches1) };
+	}
+	return patches;
+};
+
+export type ReduceEntry<Input, Output> = (
+	input: Input,
+	entry: PatchEntry,
+	output: Output,
+) => Patches | typeof CannotReduce;
+
 export const reducePatches =
 	<Input, Output>(
 		invoke: Invoke<Input, Output>,
-		reduceEntry: (
-			input: Input,
-			entry: PatchEntry,
-			output: Output,
-		) => Patches | typeof CannotReduce,
+		reduceEntry: ReduceEntry<Input, Output>,
 	): Forward<Input, Output> =>
-	(input: Input, patches: Patches, output: Output) =>
-		patches.reduce(
+	(input: Input, patches: Patches, output: Output) => {
+		let patches1 = patches;
+		const res = reduceReplaceRoot(patches);
+		if ("replace" in res) {
+			patches1 = [
+				{
+					op: PatchOp.Replace,
+					path: [],
+					value: res.replace,
+				},
+			] as Patches<Input>;
+		}
+		return patches1.reduce(
 			({ input, patches, output }, entry: PatchEntry) => {
 				const res = reduceEntry(input, entry, output);
 				const input1 = applyPatches(input, [entry]);
@@ -255,3 +293,4 @@ export const reducePatches =
 				output,
 			},
 		).patches;
+	};

@@ -1,6 +1,7 @@
 import { doAccess, filterAccessPatches } from "../dual/access";
 import {
 	CannotReduce,
+	type PatchEntry,
 	PatchOp,
 	type Patches,
 	type Path,
@@ -86,7 +87,8 @@ export type InferRecordOutput<Entries extends TupleOrRecord> = {
 		: Entries[key];
 };
 
-export interface StructuralChangeBuilder<Obj = unknown, P = Patches> {
+// biome-ignore lint/suspicious/noExplicitAny: PatchEntry
+export interface StructuralChangeBuilder<Obj = unknown, P = PatchEntry<any>[]> {
 	fromReplace: <R extends Obj>(value: R) => P & Targeted<R>;
 	readonly empty: P & Targeted<Obj>;
 	liftIndex: <R extends Obj, I extends number>(
@@ -103,22 +105,22 @@ export interface StructuralChangeBuilder<Obj = unknown, P = Patches> {
 	) => P & Targeted<R>;
 }
 
-export const patchesBuilder: StructuralChangeBuilder<unknown & never, Patches> =
-	{
-		fromReplace: <T>(value: T): Patches<T> => [
-			{ op: PatchOp.Replace, path: [], value },
-		],
-		empty: Object.freeze([]) as never,
-		combine: <T>(a: Patches<T>, b: Patches<T>): Patches<T> => [...a, ...b],
-		liftIndex: <T, I extends number = number>(
-			index: I,
-			p: Patches<T>,
-		): Patches<Record<I, T>> => liftPatch(index, p),
-		liftKey: <T, K extends string = string>(
-			key: K,
-			p: Patches<T>,
-		): Patches<Record<K, T>> => liftPatch(key, p),
-	};
+// biome-ignore lint/suspicious/noExplicitAny: Patch type
+export const patchesBuilder: StructuralChangeBuilder<any, Patches> = {
+	fromReplace: <T>(value: T): Patches<T> => [
+		{ op: PatchOp.Replace, path: [], value },
+	],
+	empty: Object.freeze([]) as never,
+	combine: <T>(a: Patches<T>, b: Patches<T>): Patches<T> => [...a, ...b],
+	liftIndex: <T, I extends number = number>(
+		index: I,
+		p: Patches<T>,
+	): Patches<Record<I, T>> => liftPatch(index, p),
+	liftKey: <T, K extends string = string>(
+		key: K,
+		p: Patches<T>,
+	): Patches<Record<K, T>> => liftPatch(key, p),
+};
 
 export const record = <
 	Entries extends TupleOrRecord,

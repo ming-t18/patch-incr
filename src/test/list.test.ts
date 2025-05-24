@@ -1,6 +1,9 @@
 import fc from "fast-check";
 import { applyPatches } from "immer";
+import { IncrCache } from "../cache/incr_cache";
+import { bind } from "../incr/bind";
 import { access, atomicFunc, identity, record } from "../incr/builder";
+import { MemoComposer, composeMemo } from "../incr/compose";
 import { IFGraphBuilder } from "../incr/graphBuilder";
 import { concat, filter, flatMap, map, scan } from "../incr/list";
 import { PatchOp, type Patches, liftPatch } from "../incr/patch";
@@ -410,11 +413,16 @@ describe("flatMap", () => {
 	// type Entry = gp.InferArbValue<typeof arbEntry>;
 	// // ({ value, numbers }) => numbers.filter(n => n > value)
 	// // ({ value, numbers }) => memo([value], (value) => (n => n > value), (cb) => numbers.filter(cb))
-	// const mapper: () => IF<Entry, [number[], number[]]> = compose(
-	// 	access('value')
+	// const mapper: () => IF<Entry, [number[], number[]]> = () => bind(
+	// 	(x: Entry) => x.value,
+	// 	(value: number) => MemoComposer
+	// 		.create(access<number[], 'numbers', Entry>('numbers'))
+	// 		.compose(filter((n: number) => n > value))
+	// 		.build(),
+	// 	new IncrCache(),
 	// )
 
-	// it("complex example: join a filter", () => {
+	// it.skip("complex example: join a filter", () => {
 	// 	fc.assert(
 	// 		fc.property(gp.array(arbEntry), ({ value, patches }) => {
 	// 			const fn = flatMap();
