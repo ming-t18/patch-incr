@@ -11,22 +11,22 @@ export enum PatchOp {
 	Replace = "replace",
 }
 
-export interface PatchRemove {
+export interface PatchRemove<P = Path> {
 	op: PatchOp.Remove;
-	path: Path;
+	path: P;
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-export interface PatchAdd<V = any> {
+export interface PatchAdd<V = any, P = Path> {
 	op: PatchOp.Add;
-	path: Path;
+	path: P;
 	value: V;
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-export interface PatchReplace<V = any> {
+export interface PatchReplace<V = any, P = Path> {
 	op: PatchOp.Replace;
-	path: Path;
+	path: P;
 	value: V;
 }
 

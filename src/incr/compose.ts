@@ -1,3 +1,4 @@
+import { type CacheWrite, IncrCache } from "../cache/incr_cache";
 import { type StructuralChangeBuilder, patchesBuilder } from "./builder";
 import type { Patches } from "./patch";
 import type { IF, IFInv } from "./types";
@@ -77,7 +78,7 @@ export const composeMemo = <
 >(
 	f1: IF<Input, Interm, InputChange, IntermChange>,
 	f2: IF<Interm, Output, IntermChange, OutputChange>,
-	memo: Map<Input, Interm>,
+	memo: CacheWrite<Input, Interm>,
 	outBuilder = patchesBuilder as never as StructuralChangeBuilder<
 		unknown,
 		IntermChange | OutputChange
@@ -100,3 +101,21 @@ export const composeMemo = <
 		},
 	};
 };
+
+export class MemoComposer<A, B> {
+	constructor(public readonly func: IF<A, B>) {}
+
+	static create<A, B>(func: IF<A, B>): MemoComposer<A, B> {
+		return new MemoComposer(func);
+	}
+
+	compose<C>(func1: IF<B, C>): MemoComposer<A, C> {
+		return new MemoComposer(
+			composeMemo(this.func, func1, new IncrCache<A, B>()),
+		);
+	}
+
+	build(): IF<A, B> {
+		return this.func;
+	}
+}

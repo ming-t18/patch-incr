@@ -1,4 +1,45 @@
+import type { Patches } from "../incr/patch";
+import type { IF } from "../incr/types";
+
 export type Equals<Key> = (a: Key, b: Key) => boolean;
+
+export interface CacheWrite<Key, Value>
+	extends Pick<Map<Key, Value>, "get" | "has"> {
+	set(key: Key, value: Value): void;
+}
+
+export const withCache =
+	<Input, Output>(
+		func: (value: Input) => Output,
+		cache: CacheWrite<Input, Output>,
+	) =>
+	(input: Input) => {
+		if (cache.has(input)) {
+			return cache.get(input) as Output;
+		}
+		const y = func(input);
+		cache.set(input, y);
+		return y;
+	};
+
+// TODO implement this
+export const withMemoPair = <Input, Output, Interm>(
+	func: IF<Input, [Output, Interm]>,
+	cache: CacheWrite<Input, [Output, Interm]>,
+): IF<Input, Output> => {
+	const invoke1 = withCache(func.invoke, new IncrCache());
+	return {
+		invoke: (x: Input) => invoke1(x)[0],
+		forward: (
+			input: Input,
+			dx: Patches<Input>,
+			output: Output,
+		): Patches<Output> => {
+			const interm = invoke1(input)[1];
+			throw new Error("TODO");
+		},
+	};
+};
 
 export class SingleCache<Key, Value> implements Map<Key, Value> {
 	#eq: Equals<Key>;
@@ -99,7 +140,7 @@ export const isWeakKey = (key: unknown): key is WeakKey => {
 	return (key !== null && typeof key === "symbol") || typeof key === "object";
 };
 
-export class IncrCache<Key, Value> {
+export class IncrCache<Key, Value> implements CacheWrite<Key, Value> {
 	readonly #cache: SingleCache<Key, Value>;
 	readonly #weakMap: WeakMap<WeakKey, Value>;
 

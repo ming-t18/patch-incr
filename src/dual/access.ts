@@ -1,5 +1,3 @@
-import { truncate } from "lodash-es";
-import { patchesBuilder } from "../incr/builder";
 import {
 	type PatchEntry,
 	PatchOp,

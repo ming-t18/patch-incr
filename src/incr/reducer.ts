@@ -1,15 +1,14 @@
 import { type Draft, enablePatches, produce, produceWithPatches } from "immer";
+import type { ApplyCombine, DRO } from "../algebra";
 import {
-	type DRO,
-	type ReplaceOnly,
 	maybeCombineDRO as combineDROUnion,
 	getDRO,
 	getReplaceOnly,
 	isReplaceOnly,
 	makeReplaceOnly,
-} from "../memo/replaceOnly";
+} from "../algebra/replaceOnly";
 import type { Patches } from "./patch";
-import type { ApplyCombine, IF } from "./types";
+import type { IF } from "./types";
 enablePatches();
 
 export const fromReducerOnDraft = <State, Action>(

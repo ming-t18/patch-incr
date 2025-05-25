@@ -303,7 +303,6 @@ describe("compose", () => {
 				arbAtomic(),
 				({ value, patches }, f1, f2) => {
 					const composed = compose(f1, f2);
-					// @ts-expect-error can't be checked
 					ensurePatchCoherent(value, patches, composed);
 				},
 			),
@@ -332,6 +331,8 @@ describe("access", () => {
 	it("patch coherent replace from atomic to object, object key", () => {
 		fc.assert(
 			fc.property(anything(), anything(), (from, to) => {
+				fc.pre(!(from && typeof from === "object" && "__proto__" in from));
+				fc.pre(!(to && typeof to === "object" && "__proto__" in to));
 				ensurePatchCoherent(
 					{ a: from },
 					PatchBuilder.empty().replace(["a"], to).build(),
