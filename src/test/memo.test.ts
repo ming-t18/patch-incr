@@ -1,8 +1,8 @@
-import type { InferApplyType, InferIFInput } from "../incr/types";
+import { type IFRO, applyReplaceOnly } from "../algebra/replaceOnly";
+import type { InferIFInput } from "../incr/types";
 import { atomic, atomicCell, composeWeakMemo, joinTuple } from "../memo";
 import type { Cell } from "../memo/memoFn";
-import { type IFRO, applyReplaceOnly } from "../memo/replaceOnly";
-import { tuple, tupleApply } from "../memo/tuple";
+import { tuple } from "../memo/tuple";
 
 describe("memo", () => {
 	const sum2 = (x: Cell<number>, y: Cell<number>) => ({

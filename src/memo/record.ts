@@ -1,10 +1,3 @@
-import type { AccessTypesRecord } from "../incr/typeHelpers";
-import type {
-	AnyApply,
-	AnyApplyCombine,
-	ApplyCombine,
-	InferApplyType,
-} from "../incr/types";
 import {
 	type DRO,
 	getDRO,
@@ -12,7 +5,14 @@ import {
 	isReplaceOnly,
 	makeReplaceOnly,
 	maybeCombineDRO,
-} from "./replaceOnly";
+} from "../algebra/replaceOnly";
+import type { AccessTypesRecord } from "../incr/typeHelpers";
+import type {
+	AnyApply,
+	AnyApplyCombine,
+	ApplyCombine,
+	InferApplyType,
+} from "../incr/types";
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export type AnyRecord = Record<string, any>;

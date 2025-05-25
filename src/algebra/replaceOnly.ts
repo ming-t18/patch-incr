@@ -1,13 +1,7 @@
-import type { ApplyCombine, IF } from "../incr/types";
+import { type ApplyCombine, type DRO, ReplaceOnly } from ".";
+import type { IF } from "../incr/types";
 
-export const ReplaceOnly = Symbol("ReplaceOnly");
-
-export type ReplaceOnly<T> = { [ReplaceOnly]: T };
-
-/**
- * Change type for replace-only or no-change.
- */
-export type DRO<T> = ReplaceOnly<T> | null;
+export type { DRO, ApplyCombine, ReplaceOnly } from ".";
 
 /**
  * Incremental function that accepts only replace-only or no-change on both sides

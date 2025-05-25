@@ -4,7 +4,7 @@ import {
 	getReplaceOnly,
 	isReplaceOnly,
 	makeReplaceOnly,
-} from "./replaceOnly";
+} from "../algebra/replaceOnly";
 
 export const atomicMemoLast = <X, Y>(f: (value: X) => Y): IFRO<X, Y> => {
 	let memo: { input: X; output: Y } | null = null;

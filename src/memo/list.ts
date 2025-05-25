@@ -1,5 +1,5 @@
+import type { ReplaceOnly } from "../algebra/replaceOnly";
 import type { ApplyCombine } from "../incr/types";
-import type { ReplaceOnly } from "./replaceOnly";
 
 export interface ListChangeSplice<T> {
 	remove: [number, number];

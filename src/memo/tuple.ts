@@ -1,11 +1,11 @@
-import type { AccessTypesTuple } from "../incr/typeHelpers";
-import type { AnyApplyCombine, Apply, ApplyCombine, IF } from "../incr/types";
 import {
 	type DRO,
 	getReplaceOnly,
 	isReplaceOnly,
 	makeReplaceOnly,
-} from "./replaceOnly";
+} from "../algebra/replaceOnly";
+import type { AccessTypesTuple } from "../incr/typeHelpers";
+import type { AnyApplyCombine, Apply, ApplyCombine, IF } from "../incr/types";
 
 export type InferTupleValue<Applys extends AnyApplyCombine[]> =
 	AccessTypesTuple<"value", Applys>;

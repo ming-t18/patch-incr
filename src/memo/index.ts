@@ -1,14 +1,12 @@
-import type { Apply, IF, Invoke } from "../incr/types";
-import { type Cell, isMemoFn } from "./memoFn";
+import type { DRO, ReplaceOnly } from "../algebra";
 import {
-	type DRO,
 	type IFRO,
-	type ReplaceOnly,
 	applyReplaceOnly,
 	getReplaceOnly,
-	isReplaceOnly,
 	makeReplaceOnly,
-} from "./replaceOnly";
+} from "../algebra/replaceOnly";
+import type { Apply, IF, Invoke } from "../incr/types";
+import { type Cell, isMemoFn } from "./memoFn";
 
 export const identity = <T = unknown>(x: T): T => x;
 
