@@ -269,7 +269,7 @@ describe("record", () => {
 	it("patch coherent for record of atomics", () => {
 		fc.assert(
 			fc.property(
-				gp.atomic(fc.integer({ min: -5, max: 5 })),
+				gp.integer({ min: -5, max: 5 }).arb(),
 				arbRecord(),
 				({ value, patches }, rec) => {
 					ensurePatchCoherent(value, patches, rec);
@@ -283,7 +283,7 @@ describe("compose", () => {
 	it("compose from left to right", () => {
 		fc.assert(
 			fc.property(
-				gp.atomic(anything()),
+				gp.valuePatches(),
 				arbAtomic(),
 				arbAtomic(),
 				({ value, patches }, f1, f2) => {

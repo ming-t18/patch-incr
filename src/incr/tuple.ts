@@ -1,4 +1,12 @@
-import { CannotReduce, type PatchEntry, PatchOp, type Patches } from "./patch";
+import {
+	CannotReduce,
+	InvalidPatchEntry,
+	type PatchEntry,
+	PatchOp,
+	type Patches,
+	isReplaceRootEntry,
+	makeReplaceRootEntry,
+} from "./patch";
 import type { IF, IFInv } from "./types";
 
 const invokeComm = <A, B>([a, b]: [A, B]): [B, A] => [b, a];
@@ -19,7 +27,11 @@ export const comm = <A, B>(): IFInv<[A, B], [B, A]> => {
 					return { ...entry, path: [0, ...path.slice(1)] } as PatchEntry<never>;
 				}
 
-				return entry as PatchEntry<never>;
+				if (isReplaceRootEntry(entry)) {
+					return makeReplaceRootEntry<[B, A]>(invokeComm(entry.value));
+				}
+
+				throw new InvalidPatchEntry("comm:", entry);
 			}),
 	};
 };
@@ -81,7 +93,12 @@ export const assocRight = <A, B, C>(): IFInv<[[A, B], C], [A, [B, C]]> => {
 					continue;
 				}
 
-				res.push(entry as PatchEntry<never>);
+				if (isReplaceRootEntry(entry)) {
+					res.push(makeReplaceRootEntry(invokeAssocRight(entry.value)));
+					continue;
+				}
+
+				throw new InvalidPatchEntry("assocRight:", entry);
 			}
 			return res as Patches<[A, [B, C]]>;
 		},
@@ -137,7 +154,12 @@ export const assocLeft = <A, B, C>(): IFInv<[A, [B, C]], [[A, B], C]> => {
 					continue;
 				}
 
-				res.push(entry as PatchEntry<never>);
+				if (isReplaceRootEntry(entry)) {
+					res.push(makeReplaceRootEntry(invokeAssocLeft(entry.value)));
+					continue;
+				}
+
+				throw new InvalidPatchEntry("assocRight:", entry);
 			}
 			return res as Patches<[[A, B], C]>;
 		},

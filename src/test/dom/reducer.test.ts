@@ -9,8 +9,10 @@ import type {
 	ElementConstruction,
 	TextConstruction,
 } from "../../dom/types";
-import { PatchOp } from "../../incr/patch";
-import { arbPatchEntry, arbPathOnValue } from "../helpers/genPatched.test";
+import { PatchOp, type Path } from "../../incr/patch";
+const arbPathOnValue = (_value: unknown): fc.Arbitrary<Path> => {
+	throw new Error("TODO");
+};
 
 const arbText = (): fc.Arbitrary<TextConstruction> =>
 	fc.oneof(
@@ -60,7 +62,6 @@ describe("tryAccessElement", () => {
 		}
 	});
 
-	arbPatchEntry;
 	const domc: DOMConstruction = elem("div", { class: "class1" }, [
 		elem0("div", [
 			elem0("h1", "Heading"),

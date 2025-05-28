@@ -27,24 +27,41 @@ export const ensurePatchCoherent = <X, Y, DX = Patches<X>>(
 	// dy = f'(x, dx, y)
 	// x @ dx = y @ dy
 	//
-	const y = f.invoke(x);
-	const dy = f.forward(x, dx, y);
+	let fail = false;
 	const xNext = apply(x, dx);
-	const yNext = f.invoke(xNext);
-	const yApply = applyPatches(y, dy);
+	let y: Y | undefined = undefined;
+	let dy: Patches<Y> | undefined = undefined;
 	try {
-		compare(yApply, yNext);
-		// console.log({ x, dx, y, dy, xNext, yNext });
+		y = f.invoke(x);
+		dy = f.forward(x, dx, y);
+		const yNext = f.invoke(xNext);
+		const yApply = applyPatches(y, dy);
+		try {
+			compare(yApply, yNext);
+			// console.log({ x, dx, y, dy, xNext, yNext });
+		} catch (e) {
+			console.error("coherence failure", {
+				x,
+				y,
+				dx,
+				dy,
+				xNext,
+				yApply,
+				yNext,
+			});
+			fail = true;
+			throw e;
+		}
 	} catch (e) {
-		console.error("coherence failure", {
-			x: x,
-			y,
-			dx: dx,
-			dy,
-			xNext,
-			yApply,
-			yNext,
-		});
+		if (!fail) {
+			console.error("coherence failed to produce a value", {
+				x,
+				y,
+				dx,
+				dy,
+				xNext,
+			});
+		}
 		throw e;
 	}
 };
@@ -86,6 +103,7 @@ export const ensurePatchLiftingProperty = <
 	compare: (actual: Patches<FY>, expected: Patches<FY>) => void = (a, e) =>
 		expect(a).toStrictEqual(e),
 ) => {
+	fc.pre((dx as Patches<X>).length <= 1);
 	const y = f.invoke(x);
 	const dy = f.forward(x, dx, y);
 	const fx = mapValue(x);

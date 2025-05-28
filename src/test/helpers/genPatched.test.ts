@@ -1,585 +1,539 @@
-import fc, { type Arbitrary } from "fast-check";
+import fc from "fast-check";
 import {
-	type PatchAdd,
 	type PatchEntry,
 	PatchOp,
-	type PatchRemove,
 	type PatchReplace,
 	type Patches,
 	type Path,
+	type Targeted,
 	applyPatches,
-	canApplyPatches,
-	isAtomicValue,
-	liftPatch as liftPatches,
-	replacePatch,
 } from "../../incr/patch";
 import { IndexEnd } from "../../patchSchema/types";
+export type WithPatches<T> = { value: T; patches: Patches<T> };
 
-// biome-ignore lint/suspicious/noExplicitAny: used to infer
-export type InferArb<T extends Arbitrary<any>> = T extends {
-	// biome-ignore lint/suspicious/noExplicitAny: used to infer
-	generate(...args: any[]): { value: infer V };
+export interface ArbPatchEntryOpts<T> {
+	value: T;
 }
-	? V
+
+export interface GenWithPatches<T> {
+	arbPatchEntry(opts?: ArbPatchEntryOpts<T>): fc.Arbitrary<PatchEntry<T>>;
+	isValidPatchEntry(value: T, entry: PatchEntry<T>): boolean;
+	/**
+	 * Given a `PatchEntry` failing `isValidPatchEntryCheck`, return
+	 * a corrected `PatchEntry` that passes the check, or `null` if not possible.
+	 */
+	adjustPatchEntry(value: T, entry: PatchEntry<T>): PatchEntry<T> | null;
+	arb(
+		arbValue?: fc.Arbitrary<T>,
+		ac?: fc.ArrayConstraints,
+	): fc.Arbitrary<WithPatches<T>>;
+	"~types"?: { value: T };
+}
+
+// biome-ignore lint/suspicious/noExplicitAny: for type constraints
+export type InferArbValue<S extends { "~types"?: { value: any } }> = S extends {
+	"~types"?: { value: infer T };
+}
+	? T
 	: never;
 
-export type WithPatches<T = unknown> = { value: T; patches: Patches<T> };
-
-export type InferArbValue<T extends ArbWithPatches> = InferArb<T>["value"];
-
-export type ArbWithPatches<T = unknown> = Arbitrary<WithPatches<T>>;
-
-export const cleanUpKeys = (x: unknown): unknown => {
-	if (x === null || typeof x !== "object") {
-		return x;
-	}
-
-	if (Array.isArray(x)) {
-		return x.map(cleanUpKeys);
-	}
-
-	const obj = {};
-	for (const k of Object.keys(x)) {
-		if (k === "__proto__") {
-			continue;
-		}
-
-		const k1 = k.replace(/[^a-zA-Z0-9_$]/g, "");
-		if (!Number.isFinite(+k1) || k1 !== "") {
-			// @ts-expect-error
-			obj[k1] = cleanUpKeys(x[k]);
-		}
-	}
-	return obj;
-};
-
-const anything = (depth = 5): Arbitrary<unknown> => {
-	const baseCase = fc.anything().map(cleanUpKeys);
-	if (depth <= 0) {
-		return baseCase;
-	}
-
-	return fc.oneof(
-		{
-			weight: 1,
-			arbitrary: fc.object().chain((o) => {
-				const keys = Object.keys(o);
-				return fc.tuple(...keys.map(() => anything(depth - 1))).map((ts) => {
-					const o1: Record<string, unknown> = {};
-					for (let i = 0; i < keys.length; i++) {
-						o1[keys[i]] = ts[i];
-					}
-					return cleanUpKeys(o1);
-				});
-			}),
-		},
-		{ weight: 4, arbitrary: baseCase },
-	);
-};
-
-const cannotBeInvalid = ({ op, path }: PatchEntry): boolean =>
-	!(op === PatchOp.Add || (op === PatchOp.Remove && path.length === 0));
-
-export const arbPatchEntry = (
-	arbPath: Arbitrary<Path>,
-	arbValue: Arbitrary<unknown>,
-	value: unknown,
-): Arbitrary<PatchEntry> => {
-	if (isAtomicValue(value)) {
-		return arbPatchOnAtomic(arbValue);
-	}
-
-	return fc
-		.oneof(
-			fc.record({
-				op: fc.constant(PatchOp.Remove),
-				path: arbPath,
-			}) as fc.Arbitrary<PatchRemove>,
-			fc.record({
-				op: fc.constant(PatchOp.Add),
-				path: arbPath,
-				value: arbValue,
-			}) as fc.Arbitrary<PatchAdd>,
-			fc.record({
-				op: fc.constant(PatchOp.Replace),
-				path: arbPath,
-				value: arbValue,
-			}) as fc.Arbitrary<PatchReplace>,
-		)
-		.filter(cannotBeInvalid);
-};
-
-export const arbPatchOnAtomic = (arbValue: fc.Arbitrary<unknown>) =>
-	arbValue.map((value) => ({
-		op: PatchOp.Replace,
-		path: [],
-		value,
-	})) as fc.Arbitrary<PatchReplace>;
-
-export const arbPathOnValue = (value: unknown): fc.Arbitrary<Path> => {
-	const empty = fc.constant([]);
-	if (value === null || typeof value !== "object") {
-		return empty;
-	}
-
-	if (Array.isArray(value)) {
-		if (value.length === 0) {
-			return empty;
-		}
-
-		return fc.oneof(
-			{ weight: 1, arbitrary: empty },
-			{
-				weight: value.length + 1,
-				arbitrary: fc.integer({ min: 0, max: value.length }).chain((index) =>
-					fc.oneof(
-						{ weight: 1, arbitrary: fc.constant([index]) },
-						{
-							weight: 4 * value.length + 2,
-							arbitrary: arbPathOnValue(value[index]).map((rest) => [
-								index,
-								...rest,
-							]),
-						},
-					),
-				),
-			},
-		);
-	}
-
-	const keys = Object.keys(value);
-	if (keys.length === 0) {
-		return empty;
-	}
-
-	return fc.oneof(
-		{ weight: 1, arbitrary: empty },
-		{
-			weight: keys.length + 1,
-			arbitrary: fc.constantFrom(...keys).chain((key) =>
-				fc.oneof(
-					{ weight: 1, arbitrary: fc.constant([key]) },
-					{
-						weight: keys.length,
-						// @ts-expect-error indexing by key
-						arbitrary: arbPathOnValue(value[key]).map((rest) => [key, ...rest]),
-					},
-				),
-			),
-		},
-	);
-};
-
-const arbValidPatchEntryOnValue = (value: unknown): fc.Arbitrary<PatchEntry> =>
-	arbPatchEntry(arbPathOnValue(value), anything(), value).filter((entry) => {
-		try {
-			applyPatches(value, [entry as never]);
-			return true;
-		} catch (e) {
-			return false;
-		}
-	});
-
-const arbValidPatchesOnValueHelper = (
-	value: unknown,
-	maxLength: number,
-): fc.Arbitrary<Patches> => {
-	if (maxLength <= 0) {
-		return fc.constant([]);
-	}
-
-	if (maxLength === 1) {
-		return fc.tuple(arbValidPatchEntryOnValue(value));
-	}
-
-	const arbLength1 = fc.oneof(
-		{ weight: 1, arbitrary: fc.integer({ min: 0, max: maxLength - 1 }) },
-		{ weight: 7, arbitrary: fc.constant(maxLength - 1) },
-	);
-
-	return fc
-		.tuple(arbValidPatchEntryOnValue(value), arbLength1)
-		.chain(([entry, maxLength1]) => {
-			const value1 = applyPatches(value, [entry]);
-			return arbValidPatchesOnValueHelper(value1, maxLength1).map(
-				(rest): Patches => [entry, ...rest],
-			);
-		});
-};
-
-export const arbValidPatchesOnValue = (
-	value: unknown,
-	maxLength?: number | undefined,
-): fc.Arbitrary<Patches> => {
-	let arb: fc.Arbitrary<Patches>;
-	if (typeof maxLength !== "number") {
-		arb = fc
-			.integer({ min: 0, max: 32 })
-			.chain((n) => arbValidPatchesOnValueHelper(value, n));
-	} else {
-		arb = arbValidPatchesOnValueHelper(value, maxLength);
-	}
-	return arb;
-};
-
-export const atomic = <T = unknown>(arbValue: fc.Arbitrary<T>) =>
-	fc.record({
-		value: arbValue,
-		patches: fc.tuple(
-			fc.record({
-				op: fc.constant(PatchOp.Replace),
-				path: fc.constant([]),
-				value: arbValue,
-			}),
-		) as fc.Arbitrary<Patches>,
-	});
-
-export const integer = (c?: fc.IntegerConstraints) => atomic(fc.integer(c));
-export const bigInt = (c?: fc.BigIntConstraints) => atomic(fc.bigInt(c));
-export const string = (c?: fc.StringConstraints) => atomic(fc.string(c));
-
-export const valuePatches = <T = unknown>(arbValue?: fc.Arbitrary<T>) =>
-	(arbValue ?? anything()).chain((value) =>
+const makeArbHelper = <T>(
+	opts: Omit<GenWithPatches<T>, "arb"> & {
+		arbValue: fc.Arbitrary<T>;
+		arrayConstraints?: fc.ArrayConstraints;
+	},
+): fc.Arbitrary<WithPatches<T>> => {
+	return opts.arbValue.chain((value: T) =>
 		fc.record({
 			value: fc.constant(value),
-			patches: arbValidPatchesOnValue(value),
+			patches: fc
+				.array(opts.arbPatchEntry({ value }), opts.arrayConstraints)
+				.map((entries) => {
+					let base: T = value;
+					const out = [] as typeof entries;
+					for (const entry of entries) {
+						if (opts.isValidPatchEntry(base, entry)) {
+							out.push(entry);
+							try {
+								base = applyPatches(base, [entry]);
+							} catch (e) {
+								console.error("failed to apply valid patch", e);
+								console.trace({ base, entry });
+								throw e;
+							}
+							continue;
+						}
+
+						const adjusted = opts.adjustPatchEntry(base, entry);
+						if (adjusted === null) {
+							return null;
+						}
+
+						out.push(adjusted);
+						try {
+							base = applyPatches(base, [adjusted]);
+						} catch (e) {
+							console.error("failed to apply adjusted patch", e);
+							console.trace({ base, entry, adjusted });
+							return null;
+						}
+					}
+					return out;
+				})
+				.filter((x) => x !== null),
 		}),
 	);
+};
 
-type ArbPatches<T> = fc.Arbitrary<Patches<T>>;
+const arbRootPath = fc.constant([] as []);
 
-const makeArbWithPatches = <T>(
-	value: fc.Arbitrary<T>,
-	patches: ArbPatches<T>,
-): ArbWithPatches<T> =>
-	fc
-		.record({ value, patches })
-		.filter(({ value, patches }) => canApplyPatches(value, patches));
-
-const arbLiftPatches = <Input, T>(
-	arbKey: fc.Arbitrary<string | number>,
-	arbPatches: ArbPatches<Input>,
-): ArbPatches<T> =>
-	// @ts-expect-error can't be checked
-	fc
-		.tuple(arbPatches, arbKey)
-		.map(([patches, key]) => {
-			const lifted = liftPatches(key, patches);
-			return lifted;
-		});
-
-const arbRemovePatches = <T>(
-	arbKey: fc.Arbitrary<string | number>,
-): ArbPatches<T> =>
-	arbKey.map((key) => [
-		{
-			op: PatchOp.Remove,
-			path: [key],
-		},
-	]);
-
-const arbReplacePatches = <Input, T>(
-	arbKey: fc.Arbitrary<string | number>,
-	arb: ArbWithPatches<Input>,
-): ArbPatches<T> =>
-	fc
-		.tuple(
-			arb.map((x) => x.value),
-			arbKey,
-		)
-		.map(
-			([value, i]) =>
-				[
-					{
-						op: PatchOp.Replace,
-						path: [i],
-						value,
-					},
-				] as Patches,
-		);
-
-const arbAddReplacePatches = <Input, T>(
-	arbKey: fc.Arbitrary<string | number>,
-	arb: ArbWithPatches<Input>,
-	ops = [PatchOp.Add, PatchOp.Replace] as (PatchOp.Add | PatchOp.Replace)[],
-): ArbPatches<T> =>
-	fc
-		.tuple(
-			fc.constantFrom(...ops),
-			arb.map((x) => x.value),
-			arbKey,
-		)
-		.map(
-			([op, value, i]) =>
-				[
-					{
-						op,
-						path: [i],
-						value,
-					},
-				] as Patches,
-		);
-
-export const multiPatches = <T>(
-	arb: ArbWithPatches<T>,
-	constraints = { minLength: 0, maxLength: 20 } as fc.ArrayConstraints,
-): ArbWithPatches<T> => {
-	const maxLength = constraints?.maxLength;
-	if (typeof maxLength === "number" && maxLength <= 0) {
-		return arb.map(({ value }) => ({ value, patches: [] }));
-	}
-	const arbOrReplace: ArbWithPatches<T> = fc.oneof(
-		arb,
-		arb.map(({ value, patches }) => {
-			const applied = applyPatches(value, patches);
-			return {
-				value,
-				patches: replacePatch(applied),
-			};
-		}),
-	);
-
-	const len = fc.integer({
-		min: constraints.minLength,
-		max: constraints.maxLength,
+const arbReplacePatchEntry = <T, V = T, P extends Path = Path>(
+	arbValue: fc.Arbitrary<V>,
+	arbPath: fc.Arbitrary<P>,
+): fc.Arbitrary<PatchReplace<P, V> & Targeted<T>> =>
+	fc.record({
+		op: fc.constant(PatchOp.Replace),
+		value: arbValue,
+		path: arbPath,
 	});
-	return len.chain((n) =>
-		fc
-			.array(arbOrReplace, constraints)
-			.filter((x) => x.length > 0)
-			.map((vps) => ({
-				value: vps[0].value,
-				patches: vps
-					.flatMap((x) => x.patches)
-					.slice(0, n) as unknown[] as Patches<T>,
-			}))
-			.filter(({ value, patches }) => canApplyPatches(value, patches)),
+
+const toArbValue = <T>(gen: GenWithPatches<T>): fc.Arbitrary<T> =>
+	gen.arb().map((x) => x.value);
+const toArbReplaceRootEntry = <T>(
+	gen: GenWithPatches<T>,
+): fc.Arbitrary<PatchEntry<T>> =>
+	gen.arb().map(
+		({ value }): PatchEntry<T> => ({
+			op: PatchOp.Replace,
+			value,
+			path: [],
+		}),
 	);
+
+export const atomic = <T>(arb: fc.Arbitrary<T>): GenWithPatches<T> => {
+	const isValidPatchEntry = (_value: T, { op, path }: PatchEntry<T>) =>
+		op === PatchOp.Replace && path.length === 0;
+	const arbPatchEntry = (
+		_opts?: ArbPatchEntryOpts<T>,
+	): fc.Arbitrary<PatchEntry<T>> => arbReplacePatchEntry(arb, arbRootPath);
+	const adjustPatchEntry = (_value: T, _entry: PatchEntry<T>) => null;
+	return {
+		isValidPatchEntry,
+		arbPatchEntry,
+		adjustPatchEntry,
+		arb: (arbValue?: fc.Arbitrary<T>, arrayConstraints?: fc.ArrayConstraints) =>
+			makeArbHelper({
+				isValidPatchEntry,
+				arbPatchEntry,
+				adjustPatchEntry,
+				arrayConstraints,
+				arbValue: arbValue ?? arb,
+			}),
+	};
+};
+
+export const integer = (c?: fc.IntegerConstraints): GenWithPatches<number> =>
+	atomic(fc.integer(c));
+export const bigInt = (c?: fc.BigIntConstraints): GenWithPatches<bigint> =>
+	atomic(c ? fc.bigInt(c) : fc.bigInt());
+export const string = (c?: fc.StringConstraints): GenWithPatches<string> =>
+	atomic(fc.string(c));
+export const boolean = (): GenWithPatches<boolean> => atomic(fc.boolean());
+
+const liftEntry = <Ts extends Record<string, unknown> | unknown[]>(
+	gens: { [k in keyof Ts]: GenWithPatches<Ts[k]> },
+	key: keyof Ts,
+	opts: { value: Ts } | undefined,
+) =>
+	(gens[key] as GenWithPatches<unknown>)
+		.arbPatchEntry(opts ? { value: opts.value[key] } : undefined)
+		.map(
+			(entry: PatchEntry<unknown>) =>
+				({
+					...entry,
+					path: [key, ...entry.path],
+				}) as PatchEntry<Ts>,
+		);
+
+const deepWeightMultiplier = 4;
+const arrayDeepWeightMultiplier = 1;
+const arrayManipWeight = 6;
+
+export const tuple = <Ts extends unknown[]>(
+	...gens: { [i in keyof Ts]: GenWithPatches<Ts[i]> }
+): GenWithPatches<Ts> => {
+	const n = gens.length;
+	if (n === 0) {
+		return atomic(fc.tuple()) as GenWithPatches<never>;
+	}
+
+	const arbIndex = fc.integer({ min: 0, max: n - 1 });
+	const arb0 = fc.tuple(...gens.map((g) => toArbValue(g))) as fc.Arbitrary<Ts>;
+	const isValidPatchEntry = (value: Ts, entry: PatchEntry<Ts>) => {
+		const { path } = entry;
+		if (path.length === 0) {
+			return true;
+		}
+
+		const index = path[0];
+		if (typeof index !== "number") {
+			return false;
+		}
+
+		if (path.length === 1) {
+			return index >= 0 && index < n;
+		}
+
+		return gens[index].isValidPatchEntry(
+			value[index] as never,
+			{
+				...entry,
+				path: path.slice(1),
+			} as PatchEntry<never>,
+		);
+	};
+
+	const arbPatchEntry = (
+		opts?: ArbPatchEntryOpts<Ts>,
+	): fc.Arbitrary<PatchEntry<Ts>> =>
+		fc.oneof(
+			{
+				weight: 1,
+				arbitrary: arbReplacePatchEntry<Ts, Ts, []>(arb0, arbRootPath),
+			},
+			{
+				weight: deepWeightMultiplier * n,
+				arbitrary: arbIndex.chain((i) => liftEntry(gens, i, opts)),
+			},
+		);
+
+	const adjustPatchEntry = (_value: Ts, entry: PatchEntry<Ts>) => {
+		if (entry.path.length === 1) {
+			const init = entry.path[0];
+			if (typeof init === "number") {
+				return { ...entry, path: [(init + n) % n, ...entry.path.slice(1)] };
+			}
+		}
+		return null;
+	};
+
+	return {
+		isValidPatchEntry,
+		arbPatchEntry,
+		adjustPatchEntry,
+		arb: (
+			arbValue?: fc.Arbitrary<Ts>,
+			arrayConstraints?: fc.ArrayConstraints,
+		) =>
+			makeArbHelper({
+				isValidPatchEntry,
+				arbPatchEntry,
+				adjustPatchEntry,
+				arrayConstraints,
+				arbValue: arbValue ?? arb0,
+			}),
+	};
+};
+
+export const record = <Ts extends Record<string, unknown>>(
+	gens: { [k in keyof Ts]: GenWithPatches<Ts[k]> },
+): GenWithPatches<Ts> => {
+	const keys: (keyof Ts)[] = Object.keys(gens).filter(
+		(k) => !(k === "__proto__" || k === "prototype" || k === "constructor"),
+	);
+	if (keys.length === 0) {
+		return atomic(fc.record({})) as GenWithPatches<never>;
+	}
+
+	const arbKey = fc.constantFrom(...keys);
+	const rec1: { [k in keyof Ts]: fc.Arbitrary<Ts[k]> } = {} as never;
+	for (const key of keys) {
+		rec1[key] = toArbValue(gens[key]);
+	}
+	const arb0: fc.Arbitrary<Ts> = fc.record(rec1);
+
+	const isValidPatchEntry = (value: Ts, entry: PatchEntry<Ts>) => {
+		const { path } = entry;
+		if (path.length === 0) {
+			return true;
+		}
+
+		if (path.length === 1) {
+			return keys.find((k1) => k1 === path[0]) !== undefined;
+		}
+
+		return gens[path[0]].isValidPatchEntry(
+			value[path[0]] as never,
+			{
+				...entry,
+				path: path.slice(1),
+			} as PatchEntry<never>,
+		);
+	};
+
+	const arbPatchEntry = (
+		opts?: ArbPatchEntryOpts<Ts>,
+	): fc.Arbitrary<PatchEntry<Ts>> =>
+		fc.oneof(
+			{
+				weight: 1,
+				arbitrary: arbReplacePatchEntry<Ts, Ts, []>(arb0, arbRootPath),
+			},
+			{
+				weight: deepWeightMultiplier * keys.length,
+				arbitrary: arbKey.chain((key) => liftEntry(gens, key, opts)),
+			},
+		);
+
+	const adjustPatchEntry = (_value: Ts, _entry: PatchEntry<Ts>) => null;
+
+	return {
+		isValidPatchEntry,
+		arbPatchEntry,
+		adjustPatchEntry,
+		arb: (
+			arbValue?: fc.Arbitrary<Ts>,
+			arrayConstraints?: fc.ArrayConstraints,
+		) =>
+			makeArbHelper({
+				isValidPatchEntry,
+				arbPatchEntry,
+				adjustPatchEntry,
+				arrayConstraints,
+				arbValue: arbValue ?? arb0,
+			}),
+	};
 };
 
 export const array = <T>(
-	arbValue: ArbWithPatches<T>,
+	arbElem: GenWithPatches<T>,
 	constraints?: fc.ArrayConstraints,
-): ArbWithPatches<T[]> => {
-	const arbEntryOnArray = (
-		arbIndex: fc.Arbitrary<number>,
-	): fc.Arbitrary<PatchEntry<T[]>> =>
-		fc.oneof(
-			fc.record<PatchEntry<T[]>>({
-				op: fc.constant(PatchOp.Add),
-				path: fc.tuple(
-					fc.oneof(fc.constant(IndexEnd as IndexEnd | number), arbIndex),
-				),
-				value: arbValue.map((x) => x.value),
-			}),
-			fc.record<PatchEntry<T[]>>({
-				op: fc.constant(PatchOp.Remove),
-				path: fc.tuple(arbIndex) as fc.Arbitrary<Path>,
-			}),
-			fc.record<PatchEntry<T[]>>({
-				op: fc.constant(PatchOp.Replace),
-				path: fc.tuple(arbIndex) as fc.Arbitrary<Path>,
-				value: arbValue.map((x) => x.value),
-			}),
-		);
+): GenWithPatches<T[]> => {
+	const isValidPatchEntry = (value: T[], entry: PatchEntry<T[]>) => {
+		const { op, path } = entry;
+		if (path.length === 0) {
+			return true;
+		}
 
-	const arbArrayPatchesStep = (arr: T[]): ArbPatches<T[]> => {
-		if (arr.length === 0) {
-			return fc.tuple(arbValue, fc.constantFrom(0, "-")).map(
-				([{ value }, index]): Patches<T[]> => [
-					{
-						op: PatchOp.Add,
-						path: [index],
-						value,
-					},
-				],
+		const p0 = path[0];
+		if (p0 === IndexEnd) {
+			return op === PatchOp.Add;
+		}
+
+		const index = p0 as number;
+		if (path.length > 1) {
+			if (!(index >= 0 && index < value.length)) {
+				return false;
+			}
+
+			return arbElem.isValidPatchEntry(value[index], {
+				...entry,
+				path: path.slice(1),
+			} as PatchEntry<never>);
+		}
+		if (op === PatchOp.Remove || op === PatchOp.Replace) {
+			return index >= 0 && index < value.length;
+		}
+
+		if (op === PatchOp.Add) {
+			return index >= 0 && index <= value.length;
+		}
+
+		return true;
+	};
+
+	const arb0: fc.Arbitrary<T[]> = fc.array(toArbValue(arbElem), constraints);
+
+	const arbPatchEntry = (
+		opts?: ArbPatchEntryOpts<T[]>,
+	): fc.Arbitrary<PatchEntry<T[]>> => {
+		const arbReplaceRoot: fc.Arbitrary<PatchEntry<T[]>> = arbReplacePatchEntry<
+			T[],
+			T[],
+			[]
+		>(arb0, arbRootPath);
+		if (opts?.value.length === 0) {
+			return fc.oneof(
+				{
+					weight: 1,
+					arbitrary: arbReplaceRoot,
+				},
+				{
+					weight: arrayManipWeight,
+					arbitrary: fc.record({
+						op: fc.constant(PatchOp.Add),
+						path: fc.constantFrom([0], [IndexEnd]),
+						value: arbElem.arb().map((x): T => x.value),
+					}) as fc.Arbitrary<PatchEntry<T[]>>,
+				},
 			);
 		}
 
-		const arbIndex = fc.integer({ min: 0, max: arr.length - 1 });
-		const arbAddIndex = fc.oneof(
+		const arbIndex =
+			opts?.value?.length === 0
+				? fc.constant(0)
+				: fc.integer(
+						opts
+							? { min: 0, max: opts.value.length - 1 }
+							: { min: 0, max: constraints?.maxLength },
+					);
+		return fc.oneof(
 			{
-				weight: arr.length,
-				arbitrary: fc.integer({ min: 0, max: arr.length }),
+				weight: 1,
+				arbitrary: arbReplaceRoot,
 			},
-			{ weight: 1, arbitrary: fc.constantFrom(IndexEnd) },
-		);
-		return fc
-			.oneof(
-				{
-					weight: 3,
-					arbitrary: fc
-						.tuple(arbIndex, arbValue)
-						.map(([i, { patches }]) => liftPatches(i, patches) as Patches<T[]>),
-				},
-				{
-					weight: 1,
-					arbitrary: arbIndex.map(
-						(i) =>
-							[
+			{
+				weight: arrayManipWeight,
+				arbitrary: fc.oneof(
+					fc.record({
+						op: fc.constant(PatchOp.Add),
+						path: fc.tuple(
+							fc.oneof(
 								{
-									op: PatchOp.Remove,
-									path: [i],
+									weight: 5,
+									arbitrary: fc.integer(
+										opts ? { min: 0, max: opts.value.length } : { min: 0 },
+									),
 								},
-							] as Patches<T[]>,
-					),
-				},
-				{
-					weight: 2,
-					arbitrary: arbAddIndex.map(
-						(i) =>
-							[
-								{
-									op: PatchOp.Add,
-									path: [i],
-									value:
-										i === IndexEnd
-											? arr[arr.length - 1]
-											: i >= arr.length
-												? arr[arr.length - 1]
-												: arr[i],
-								},
-							] as Patches<T[]>,
-					),
-				},
-				{
-					weight: 3,
-					arbitrary: arbIndex.map(
-						(i) =>
-							[
-								{
-									op: PatchOp.Replace,
-									path: [i],
-									value: arr[i],
-								},
-							] as Patches<T[]>,
-					),
-				},
-			)
-			.filter((patches) => {
-				try {
-					const applied = applyPatches(arr, patches);
-					return applied.findIndex((y) => y === undefined) === -1;
-				} catch {
-					return false;
-				}
-			});
-	};
-	return fc
-		.tuple(
-			fc.array(arbValue, constraints).map((x) => x.map((y) => y.value)),
-			fc.integer({ min: 1, max: 5 }),
-		)
-		.chain(([arr0, entriesLen]): ArbWithPatches<T[]> => {
-			const recurse = (i: number, arr: T[]): ArbWithPatches<T[]> => {
-				if (i <= 0) {
-					return arbArrayPatchesStep(arr).map((patches) => ({
-						value: arr,
-						patches,
-					}));
-				}
-				return arbArrayPatchesStep(arr).chain((patchesInit) =>
-					fc.oneof(
-						recurse(0, arr),
-						recurse(i - 1, applyPatches(arr, patchesInit)).map(
-							({ patches: patchesRest }) => ({
-								value: arr,
-								patches: [...patchesInit, ...patchesRest],
-							}),
-						),
-					),
-				);
-			};
-			return recurse(entriesLen, arr0);
-		});
-};
-
-export type InferArbRecordType<O extends Record<string, ArbWithPatches>> = {
-	[key in keyof O]: InferArbValue<O[key]>;
-};
-
-export type InferArbTupleType<O extends ArbWithPatches[]> = {
-	[key in keyof O]: InferArbValue<O[key]>;
-};
-
-export const record = <O extends Record<string, ArbWithPatches>>(
-	arb: O,
-	allowDelete?: string[],
-): ArbWithPatches<InferArbRecordType<O>> => {
-	return multiPatches(
-		fc.record(arb).chain((obj): ArbWithPatches<InferArbRecordType<O>> => {
-			const arbKey = fc.constantFrom(...Object.keys(obj));
-			// @ts-expect-error can't be checked
-			const arbPatches: ArbPatches<InferArbRecordType<O>> = arbKey.chain(
-				(key) => {
-					const oneof: { weight: number; arbitrary: ArbPatches<never> }[] = [
-						{
-							weight: 3,
-							arbitrary: fc.constant(liftPatches(key, obj[key].patches)),
-						},
-						{
-							weight: 1,
-							arbitrary: arbAddReplacePatches<never, never>(
-								fc.constant(key),
-								fc.constant(obj[key] as never),
+								{ weight: 1, arbitrary: fc.constant(IndexEnd) },
 							),
-						},
-					];
+						),
+						value: arbElem.arb().map((x): T => x.value),
+					}) as fc.Arbitrary<PatchEntry<T[]>>,
+					fc.record({
+						op: fc.constant(PatchOp.Remove),
+						path: fc.tuple(arbIndex),
+					}) as fc.Arbitrary<PatchEntry<T[]>>,
+					fc.record({
+						op: fc.constant(PatchOp.Replace),
+						path: fc.tuple(arbIndex),
+						value: arbElem.arb().map((x): T => x.value),
+					}) as fc.Arbitrary<PatchEntry<T[]>>,
+				),
+			},
+			{
+				weight: arrayDeepWeightMultiplier * (opts?.value?.length ?? 5),
+				arbitrary: arbIndex.chain((index) => {
+					const ap: fc.Arbitrary<PatchEntry<T>> = arbElem.arbPatchEntry(
+						opts ? { value: opts.value[index] } : undefined,
+					);
+					return ap.map(
+						(entry) =>
+							({
+								...entry,
+								path: [index, ...entry.path],
+							}) as PatchEntry<T[]>,
+					);
+				}),
+			},
+		);
+	};
 
-					if (allowDelete && allowDelete.indexOf(key, 0) !== -1) {
-						oneof.push({
-							weight: 1,
-							arbitrary: arbRemovePatches(fc.constant(key)),
-						});
-					}
-
-					return fc.oneof(...oneof) as ArbPatches<unknown>;
-				},
-			);
-
-			const obj1 = {} as InferArbRecordType<O>;
-			for (const key of Object.keys(obj)) {
-				// @ts-expect-error can't be checked
-				obj1[key] = obj[key].value;
+	const adjustPatchEntry = (value: T[], entry: PatchEntry<T[]>) => {
+		const { path, op } = entry;
+		if (path.length === 1) {
+			const idx = path[0];
+			if (typeof idx !== "number") {
+				return null;
 			}
 
-			return makeArbWithPatches(fc.constant(obj1), arbPatches);
-		}),
-	);
+			if (idx < 0) {
+				return {
+					...entry,
+					path: [0],
+				};
+			}
+
+			if (op === PatchOp.Add && idx > value.length) {
+				return {
+					...entry,
+					path: ["-"],
+				};
+			}
+
+			if (
+				(op === PatchOp.Remove || op === PatchOp.Replace) &&
+				value.length > 0 &&
+				idx >= value.length
+			) {
+				return {
+					...entry,
+					path: [value.length - 1],
+				};
+			}
+		}
+		if (path.length > 1) {
+			const idx = path[0];
+			if (typeof idx !== "number") {
+				return null;
+			}
+
+			if (idx >= value.length) {
+				return null;
+			}
+		}
+		return null;
+	};
+
+	return {
+		isValidPatchEntry,
+		arbPatchEntry,
+		adjustPatchEntry,
+		arb: (
+			arbValue?: fc.Arbitrary<T[]>,
+			arrayConstraints?: fc.ArrayConstraints,
+		) =>
+			makeArbHelper({
+				isValidPatchEntry,
+				arbPatchEntry,
+				adjustPatchEntry,
+				arrayConstraints,
+				arbValue: arbValue ?? arb0,
+			}),
+	};
 };
 
-export const tuple = <O extends ArbWithPatches[]>(
-	...arbs: O
-): ArbWithPatches<InferArbTupleType<O>> => {
-	const idxs = Array(arbs.length)
-		.fill(null)
-		.map((_, i) => i) as never[] as (number & keyof O)[];
-	return multiPatches(
-		fc.tuple(...arbs).chain((tup): ArbWithPatches<InferArbTupleType<O>> => {
-			const arbKey = fc.constantFrom(...idxs);
-			// @ts-expect-error can't be checked
-			const arbPatches: ArbPatches<InferArbTupleType<O>> = arbKey.chain(
-				(key) => {
-					const oneof: { weight: number; arbitrary: ArbPatches<never> }[] = [
-						{
-							weight: 3,
-							arbitrary: fc.constant(liftPatches(key, tup[key].patches)),
-						},
-						{
-							weight: 1,
-							arbitrary: arbReplacePatches<never, never>(
-								fc.constant(key),
-								fc.constant(tup[key] as never),
-							),
-						},
-					];
-
-					return fc.oneof(...oneof) as ArbPatches<unknown>;
-				},
-			);
-
-			const tup1 = idxs.map((i) => tup[i].value) as InferArbTupleType<O>;
-			return makeArbWithPatches(fc.constant(tup1), arbPatches);
-		}),
-	);
+export const arbGenPatched = () => {
+	const { tree: arbGenPatched } = fc.letrec<
+		Record<"tree" | "node" | "leaf", GenWithPatches<unknown>>
+	>((tie) => ({
+		tree: fc.oneof({ depthSize: "small" }, tie("leaf"), tie("node")),
+		node: fc.oneof(
+			fc.tuple(tie("tree"), tie("tree"), tie("tree")).map((xs) => tuple(...xs)),
+			fc.tuple(tie("tree"), tie("tree")).map((xs) => tuple(...xs)),
+			fc
+				.tuple(
+					tie("tree"),
+					tie("tree"),
+					tie("tree"),
+					fc.string({ minLength: 1 }),
+					fc.string({ minLength: 1 }),
+					fc.string({ minLength: 1 }),
+				)
+				.map(([a, b, c, ka, kb, kc]) =>
+					record({
+						[ka]: a,
+						[kb]: b,
+						[kc]: c,
+					}),
+				),
+			fc
+				.tuple(
+					tie("tree"),
+					tie("tree"),
+					fc.string({ minLength: 1 }),
+					fc.string({ minLength: 1 }),
+				)
+				.map(([a, b, ka, kb]) =>
+					record({
+						[ka]: a,
+						[kb]: b,
+					}),
+				),
+		),
+		leaf: fc.constantFrom(integer(), bigInt(), string(), boolean()),
+	}));
+	return arbGenPatched;
 };
+
+export const valuePatches = () => arbGenPatched().chain((x) => x.arb());

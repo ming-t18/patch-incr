@@ -61,6 +61,33 @@ export type AccessTypesTuple<K extends string, R extends HasTypes<K>[]> = {
 	[key in keyof R]: AccessTypes<K, R[key]>;
 };
 
+type Path = (string | number)[];
+export type AccessPathSingle<O, K extends string | number> = O extends {
+	[k in K]: infer V;
+}
+	? V
+	: K extends number
+		? O extends (infer V)[]
+			? V
+			: never
+		: never;
+
+export type AccessPath<O, P extends Path> = P extends []
+	? O
+	: P extends [infer K extends string | number, ...infer Rest extends Path]
+		? AccessPath<AccessPathSingle<O, K>, Rest>
+		: never;
+
+type TestObj = { a: { b: { c: string }[] }; tup: [number, bigint] };
+// { c: string }[]
+type TestAccessObj = AccessPath<TestObj, ["a", "b"]>;
+// bigint
+type TestAccessTuple = AccessPath<TestObj, ["tup", 1]>;
+// { c: string }
+type TestAccessArray1 = AccessPath<TestObj, ["a", "b", number]>;
+// { c: string }
+type TestAccessArraySpecific = AccessPath<TestObj, ["a", "b", 5]>;
+
 // [string, number]
 type _Test1 = AccessTypesTuple<
 	"change",

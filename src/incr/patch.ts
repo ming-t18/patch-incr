@@ -1,4 +1,5 @@
 import { applyPatches as applyPatchesImmer, enablePatches } from "immer";
+import { IndexEnd } from "../patchSchema/types";
 import type { HasTypes } from "./typeHelpers";
 import type { Forward, Invoke } from "./types";
 enablePatches();
@@ -17,14 +18,14 @@ export interface PatchRemove<P = Path> {
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-export interface PatchAdd<V = any, P = Path> {
+export interface PatchAdd<P = Path, V = any> {
 	op: PatchOp.Add;
 	path: P;
 	value: V;
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-export interface PatchReplace<V = any, P = Path> {
+export interface PatchReplace<P = Path, V = any> {
 	op: PatchOp.Replace;
 	path: P;
 	value: V;
@@ -33,7 +34,11 @@ export interface PatchReplace<V = any, P = Path> {
 export type Targeted<T> = HasTypes<"patchTarget", T>;
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-export type PatchEntry<Target = any> = (PatchRemove | PatchAdd | PatchReplace) &
+export type PatchEntry<Target = any, P extends Path = Path> = (
+	| PatchRemove<P>
+	| PatchAdd<P>
+	| PatchReplace<P>
+) &
 	Targeted<Target>;
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -170,15 +175,7 @@ export const applyPatches = <T>(value: T, patches: Patches): T => {
 	}
 
 	if (value !== null && typeof value === "object") {
-		try {
-			return applyPatchesImmer(value, patches);
-		} catch (e) {
-			console.error("failed to apply patched through immer", {
-				value,
-				patches,
-			});
-			throw e;
-		}
+		return applyPatchesImmer(value, patches);
 	}
 
 	let value1: unknown = value;
@@ -195,7 +192,6 @@ export const applyPatches = <T>(value: T, patches: Patches): T => {
 		}
 
 		if (patch.op === PatchOp.Add) {
-			// console.error('add', { value: value1, patch });
 			throw new Error(
 				`applyPatches: cannot add on atomic value: ${value1}, index=${i}`,
 			);
@@ -208,11 +204,33 @@ export const applyPatches = <T>(value: T, patches: Patches): T => {
 				`applyPatches: unsupported patch: ${patch.op}, index=${i}`,
 			);
 		}
-		// console.log({ index: i, value0, value1, patch });
 	}
 	return value1 as T;
 };
-export const CannotReduce = Symbol("CannotReduce");
+
+export const canApplyPatches = <T>(value: T, patches: Patches) => {
+	try {
+		applyPatches(value, patches);
+		return true;
+	} catch (e) {
+		if (!e) {
+			throw e;
+		}
+		const message = (e as Error).toString();
+		// console.error('e', message);
+		if (
+			message.indexOf("Immer") !== -1 ||
+			message.indexOf("applyPatches: ") !== -1
+		) {
+			return false;
+		}
+		console.error("$here", { message });
+		throw e;
+	}
+};
+
+export const CannotReduce = Symbol.for("CannotReduce");
+export type CannotReduce = typeof CannotReduce;
 
 const isReplaceRoot = <T>(
 	entry: PatchEntry<T>,
@@ -294,3 +312,70 @@ export const reducePatches =
 			},
 		).patches;
 	};
+
+export const isReplaceRootEntry = <T>(
+	entry: PatchEntry<T>,
+): entry is PatchReplace<[], T> =>
+	entry.op === PatchOp.Replace && entry.path.length === 0;
+
+export const makeReplaceRootEntry = <T>(value: T): PatchReplace<[], T> => ({
+	op: PatchOp.Replace,
+	value,
+	path: [] as [],
+});
+
+export class InvalidPatchEntry extends Error {
+	constructor(
+		message: string,
+		public readonly patchEntry: PatchEntry,
+	) {
+		super(
+			`${message} op=${patchEntry.op}, path=${patchEntry.path.map(String).join("/")}`,
+		);
+	}
+}
+
+export function ensurePathLeadingNumber<T>(
+	entry: PatchEntry<T[], Path>,
+): asserts entry is PatchEntry<T[], [number, ...Path]> {
+	if (entry.path.length > 0 && typeof entry.path[0] === "number") {
+		return;
+	}
+	throw new InvalidPatchEntry("path must lead with index", entry);
+}
+
+/**
+ * Normalizes a `PatchEntry` on array to deal with irregular entries:
+ * Array index out of bounds or the '-' index.
+ * @returns The `PatchEntry` itself or a new instance of normalization is required
+ * @throws If the entry is an error.
+ */
+export const normalizeArrayEntry = <T>(
+	xs: unknown[],
+	entry: PatchEntry<T[]>,
+): PatchEntry<T[], [number, ...Path]> | null => {
+	const n = xs.length;
+	if (entry.op === PatchOp.Add && entry.path[0] === IndexEnd) {
+		return {
+			...entry,
+			path: [n, ...entry.path.slice(1)],
+		};
+	}
+	ensurePathLeadingNumber(entry);
+	const index = entry.path[0];
+	if (entry.op === PatchOp.Replace || entry.op === PatchOp.Remove) {
+		if (index < 0 || index >= n) {
+			return null;
+		}
+		return entry as never;
+	}
+
+	if (entry.op === PatchOp.Add && index > n) {
+		return {
+			...entry,
+			path: [n, ...entry.path.slice(1)],
+		};
+	}
+
+	return entry as never;
+};

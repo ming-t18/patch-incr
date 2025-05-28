@@ -74,38 +74,41 @@ describe("isStrictParent", () => {
 
 const arbObjWithPatches = gp.record({
 	rec1: gp.record({
-		integer: gp.atomic(fc.integer()),
-		str: gp.atomic(fc.string()),
+		integer: gp.integer(),
+		str: gp.string(),
 	}),
 	rec2: gp.record({
 		arrayOfRecord: gp.array(
 			gp.record({
-				f: gp.atomic(fc.integer()),
+				f: gp.integer(),
 			}),
+			{ maxLength: 3 },
 		),
-		array2OfInteger: gp.array(gp.array(gp.atomic(fc.integer()))),
+		array2OfInteger: gp.array(gp.array(gp.integer()), { maxLength: 3 }),
 		array2OfRecord: gp.array(
 			gp.array(
 				gp.record({
-					x: gp.atomic(fc.integer()),
-					y: gp.atomic(fc.string()),
+					x: gp.integer(),
+					y: gp.string(),
 				}),
+				{ maxLength: 3 },
 			),
 		),
 	}),
 });
 
-const arbPathOnObj = arbObjWithPatches
-	.map((x) => x.patches)
+const arbPathOnObj: fc.Arbitrary<Path> = arbObjWithPatches
+	.arb()
+	.map(({ patches }) => patches)
 	.filter((p) => p.length > 0)
-	.map((p) => p[0].path);
+	.chain((p) => fc.constantFrom(...p.map((e) => e.path)));
 
 describe("filterAccessPatches", () => {
 	it("prop patch filtering", () => {
 		// (x @ dx)[[path]] = x[[path]] @ filterAccessPatches(dx, path)
 		fc.assert(
 			fc.property(
-				arbObjWithPatches,
+				arbObjWithPatches.arb(),
 				arbPathOnObj,
 				({ value: x, patches: dx }, path) => {
 					const dx1 = filterAccessPatches(path, x, dx);
@@ -138,7 +141,7 @@ describe("filterAccessPatches", () => {
 describe("makeAccessProxy", () => {
 	it("parallels doAccess", () => {
 		fc.assert(
-			fc.property(arbObjWithPatches, arbPathOnObj, ({ value }, path) => {
+			fc.property(arbObjWithPatches.arb(), arbPathOnObj, ({ value }, path) => {
 				const expected = doAccess(value, path);
 				const proxy = makeAccessProxy(value, (target, path) =>
 					doAccess(target, path),

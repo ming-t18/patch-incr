@@ -22,6 +22,7 @@ describe("patchSchema", () => {
 			),
 		),
 	});
+
 	const arbValueWithPatch = gp.record({
 		name: gp.atomic<string>(fc.string()),
 		age: gp.atomic<number>(fc.integer()),
@@ -84,7 +85,7 @@ describe("patchSchema", () => {
 
 		it("should return the replacement itself for replace", () => {
 			fc.assert(
-				fc.property(arbValueWithPatch, ({ value }) => {
+				fc.property(arbValueWithPatch.arb(), ({ value }) => {
 					const res = recordSchema.isReplace(recordSchema.fromReplace(value));
 					if (res === null) {
 						expect(res).not.toBe(null);
@@ -95,11 +96,9 @@ describe("patchSchema", () => {
 			);
 		});
 
-		// TODO doesn't work
-		it.skip("should analyze patches that are effectively replace-root", () => {
+		it("should analyze patches that are effectively replace-root", () => {
 			fc.assert(
-				fc.property(arbValueWithPatch, ({ value, patches }) => {
-					// console.log({ value, patches });
+				fc.property(arbValueWithPatch.arb(), ({ value, patches }) => {
 					fc.pre(patches.findIndex((p) => p.path.length === 0) !== -1);
 					return (
 						recordSchema.isReplace(recordSchema.fromReplace(value)) !== null

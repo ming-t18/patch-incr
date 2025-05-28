@@ -1,12 +1,8 @@
 import fc from "fast-check";
-import { applyPatches } from "immer";
-import { IncrCache } from "../cache/incr_cache";
-import { bind } from "../incr/bind";
 import { access, atomicFunc, identity, record } from "../incr/builder";
-import { MemoComposer, composeMemo } from "../incr/compose";
 import { IFGraphBuilder } from "../incr/graphBuilder";
 import { concat, filter, flatMap, map, scan } from "../incr/list";
-import { PatchOp, type Patches, liftPatch } from "../incr/patch";
+import { PatchOp, type Patches, applyPatches, liftPatch } from "../incr/patch";
 import type { IF, InferIFOutput } from "../incr/types";
 import * as gp from "./helpers/genPatched.test";
 import {
@@ -14,11 +10,100 @@ import {
 	ensurePatchLiftingProperty,
 } from "./helpers/props.test";
 
+describe("genPatches helpers", () => {
+	const prop_noArrayHoles = <T>({ value, patches }: gp.WithPatches<T[]>) => {
+		const value1 = applyPatches(value, patches);
+		if (!(value1.findIndex((x) => x === undefined) === -1)) {
+			console.error({ value, patches, value1 });
+			return false;
+		}
+		return true;
+	};
+	describe("array", () => {
+		it("should patch properly", () => {
+			fc.assert(
+				fc.property(gp.array(gp.integer()).arb(), ({ value, patches }) => {
+					applyPatches(value, patches);
+					return true;
+				}),
+			);
+		});
+
+		it("should not produce array holes", () => {
+			fc.assert(fc.property(gp.array(gp.integer()).arb(), prop_noArrayHoles));
+		});
+
+		it("should patch properly for 2D arrays of integers", () => {
+			fc.assert(
+				fc.property(
+					gp.array(gp.array(gp.integer())).arb(),
+					({ value, patches }) => {
+						applyPatches(value, patches);
+						return true;
+					},
+				),
+			);
+		});
+
+		it("should not produce array holes, 2D arrays of integers", () => {
+			fc.assert(
+				fc.property(gp.array(gp.array(gp.integer())).arb(), prop_noArrayHoles),
+			);
+		});
+
+		const arb2d = gp.array(
+			gp.array(
+				gp.record({
+					a: gp.integer(),
+					b: gp.integer(),
+				}),
+			),
+		);
+		it("should patch properly for 2D arrays of records integers", () => {
+			fc.assert(
+				fc.property(arb2d.arb(), ({ value, patches }) => {
+					applyPatches(value, patches);
+					return true;
+				}),
+			);
+		});
+
+		it("should not produce array holes, 2D array of record", () => {
+			fc.assert(fc.property(arb2d.arb(), prop_noArrayHoles));
+		});
+	});
+
+	describe("record", () => {
+		it("should patch deep record properly", () => {
+			fc.assert(
+				fc.property(
+					gp
+						.record({
+							a: gp.integer(),
+							b: gp.array(gp.integer()),
+							c: gp.array(gp.record({ d: gp.integer() })),
+							d: gp.array(gp.tuple(gp.string(), gp.integer())),
+						})
+						.arb(),
+					({ value, patches }) => {
+						// console.log({ value, patches });
+						applyPatches(value, patches);
+						return true;
+					},
+				),
+				{ verbose: true },
+			);
+		});
+	});
+});
+
 describe("concat", () => {
-	it("patch coherent", () => {
+	it("concat on array of numbers is patch coherent", () => {
 		fc.assert(
 			fc.property(
-				gp.atomic(fc.array(fc.array(fc.integer()))),
+				gp
+					.array(gp.array<number>(arbElem0, { maxLength: 5 }), { maxLength: 5 })
+					.arb(undefined, { maxLength: 5 }),
 				({ value, patches }) => {
 					ensurePatchCoherent(value, patches, concat());
 				},
@@ -26,18 +111,37 @@ describe("concat", () => {
 		);
 	});
 
-	it.skip("samples", () => {
-		for (const x of fc.sample(
-			gp
-				.array(gp.array(gp.atomic(fc.integer({ min: 0, max: 100 }))))
-				.filter((x) => x.value.length === 0),
-			100,
-		)) {
-			console.log({
-				...x,
-				value1: applyPatches(x.value, x.patches),
-			});
-		}
+	const arbElem = gp.record({
+		str: gp.string(),
+		num: gp.atomic(fc.integer({ min: -100, max: 100 })),
+	});
+	it("concat on record is patch coherent", () => {
+		fc.assert(
+			fc.property(
+				gp
+					.array(gp.array(arbElem, { maxLength: 3 }), { maxLength: 3 })
+					.arb(undefined, { maxLength: 5 }),
+				({ value, patches }) => {
+					ensurePatchCoherent(value, patches, concat());
+				},
+			),
+		);
+	});
+
+	it("concat on array (3D -> 2D) is patch coherent", () => {
+		fc.assert(
+			fc.property(
+				gp
+					.array(
+						gp.array(gp.array(arbElem, { maxLength: 3 }), { maxLength: 3 }),
+						{ maxLength: 3 },
+					)
+					.arb(undefined, { maxLength: 5 }),
+				({ value, patches }) => {
+					ensurePatchCoherent(value, patches, concat());
+				},
+			),
+		);
 	});
 });
 
@@ -57,20 +161,21 @@ describe("map", () => {
 		);
 	describe("map identity", () => {
 		it("patch coherent for integers", () => {
+			const mi = map(identity<number>());
 			fc.assert(
-				fc.property(gp.array(gp.atomic(fc.integer())), ({ value, patches }) => {
-					ensurePatchCoherent(value, patches, map(identity()));
+				fc.property(gp.array(gp.integer()).arb(), ({ value, patches }) => {
+					ensurePatchCoherent(value, patches, mi);
 				}),
 			);
 		});
 
 		const arbRecord = gp.record({
-			a: gp.atomic(fc.integer()),
-			b: gp.array(gp.atomic(fc.integer())),
+			a: gp.integer(),
+			b: gp.array(gp.integer()),
 		});
 		it("patch coherent for lists of records", () => {
 			fc.assert(
-				fc.property(gp.array(arbRecord), ({ value, patches }) => {
+				fc.property(gp.array(arbRecord).arb(), ({ value, patches }) => {
 					ensurePatchCoherent(value, patches, map(identity()));
 				}),
 			);
@@ -78,7 +183,7 @@ describe("map", () => {
 
 		it("patch lifting for lists of records", () => {
 			fc.assert(
-				fc.property(arbRecord, (vp) =>
+				fc.property(arbRecord.arb(), (vp) =>
 					ensurePatchLiftingPropertyMap(vp, identity()),
 				),
 			);
@@ -86,10 +191,10 @@ describe("map", () => {
 	});
 
 	describe("map replace", () => {
-		it("patch coherent for integers", () => {
+		it("map map replace is patch coherent for integers", () => {
 			fc.assert(
 				fc.property(
-					gp.array(gp.atomic(fc.integer({ min: -100, max: 100 }))),
+					gp.array(gp.integer({ min: -100, max: 100 })).arb(),
 					({ value, patches }) => {
 						ensurePatchCoherent(value, patches, map(atomicFunc((x) => x + 1)));
 					},
@@ -97,37 +202,58 @@ describe("map", () => {
 			);
 		});
 
-		it("patch lifting", () => {
+		it("map replace patch lifting", () => {
+			const af = atomicFunc((x: number) => x + 1);
 			fc.assert(
-				fc.property(gp.atomic(fc.integer({ min: -100, max: 100 })), (vp) =>
-					ensurePatchLiftingPropertyMap(
-						vp,
-						atomicFunc((x: number) => x + 1),
-					),
+				fc.property(gp.integer({ min: -100, max: 100 }).arb(), (vp) =>
+					ensurePatchLiftingPropertyMap(vp, af),
 				),
 			);
 		});
 	});
 
 	describe("map map replace", () => {
-		const arbElem = gp.array(gp.atomic(fc.integer()));
+		const arbElem = gp.array(gp.integer());
 		const mapping = map(atomicFunc((x: number) => x + 1));
 
-		it("patch coherent for integers", () => {
+		it("map map replace is patch coherent for integers", () => {
 			fc.assert(
-				fc.property(gp.array(arbElem), ({ value, patches }) => {
+				fc.property(gp.array(arbElem).arb(), ({ value, patches }) => {
 					ensurePatchCoherent(value, patches, map(mapping));
 				}),
 			);
 		});
 
-		it("patch lifting", () => {
+		it("map map replace patch lifting", () => {
 			fc.assert(
-				fc.property(arbElem, (vp) =>
+				fc.property(arbElem.arb(), (vp) =>
 					ensurePatchLiftingPropertyMap(vp, mapping),
 				),
 			);
 		});
+	});
+
+	it("map into 2D array", () => {
+		const mapping = map(
+			atomicFunc(({ a, b }: { a: number; b: number }) =>
+				Array(a + b)
+					.fill(null)
+					.map((i) => i + 2),
+			),
+		);
+		fc.assert(
+			fc.property(
+				gp
+					.array(
+						gp.record({
+							a: gp.integer({ min: 0, max: 3 }),
+							b: gp.integer({ min: 0, max: 3 }),
+						}),
+					)
+					.arb(),
+				(vp) => ensurePatchLiftingPropertyMap(vp, mapping),
+			),
+		);
 	});
 
 	describe.skip("map compose", () => {
@@ -150,7 +276,7 @@ describe("scan", () => {
 		const mapping = (x: number, y: number) => x + y;
 		it("path coherent", () => {
 			fc.assert(
-				fc.property(gp.array(arbElem), ({ value, patches }) => {
+				fc.property(gp.array(arbElem).arb(), ({ value, patches }) => {
 					ensurePatchCoherent(value, patches, scan(mapping, 0));
 				}),
 			);
@@ -158,17 +284,14 @@ describe("scan", () => {
 	});
 
 	describe("scan record", () => {
-		const arbElem = gp.record(
-			{
-				add: gp.atomic(fc.integer({ min: -100, max: 100 })),
-				mult: gp.atomic(fc.integer({ min: -5, max: 5 })),
-				concat: gp.atomic(
-					fc.option<string, undefined>(fc.string({ unit: "grapheme-ascii" })),
-				),
-				combined: gp.atomic(fc.bigInt()),
-			},
-			["concat"],
-		);
+		const arbElem = gp.record({
+			add: gp.atomic(fc.integer({ min: -100, max: 100 })),
+			mult: gp.atomic(fc.integer({ min: -5, max: 5 })),
+			concat: gp.atomic(
+				fc.option<string, undefined>(fc.string({ unit: "grapheme-ascii" })),
+			),
+			combined: gp.atomic(fc.bigInt()),
+		});
 		type Obj = gp.InferArbValue<typeof arbElem>;
 		const mapping = (x: Obj, y: Obj): Obj => {
 			const combined =
@@ -192,14 +315,14 @@ describe("scan", () => {
 		};
 
 		it.skip("sample arbElem", () => {
-			for (const x of fc.sample(arbElem, 100)) {
+			for (const x of fc.sample(arbElem.arb(), 100)) {
 				console.log(x);
 			}
 		});
 
 		it("path coherent", () => {
 			fc.assert(
-				fc.property(gp.array(arbElem), ({ value, patches }) => {
+				fc.property(gp.array(arbElem).arb(), ({ value, patches }) => {
 					ensurePatchCoherent(
 						value,
 						patches,
@@ -216,6 +339,7 @@ describe("scan", () => {
 
 		const arbMultiRemove = gp
 			.array(arbElem)
+			.arb()
 			.filter(({ value }) => value.length > 0)
 			.chain(({ value, patches }) =>
 				fc.record({
@@ -259,45 +383,48 @@ describe("scan", () => {
 
 const arbElem0 = gp.atomic(fc.integer({ min: -100, max: 100 }));
 const arbElem = gp.record({
-	str: gp.atomic(fc.string()),
-	num: gp.atomic(fc.integer({ min: -100, max: 100 })),
-});
-
-describe("concat", () => {
-	it("concat is patch coherent", () => {
-		fc.assert(
-			fc.property(
-				gp.array(gp.array<number>(arbElem0)),
-				({ value, patches }) => {
-					ensurePatchCoherent(value, patches, concat());
-				},
-			),
-		);
-	});
-
-	const arbElem = gp.record({
-		str: gp.atomic(fc.string()),
-		num: gp.atomic(fc.integer({ min: -100, max: 100 })),
-	});
-	it("concat on record is patch coherent", () => {
-		fc.assert(
-			fc.property(gp.array(gp.array(arbElem)), ({ value, patches }) => {
-				ensurePatchCoherent(value, patches, concat());
-			}),
-		);
-	});
+	str: gp.string(),
+	num: gp.atomic(fc.integer({ min: 0, max: 100 })),
 });
 
 describe("filter", () => {
+	it.skip("apply patch test", () => {
+		console.log(
+			applyPatches([] as string[], [
+				{
+					op: PatchOp.Add,
+					path: [5],
+					value: "test",
+				},
+			]),
+		);
+
+		console.log(
+			applyPatches([] as string[], [
+				{
+					op: PatchOp.Replace,
+					path: [5],
+					value: "test",
+				},
+			]),
+		);
+
+		console.log(
+			applyPatches([] as string[], [
+				{
+					op: PatchOp.Remove,
+					path: [5],
+				},
+			]),
+		);
+	});
+
 	describe("filter false", () => {
 		it("filter false is patch coherent", () => {
+			const filterFalse = filter(() => false);
 			fc.assert(
-				fc.property(gp.array<number>(arbElem0), ({ value, patches }) => {
-					ensurePatchCoherent(
-						value,
-						patches,
-						filter(() => false),
-					);
+				fc.property(gp.array<number>(arbElem0).arb(), ({ value, patches }) => {
+					ensurePatchCoherent(value, patches, filterFalse);
 				}),
 			);
 		});
@@ -305,13 +432,10 @@ describe("filter", () => {
 
 	describe("filter true", () => {
 		it("filter true is patch coherent", () => {
+			const filterTrue = filter(() => true);
 			fc.assert(
-				fc.property(gp.array<number>(arbElem0), ({ value, patches }) => {
-					ensurePatchCoherent(
-						value,
-						patches,
-						filter(() => true),
-					);
+				fc.property(gp.array<number>(arbElem0).arb(), ({ value, patches }) => {
+					ensurePatchCoherent(value, patches, filterTrue);
 				}),
 			);
 		});
@@ -320,7 +444,7 @@ describe("filter", () => {
 	describe("filter is even", () => {
 		it("filter is even is patch coherent", () => {
 			fc.assert(
-				fc.property(gp.array<number>(arbElem0), ({ value, patches }) => {
+				fc.property(gp.array<number>(arbElem0).arb(), ({ value, patches }) => {
 					ensurePatchCoherent(
 						value,
 						patches,
@@ -333,13 +457,12 @@ describe("filter", () => {
 
 	describe("filter on record", () => {
 		it("filter on record is patch coherent", () => {
+			const filterOnRecord = filter<{ str: string; num: number }>(
+				({ str, num }) => (str.length + num) % 2 === 0,
+			);
 			fc.assert(
-				fc.property(gp.array(arbElem), ({ value, patches }) => {
-					ensurePatchCoherent(
-						value,
-						patches,
-						filter(({ str, num }) => (str.length + num) % 2 === 0),
-					);
+				fc.property(gp.array(arbElem).arb(), ({ value, patches }) => {
+					ensurePatchCoherent(value, patches, filterOnRecord);
 				}),
 			);
 		});
@@ -350,41 +473,38 @@ describe("flatMap", () => {
 	const arbElem0 = gp.atomic(fc.integer({ min: 0, max: 100 }));
 
 	describe("flatMap on atomic values", () => {
-		it("flatMap is patch coherent", () => {
+		it("flatMap on atomic values is patch coherent", () => {
+			const fm = flatMap(
+				atomicFunc((x: number) =>
+					Array(x)
+						.fill(null)
+						.map((i) => i + 2),
+				),
+			);
 			fc.assert(
-				fc.property(gp.array(arbElem0), ({ value, patches }) => {
-					ensurePatchCoherent(
-						value,
-						patches,
-						flatMap(
-							atomicFunc((x) =>
-								Array(x)
-									.fill(null)
-									.map((i) => i + 2),
-							),
-						),
-					);
+				fc.property(gp.array(arbElem0).arb(), ({ value, patches }) => {
+					ensurePatchCoherent(value, patches, fm);
 				}),
 			);
 		});
 	});
 
 	describe("flatMap on record values", () => {
-		it("flatMap is patch coherent", () => {
+		it("flatMap on record values is patch coherent", () => {
+			const fm = flatMap(
+				atomicFunc((x: gp.InferArbValue<typeof arbElem>) =>
+					Array(1 + (x.num % 2) + (x.str.length % 2))
+						.fill(null)
+						.map((_, i) => 1000 + i),
+				),
+			);
 			fc.assert(
-				fc.property(gp.array(arbElem), ({ value, patches }) => {
-					ensurePatchCoherent(
-						value,
-						patches,
-						flatMap(
-							atomicFunc((x) =>
-								Array(3 + (x.num % 2) + (x.str.length % 100))
-									.fill(null)
-									.map((i) => i + 2),
-							),
-						),
-					);
-				}),
+				fc.property(
+					gp.array(arbElem, { maxLength: 3 }).arb(undefined, { maxLength: 2 }),
+					({ value, patches }) => {
+						ensurePatchCoherent(value, patches, fm);
+					},
+				),
 			);
 		});
 	});
@@ -393,7 +513,7 @@ describe("flatMap", () => {
 		const pred = ({ str, num }: gp.InferArbValue<typeof arbElem>) =>
 			str.length + (num % 2) === 0;
 		fc.assert(
-			fc.property(gp.array(arbElem), ({ value, patches }) => {
+			fc.property(gp.array(arbElem).arb(), ({ value, patches }) => {
 				expect(
 					flatMap(
 						atomicFunc((x: gp.InferArbValue<typeof arbElem>) =>
@@ -406,7 +526,7 @@ describe("flatMap", () => {
 	});
 
 	// const arbEntry = gp.record({
-	// 	id: gp.atomic(fc.string()),
+	// 	id: gp.string(),
 	// 	value: gp.atomic(fc.integer({ min: 0, max: 100 })),
 	// 	numbers: gp.array<number>(gp.atomic(fc.integer({ min: 0, max: 100 }))),
 	// });
@@ -424,7 +544,7 @@ describe("flatMap", () => {
 
 	// it.skip("complex example: join a filter", () => {
 	// 	fc.assert(
-	// 		fc.property(gp.array(arbEntry), ({ value, patches }) => {
+	// 		fc.property(gp.array(arbEntry).arb(), ({ value, patches }) => {
 	// 			const fn = flatMap();
 	// 		}),
 	// 	);

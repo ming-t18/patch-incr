@@ -3,6 +3,7 @@ import {
 	PatchOp,
 	type Patches,
 	applyPatches,
+	isReplaceRootEntry,
 	liftPatch,
 } from "./patch";
 import type { IF } from "./types";
@@ -14,8 +15,7 @@ export const forwardMapPatches =
 			return patches as Patches<never>;
 		}
 
-		const hasConflicts =
-			patches.findIndex(({ path }) => path.length === 0) !== -1;
+		const hasConflicts = patches.findIndex(isReplaceRootEntry) !== -1;
 		if (hasConflicts) {
 			return null;
 		}
@@ -43,7 +43,7 @@ export const forwardMapPatches =
 			if (op === PatchOp.Add || op === PatchOp.Replace) {
 				res.push({
 					...entry,
-					value: f(entry.value),
+					value: f(entry.value as never),
 				} as PatchEntry<Y[]>);
 				continue;
 			}
