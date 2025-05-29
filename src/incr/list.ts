@@ -228,7 +228,7 @@ export const concat = <T>(): IF<T[][], [T[], number[]]> => {
 				return CannotReduce;
 			}
 
-			const entry = normalizeArrayEntry(xs1, entry0);
+			const entry = entry0; //normalizeArrayEntry(xs1, entry0);
 			if (entry === null) {
 				return CannotReduce;
 			}
@@ -244,7 +244,8 @@ export const concat = <T>(): IF<T[][], [T[], number[]]> => {
 			const indexMapped = index === 0 ? 0 : cys[index - 1];
 			let listPatches: Patches<T[]> | null = null;
 			if (entry.path.length > 1) {
-				const off = path[index + 1];
+				// TODO broken here
+				const off = path[1];
 				if (typeof off !== "number") {
 					return CannotReduce;
 				}

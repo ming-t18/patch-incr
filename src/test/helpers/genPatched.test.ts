@@ -47,7 +47,12 @@ const makeArbHelper = <T>(
 		fc.record({
 			value: fc.constant(value),
 			patches: fc
-				.array(opts.arbPatchEntry({ value }), opts.arrayConstraints)
+				.array(
+					opts.arbPatchEntry({ value }),
+					opts.arrayConstraints ?? {
+						maxLength: 6,
+					},
+				)
 				.map((entries) => {
 					let base: T = value;
 					const out = [] as typeof entries;
@@ -99,16 +104,6 @@ const arbReplacePatchEntry = <T, V = T, P extends Path = Path>(
 
 const toArbValue = <T>(gen: GenWithPatches<T>): fc.Arbitrary<T> =>
 	gen.arb().map((x) => x.value);
-const toArbReplaceRootEntry = <T>(
-	gen: GenWithPatches<T>,
-): fc.Arbitrary<PatchEntry<T>> =>
-	gen.arb().map(
-		({ value }): PatchEntry<T> => ({
-			op: PatchOp.Replace,
-			value,
-			path: [],
-		}),
-	);
 
 export const atomic = <T>(arb: fc.Arbitrary<T>): GenWithPatches<T> => {
 	const isValidPatchEntry = (_value: T, { op, path }: PatchEntry<T>) =>

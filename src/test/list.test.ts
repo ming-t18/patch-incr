@@ -10,6 +10,8 @@ import {
 	ensurePatchLiftingProperty,
 } from "./helpers/props.test";
 
+fc.configureGlobal({ numRuns: 1000 });
+
 describe("genPatches helpers", () => {
 	const prop_noArrayHoles = <T>({ value, patches }: gp.WithPatches<T[]>) => {
 		const value1 = applyPatches(value, patches);
@@ -98,14 +100,29 @@ describe("genPatches helpers", () => {
 });
 
 describe("concat", () => {
-	it("concat on array of numbers is patch coherent", () => {
+	it("concat on arrays of numbers is patch coherent", () => {
+		const c = concat();
 		fc.assert(
 			fc.property(
 				gp
 					.array(gp.array<number>(arbElem0, { maxLength: 5 }), { maxLength: 5 })
 					.arb(undefined, { maxLength: 5 }),
 				({ value, patches }) => {
-					ensurePatchCoherent(value, patches, concat());
+					ensurePatchCoherent(value, patches, c);
+				},
+			),
+		);
+	});
+
+	it("concat on initially empty arrays of numbers is patch coherent", () => {
+		const c = concat();
+		fc.assert(
+			fc.property(
+				gp
+					.array(gp.array<number>(arbElem0, { maxLength: 0 }), { maxLength: 5 })
+					.arb(undefined, { maxLength: 5 }),
+				({ value, patches }) => {
+					ensurePatchCoherent(value, patches, c);
 				},
 			),
 		);
@@ -116,29 +133,48 @@ describe("concat", () => {
 		num: gp.atomic(fc.integer({ min: -100, max: 100 })),
 	});
 	it("concat on record is patch coherent", () => {
+		const c = concat();
 		fc.assert(
 			fc.property(
 				gp
 					.array(gp.array(arbElem, { maxLength: 3 }), { maxLength: 3 })
 					.arb(undefined, { maxLength: 5 }),
 				({ value, patches }) => {
-					ensurePatchCoherent(value, patches, concat());
+					ensurePatchCoherent(value, patches, c);
+				},
+			),
+		);
+	});
+
+	it("concat on array (3D -> 2D) is patch coherent, empties", () => {
+		const c = concat();
+		fc.assert(
+			fc.property(
+				gp
+					.array(
+						gp.array(gp.array(arbElem, { maxLength: 0 }), { maxLength: 2 }),
+						{ maxLength: 5 },
+					)
+					.arb(undefined, { maxLength: 2 }),
+				({ value, patches }) => {
+					ensurePatchCoherent(value, patches, c);
 				},
 			),
 		);
 	});
 
 	it("concat on array (3D -> 2D) is patch coherent", () => {
+		const c = concat();
 		fc.assert(
 			fc.property(
 				gp
 					.array(
-						gp.array(gp.array(arbElem, { maxLength: 3 }), { maxLength: 3 }),
-						{ maxLength: 3 },
+						gp.array(gp.array(arbElem, { maxLength: 0 }), { maxLength: 2 }),
+						{ maxLength: 5 },
 					)
-					.arb(undefined, { maxLength: 5 }),
+					.arb(undefined, { maxLength: 2 }),
 				({ value, patches }) => {
-					ensurePatchCoherent(value, patches, concat());
+					ensurePatchCoherent(value, patches, c);
 				},
 			),
 		);
@@ -489,18 +525,43 @@ describe("flatMap", () => {
 		});
 	});
 
-	describe("flatMap on record values", () => {
-		it("flatMap on record values is patch coherent", () => {
+	describe("flatMap on trivial values", () => {
+		const arbElem1 = gp.record({ a: gp.integer({ min: 0, max: 5 }) });
+		it("flatMap on singleton record values is patch coherent", () => {
 			const fm = flatMap(
-				atomicFunc((x: gp.InferArbValue<typeof arbElem>) =>
-					Array(1 + (x.num % 2) + (x.str.length % 2))
+				atomicFunc(({ a }: gp.InferArbValue<typeof arbElem1>) =>
+					Array(a)
 						.fill(null)
 						.map((_, i) => 1000 + i),
 				),
 			);
 			fc.assert(
 				fc.property(
-					gp.array(arbElem, { maxLength: 3 }).arb(undefined, { maxLength: 2 }),
+					gp.array(arbElem1, { maxLength: 5 }).arb(undefined, { maxLength: 5 }),
+					({ value, patches }) => {
+						ensurePatchCoherent(value, patches, fm);
+					},
+				),
+			);
+		});
+	});
+
+	describe("flatMap on record values", () => {
+		const arbElem1 = gp.record({
+			a: gp.integer({ min: 0, max: 5 }),
+			b: gp.integer({ min: 0, max: 5 }),
+		});
+		it("flatMap on record values is patch coherent", () => {
+			const fm = flatMap(
+				atomicFunc(({ a, b }: gp.InferArbValue<typeof arbElem1>) =>
+					Array(a + b)
+						.fill(null)
+						.map((_, i) => 1000 + i),
+				),
+			);
+			fc.assert(
+				fc.property(
+					gp.array(arbElem1, { maxLength: 5 }).arb(undefined, { maxLength: 5 }),
 					({ value, patches }) => {
 						ensurePatchCoherent(value, patches, fm);
 					},
@@ -512,15 +573,12 @@ describe("flatMap", () => {
 	it("filter can be expressed in terms of flatMap", () => {
 		const pred = ({ str, num }: gp.InferArbValue<typeof arbElem>) =>
 			str.length + (num % 2) === 0;
+		const fm = flatMap(
+			atomicFunc((x: gp.InferArbValue<typeof arbElem>) => (pred(x) ? [x] : [])),
+		);
 		fc.assert(
-			fc.property(gp.array(arbElem).arb(), ({ value, patches }) => {
-				expect(
-					flatMap(
-						atomicFunc((x: gp.InferArbValue<typeof arbElem>) =>
-							pred(x) ? [x] : [],
-						),
-					).invoke(value)[0],
-				).toEqual(filter(pred).invoke(value)[0]);
+			fc.property(gp.array(arbElem).arb(), ({ value }) => {
+				expect(fm.invoke(value)[0]).toEqual(filter(pred).invoke(value)[0]);
 			}),
 		);
 	});

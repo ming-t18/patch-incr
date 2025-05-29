@@ -61,6 +61,7 @@ export const ensurePatchCoherent = <X, Y, DX = Patches<X>>(
 				dy,
 				xNext,
 			});
+			console.error(e);
 		}
 		throw e;
 	}
