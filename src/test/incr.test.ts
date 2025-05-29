@@ -19,12 +19,16 @@ import type { IF } from "../incr/types";
 import * as gp from "./helpers/genPatched.test";
 import { ensurePatchCoherent } from "./helpers/props.test";
 
-const arbAtomic = <
-	T = unknown,
-	F extends (value: unknown) => T = (value: unknown) => T,
->(
-	arbReturn?: fc.Arbitrary<T>,
-) => fc.func(arbReturn ?? anything()).map((f) => atomicFunc(f));
+const arbAtomic = <T = unknown>(arbReturn?: fc.Arbitrary<T>) =>
+	fc
+		.func(
+			arbReturn ??
+				gp
+					.arbGenPatched()
+					.chain((x) => x.arb())
+					.map((x) => x.value),
+		)
+		.map((f) => atomicFunc(f));
 
 const arbKeys = fc.array(fc.string()).map((xs) => [...new Set(...xs)]);
 
