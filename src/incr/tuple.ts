@@ -15,7 +15,7 @@ export const comm = <A, B>(): IFInv<[A, B], [B, A]> => {
 	return {
 		invoke: invokeComm,
 		inverseInvoke: invokeComm,
-		forward: (_x, patches, _y) =>
+		forward: (_x, patches, _y: never) =>
 			patches.map((entry): PatchEntry<[B, A]> => {
 				const { path } = entry;
 				// [0] -> [1]
@@ -49,7 +49,7 @@ export const assocRight = <A, B, C>(): IFInv<[[A, B], C], [A, [B, C]]> => {
 	return {
 		invoke: invokeAssocRight,
 		inverseInvoke: invokeAssocLeft,
-		forward: (_x, patches, _y) => {
+		forward: (_x, patches, _y: never) => {
 			const res: PatchEntry<[A, [B, C]]>[] = [];
 			for (const entry of patches) {
 				const { path, op } = entry;

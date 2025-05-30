@@ -29,21 +29,24 @@ export type Forward<
 	Output,
 	InputChange = Patches<Input>,
 	OutputChange = Patches<Output>,
-> = (input: Input, change: InputChange, output: Output) => OutputChange;
+	ForwardOutput extends Output = Output,
+> = (input: Input, change: InputChange, output: ForwardOutput) => OutputChange;
 
 export interface IncrementalFunction<
 	Input,
 	Output,
 	InputChange = Patches<Input>,
 	OutputChange = Patches<Output>,
+	ForwardOutput extends Output = Output,
 > {
 	invoke: Invoke<Input, Output>;
-	forward: Forward<Input, Output, InputChange, OutputChange>;
+	forward: Forward<Input, Output, InputChange, OutputChange, ForwardOutput>;
 	[TypesKey]?: {
 		input: Input;
 		output: Output;
 		inputChange: InputChange;
 		outputChange: OutputChange;
+		outputExpected: ForwardOutput;
 	};
 }
 
@@ -52,7 +55,14 @@ export type IF<
 	Output,
 	InputChange = Patches<Input>,
 	OutputChange = Patches<Output>,
-> = IncrementalFunction<Input, Output, InputChange, OutputChange>;
+	ForwardOutput extends Output = Output,
+> = IncrementalFunction<
+	Input,
+	Output,
+	InputChange,
+	OutputChange,
+	ForwardOutput
+>;
 
 export interface InverseInvoke<Input, Output> {
 	inverseInvoke: (output: Output) => Input;
@@ -63,7 +73,8 @@ export type IFInv<
 	Output,
 	InputChange = Patches<Input>,
 	OutputChange = Patches<Output>,
-> = IF<Input, Output, InputChange, OutputChange> & InverseInvoke<Input, Output>;
+> = IF<Input, Output, InputChange, OutputChange, never> &
+	InverseInvoke<Input, Output>;
 
 // biome-ignore lint/suspicious/noExplicitAny: used on constraints
 export type AnyIF = IF<any, any, any, any>;

@@ -11,11 +11,11 @@ import {
 	reducePatches,
 	replacePatch,
 } from "./patch";
-import { type IF, type Invoke, isIF } from "./types";
+import { type IF, type IFInv, type Invoke, isIF } from "./types";
 
 const _identity = <T>(x: T) => x;
 
-export const identity = <Input, Change = Patches<Input>>(): IF<
+export const identity = <Input, Change = Patches<Input>>(): IFInv<
 	Input,
 	Input,
 	Change,
@@ -23,7 +23,8 @@ export const identity = <Input, Change = Patches<Input>>(): IF<
 > => {
 	return {
 		invoke: _identity,
-		forward: (_1, d, _2) => d,
+		inverseInvoke: _identity,
+		forward: (_1, d, _2: never) => d,
 	};
 };
 
@@ -35,10 +36,10 @@ export const constant = <
 >(
 	value: T,
 	empty = [] as OutputChange,
-): IF<Input, T, InputChange, OutputChange> => {
+): IF<Input, T, InputChange, OutputChange, never> => {
 	return {
 		invoke: (_: Input) => value,
-		forward: (_1, _2, _3) => empty,
+		forward: (_1, _2, _3: never) => empty,
 	};
 };
 
