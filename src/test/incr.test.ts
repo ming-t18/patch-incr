@@ -17,7 +17,10 @@ import {
 } from "../incr/patch";
 import type { IF } from "../incr/types";
 import * as gp from "./helpers/genPatched.test";
-import { ensurePatchCoherent } from "./helpers/props.test";
+import {
+	ensurePatchCoherent,
+	ensurePatchSplitProperty,
+} from "./helpers/props.test";
 
 const arbAtomic = <T = unknown>(arbReturn?: fc.Arbitrary<T>) =>
 	fc

@@ -11,7 +11,13 @@ import {
 	reducePatches,
 	replacePatch,
 } from "./patch";
-import { type IF, type IFInv, type Invoke, isIF } from "./types";
+import {
+	type IF,
+	type IFInv,
+	type Invoke,
+	type NoForwardOutput,
+	isIF,
+} from "./types";
 
 const _identity = <T>(x: T) => x;
 
@@ -24,7 +30,7 @@ export const identity = <Input, Change = Patches<Input>>(): IFInv<
 	return {
 		invoke: _identity,
 		inverseInvoke: _identity,
-		forward: (_1, d, _2: never) => d,
+		forward: (_1, d) => d,
 	};
 };
 
@@ -36,23 +42,28 @@ export const constant = <
 >(
 	value: T,
 	empty = [] as OutputChange,
-): IF<Input, T, InputChange, OutputChange, never> => {
+): IF<Input, T, InputChange, OutputChange, NoForwardOutput> => {
+	const forwardConstant = (_1: Input, _2: InputChange): OutputChange => empty;
 	return {
 		invoke: (_: Input) => value,
-		forward: (_1, _2, _3: never) => empty,
+		forward: forwardConstant,
 	};
 };
 
 export const atomicFunc = <Input, Output>(
 	invoke: Invoke<Input, Output>,
-): IF<Input, Output> => {
+): IF<Input, Output, Patches<Input>, Patches<Output>, NoForwardOutput> => {
+	const forwardAtomicFunc = (input: Input, patches: Patches<Input>) => {
+		if (patches.length === 0) {
+			return [];
+		}
+
+		const newInput = applyPatches(input, patches);
+		return replacePatch(invoke(newInput));
+	};
 	return {
 		invoke,
-		forward: (input, patches, output) => {
-			const newInput = applyPatches(input, patches);
-			const updated = invoke(newInput);
-			return output === updated ? [] : replacePatch(updated);
-		},
+		forward: forwardAtomicFunc,
 	};
 };
 

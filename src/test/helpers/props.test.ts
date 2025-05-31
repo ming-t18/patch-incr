@@ -1,10 +1,15 @@
-import { expect } from "bun:test";
+import { expect, jest } from "bun:test";
 import fc from "fast-check";
 import type { Dispatch } from "../../dom/mount";
 import type { RenderForward } from "../../dom/render";
 import type { ElementConstruction } from "../../dom/types";
-import { type Patches, applyPatches } from "../../incr/patch";
+import {
+	type Patches,
+	applyPatches,
+	reduceReplaceRoot,
+} from "../../incr/patch";
 import type { IF } from "../../incr/types";
+import type { GenWithPatches } from "./genPatched.test";
 
 export const ensurePatchCoherent = <X, Y, DX = Patches<X>>(
 	x: X,
@@ -65,6 +70,143 @@ export const ensurePatchCoherent = <X, Y, DX = Patches<X>>(
 		}
 		throw e;
 	}
+};
+export const ensurePatchSplitProperty = <X, Y>(
+	x: X,
+	dx: Patches<X>,
+	f: IF<X, Y>,
+) => {
+	//
+	// dx = dxLeft & dxRight
+	//               @dx
+	// x ------------------------------> xNext
+	// |              ||
+	// | f            || f'
+	// |              ||
+	// v              \/
+	// y ------------------------------> yNext
+	//               @dy
+	//
+	//    @dxLeft            @dxRight
+	// x ---------> xInterm -----------> xNext1
+	// |     ||        |       ||
+	// | f   || f'     | f     || f'
+	// |     ||        |       ||
+	// v     \/        v       \/
+	// y1 --------> yInterm -----------> yNext1
+	//    @dyLeft            @dyRight
+	//
+	// y = f(x)
+	// y @ dy = y @ dyLeft @ dyRight
+	// dy = f'(x, dx, y)
+	// dyLeft = f'(x, dxLeft, y)
+	// dyRight = f'(x @ dxLeft, dxRight, y @ dyLeft)
+	//
+	fc.pre(dx.length > 1);
+	const i = dx.length === 2 ? 1 : Math.floor(dx.length / 2);
+	const y = f.invoke(x);
+	const dy = f.forward(x, dx, y);
+	const yNext = applyPatches(y, dy);
+	const dxLeft = dx.slice(0, i);
+	const dxRight = dx.slice(i);
+	const y1 = f.invoke(x);
+	const dyLeft = f.forward(x, dxLeft, y1);
+	const xInterm = applyPatches(x, dxLeft);
+	const yInterm = applyPatches(y1, dyLeft);
+	const dyRight = f.forward(xInterm, dxRight, yInterm);
+	const dyCombined: Patches<Y> = [...dyLeft, ...dyRight];
+	// console.log('LOG', { y, dy, yNext, dxLeft, y1, dyLeft, xInterm, yInterm });
+	const yNext1 = applyPatches(y, dyCombined);
+	try {
+		expect(applyPatches(y, dyCombined)).toStrictEqual(yNext);
+	} catch (e) {
+		const xNext = applyPatches(x, dx);
+		const xNext1 = xNext;
+		console.error("patch split failed", {
+			x,
+			y,
+			dx,
+			dy,
+			xNext,
+			dxLeft,
+			xInterm,
+			dxRight,
+			dyLeft,
+			yInterm,
+			dyRight,
+			yNext,
+			xNext1,
+			yNext1,
+		});
+		throw e;
+	}
+};
+
+type It = (name: string, func: () => void) => void;
+
+export const propsForIF = <X, Y, Z = undefined>(
+	it: It,
+	gen: GenWithPatches<X>,
+	getIF: (value: Z) => IF<X, Y>,
+	arb = fc.constant(undefined) as fc.Arbitrary<Z>,
+) => {
+	it("identity patch: f'([]) = []: F(id) = id", () => {
+		fc.assert(
+			fc.property(arb, gen.arb(), (z, { value: x }) => {
+				const f = getIF(z);
+				const y = f.invoke(x);
+				const dy = f.forward(x, [], y);
+				expect(dy).toStrictEqual([]);
+			}),
+		);
+	});
+
+	it("patch coherent", () => {
+		fc.assert(
+			fc.property(arb, gen.arb(), (z, { value, patches }) => {
+				const f = getIF(z);
+				ensurePatchCoherent(value, patches, f);
+			}),
+		);
+	});
+
+	it("patch split: f'(dx1) @ f'(dx2) = f'(dx1 @ dx2): F(g) . F(f) = F(g . f)", () => {
+		fc.assert(
+			fc.property(arb, gen.arb(), (z, { value, patches }) => {
+				const f = getIF(z);
+				ensurePatchSplitProperty(value, patches, f);
+			}),
+		);
+	});
+};
+
+export const propIsIdentity = <X, Z = undefined>(
+	it: It,
+	getIF: (value: Z) => IF<X, X>,
+	gen: GenWithPatches<X>,
+	arb = fc.constant(undefined) as fc.Arbitrary<Z>,
+) => {
+	it("is effectively identity: f(x) = x", () => {
+		fc.assert(
+			fc.property(arb, gen.arb(), (z, { value: x }) => {
+				const f = getIF(z);
+				const y = f.invoke(x);
+				expect(y).toStrictEqual(x);
+			}),
+		);
+	});
+
+	it("is effectively identity: f'(dx) = dx if dx is not replace-root", () => {
+		fc.assert(
+			fc.property(arb, gen.arb(), (z, { value: x, patches: dx }) => {
+				fc.pre(!("replace" in reduceReplaceRoot(dx)));
+				const f = getIF(z);
+				const y = f.invoke(x);
+				const dy = f.forward(x, dx, y);
+				expect(dy).toStrictEqual(dx);
+			}),
+		);
+	});
 };
 
 export const ensureRenderPatchCoherent = <State, Action>(

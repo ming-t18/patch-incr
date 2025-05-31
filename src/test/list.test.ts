@@ -8,6 +8,7 @@ import * as gp from "./helpers/genPatched.test";
 import {
 	ensurePatchCoherent,
 	ensurePatchLiftingProperty,
+	ensurePatchSplitProperty,
 } from "./helpers/props.test";
 
 fc.configureGlobal({ numRuns: 1000 });
@@ -100,50 +101,119 @@ describe("genPatches helpers", () => {
 });
 
 describe("concat", () => {
-	it("concat on arrays of numbers is patch coherent", () => {
-		const c = concat();
-		fc.assert(
-			fc.property(
-				gp
-					.array(gp.array<number>(arbElem0, { maxLength: 5 }), { maxLength: 5 })
-					.arb(undefined, { maxLength: 5 }),
-				({ value, patches }) => {
-					ensurePatchCoherent(value, patches, c);
+	describe("array of numbers", () => {
+		const arbElem0 = gp.integer({ min: -100, max: 100 });
+		const arr = gp.array(gp.array<number>(arbElem0, { maxLength: 5 }), {
+			maxLength: 5,
+		});
+		it("concat on arrays of numbers is patch coherent", () => {
+			const c = concat();
+			fc.assert(
+				fc.property(
+					arr.arb(undefined, { maxLength: 5 }),
+					({ value, patches }) => {
+						ensurePatchCoherent(value, patches, c);
+					},
+				),
+			);
+		});
+
+		it("concat on arrays of numbers is follows patch split property", () => {
+			const c = concat();
+			fc.assert(
+				fc.property(
+					arr.arb(undefined, { maxLength: 5 }),
+					({ value, patches }) => {
+						ensurePatchSplitProperty(value, patches, c);
+					},
+				),
+			);
+		});
+
+		it("add empty list (for debugging)", () => {
+			const c = concat();
+			const x: number[][] = [[], [], []];
+			const dx: Patches<number[][]> = [
+				{
+					op: PatchOp.Replace,
+					path: [1],
+					value: [100],
 				},
-			),
-		);
+				{
+					op: PatchOp.Replace,
+					path: [1],
+					value: [],
+				},
+			];
+			const y = c.invoke(x);
+			const dy = c.forward(x, dx, y);
+			console.log({ x, y, dx, dy });
+			const x1 = applyPatches(x, dx);
+			const y1 = applyPatches(y, dy);
+			console.log({ x1, y1 });
+		});
 	});
 
-	it("concat on initially empty arrays of numbers is patch coherent", () => {
-		const c = concat();
-		fc.assert(
-			fc.property(
-				gp
-					.array(gp.array<number>(arbElem0, { maxLength: 0 }), { maxLength: 5 })
-					.arb(undefined, { maxLength: 5 }),
-				({ value, patches }) => {
-					ensurePatchCoherent(value, patches, c);
-				},
-			),
-		);
+	describe("initially empty arrays of numbers", () => {
+		const arbElem0 = gp.atomic(fc.integer({ min: -100, max: 100 }));
+		const arr = gp.array(gp.array<number>(arbElem0, { maxLength: 0 }), {
+			maxLength: 5,
+		});
+		it("concat on initially empty arrays of numbers is patch coherent", () => {
+			const c = concat();
+			fc.assert(
+				fc.property(
+					arr.arb(undefined, { maxLength: 5 }),
+					({ value, patches }) => {
+						ensurePatchCoherent(value, patches, c);
+					},
+				),
+			);
+		});
+
+		it("concat on initially empty arrays of numbers follows patch split property", () => {
+			const c = concat();
+			fc.assert(
+				fc.property(
+					arr.arb(undefined, { maxLength: 5 }),
+					({ value, patches }) => {
+						ensurePatchSplitProperty(value, patches, c);
+					},
+				),
+			);
+		});
 	});
 
 	const arbElem = gp.record({
 		str: gp.string(),
 		num: gp.atomic(fc.integer({ min: -100, max: 100 })),
 	});
-	it("concat on record is patch coherent", () => {
-		const c = concat();
-		fc.assert(
-			fc.property(
-				gp
-					.array(gp.array(arbElem, { maxLength: 3 }), { maxLength: 3 })
-					.arb(undefined, { maxLength: 5 }),
-				({ value, patches }) => {
-					ensurePatchCoherent(value, patches, c);
-				},
-			),
-		);
+	describe("concat on record", () => {
+		const arr = gp.array(gp.array(arbElem, { maxLength: 3 }), { maxLength: 3 });
+
+		it("concat on record is patch coherent", () => {
+			const c = concat();
+			fc.assert(
+				fc.property(
+					arr.arb(undefined, { maxLength: 5 }),
+					({ value, patches }) => {
+						ensurePatchCoherent(value, patches, c);
+					},
+				),
+			);
+		});
+
+		it("concat on record follows patch split property", () => {
+			const c = concat();
+			fc.assert(
+				fc.property(
+					arr.arb(undefined, { maxLength: 5 }),
+					({ value, patches }) => {
+						ensurePatchSplitProperty(value, patches, c);
+					},
+				),
+			);
+		});
 	});
 
 	it("concat on array (3D -> 2D) is patch coherent, empties", () => {
@@ -163,21 +233,34 @@ describe("concat", () => {
 		);
 	});
 
-	it("concat on array (3D -> 2D) is patch coherent", () => {
-		const c = concat();
-		fc.assert(
-			fc.property(
-				gp
-					.array(
-						gp.array(gp.array(arbElem, { maxLength: 0 }), { maxLength: 2 }),
-						{ maxLength: 5 },
-					)
-					.arb(undefined, { maxLength: 2 }),
-				({ value, patches }) => {
-					ensurePatchCoherent(value, patches, c);
-				},
-			),
+	describe("concat on array (3D -> 2D)", () => {
+		const arr = gp.array(
+			gp.array(gp.array(arbElem, { maxLength: 0 }), { maxLength: 2 }),
+			{ maxLength: 5 },
 		);
+		it("concat on array (3D -> 2D) is patch coherent", () => {
+			const c = concat();
+			fc.assert(
+				fc.property(
+					arr.arb(undefined, { maxLength: 2 }),
+					({ value, patches }) => {
+						ensurePatchCoherent(value, patches, c);
+					},
+				),
+			);
+		});
+
+		it("concat on array (3D -> 2D) follows patch split property", () => {
+			const c = concat();
+			fc.assert(
+				fc.property(
+					arr.arb(undefined, { maxLength: 2 }),
+					({ value, patches }) => {
+						ensurePatchSplitProperty(value, patches, c);
+					},
+				),
+			);
+		});
 	});
 });
 
@@ -205,6 +288,18 @@ describe("map", () => {
 			);
 		});
 
+		it("patch splitting property for lists of integers", () => {
+			const mi = map(identity<number>());
+			fc.assert(
+				fc.property(
+					gp.array(gp.integer(), { maxLength: 2 }).arb(),
+					({ value, patches }) => {
+						ensurePatchSplitProperty(value, patches, mi);
+					},
+				),
+			);
+		});
+
 		const arbRecord = gp.record({
 			a: gp.integer(),
 			b: gp.array(gp.integer()),
@@ -213,6 +308,14 @@ describe("map", () => {
 			fc.assert(
 				fc.property(gp.array(arbRecord).arb(), ({ value, patches }) => {
 					ensurePatchCoherent(value, patches, map(identity()));
+				}),
+			);
+		});
+
+		it("patch splitting property for lists of records", () => {
+			fc.assert(
+				fc.property(gp.array(arbRecord).arb(), ({ value, patches }) => {
+					ensurePatchSplitProperty(value, patches, map(identity()));
 				}),
 			);
 		});
@@ -417,10 +520,10 @@ describe("scan", () => {
 	});
 });
 
-const arbElem0 = gp.atomic(fc.integer({ min: -100, max: 100 }));
+const arbElem0 = gp.integer({ min: -100, max: 100 });
 const arbElem = gp.record({
 	str: gp.string(),
-	num: gp.atomic(fc.integer({ min: 0, max: 100 })),
+	num: gp.integer({ min: 0, max: 100 }),
 });
 
 describe("filter", () => {

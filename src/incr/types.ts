@@ -24,20 +24,24 @@ export type AnyApplyCombine = ApplyCombine<any, any>;
 
 export type Invoke<Input, Output> = (input: Input) => Output;
 
+export type NoFrowardOutput = true | false;
+
 export type Forward<
 	Input,
 	Output,
 	InputChange = Patches<Input>,
 	OutputChange = Patches<Output>,
-	ForwardOutput extends Output = Output,
-> = (input: Input, change: InputChange, output: ForwardOutput) => OutputChange;
+	ForwardOutput extends boolean = true,
+> = ForwardOutput extends false
+	? (input: Input, change: InputChange, output?: Output) => OutputChange
+	: (input: Input, change: InputChange, output: Output) => OutputChange;
 
 export interface IncrementalFunction<
 	Input,
 	Output,
 	InputChange = Patches<Input>,
 	OutputChange = Patches<Output>,
-	ForwardOutput extends Output = Output,
+	ForwardOutput extends boolean = true,
 > {
 	invoke: Invoke<Input, Output>;
 	forward: Forward<Input, Output, InputChange, OutputChange, ForwardOutput>;
@@ -46,7 +50,6 @@ export interface IncrementalFunction<
 		output: Output;
 		inputChange: InputChange;
 		outputChange: OutputChange;
-		outputExpected: ForwardOutput;
 	};
 }
 
@@ -55,7 +58,7 @@ export type IF<
 	Output,
 	InputChange = Patches<Input>,
 	OutputChange = Patches<Output>,
-	ForwardOutput extends Output = Output,
+	ForwardOutput extends boolean = true,
 > = IncrementalFunction<
 	Input,
 	Output,
@@ -73,7 +76,7 @@ export type IFInv<
 	Output,
 	InputChange = Patches<Input>,
 	OutputChange = Patches<Output>,
-> = IF<Input, Output, InputChange, OutputChange, never> &
+> = IF<Input, Output, InputChange, OutputChange, false> &
 	InverseInvoke<Input, Output>;
 
 // biome-ignore lint/suspicious/noExplicitAny: used on constraints

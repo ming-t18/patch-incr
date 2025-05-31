@@ -1,29 +1,41 @@
 import {
+	CannotReduce,
 	type PatchEntry,
 	PatchOp,
 	type Patches,
 	applyPatches,
 	isReplaceRootEntry,
 	liftPatch,
+	reducePatches,
 } from "./patch";
 import type { IF } from "./types";
 
-export const forwardMapPatches =
-	<X, Y>({ invoke: f, forward: df }: IF<X, Y, Patches<X>, Patches<Y>>) =>
-	(xs: X[], patches: Patches<X[]>, ys: Y[]): Patches<Y[]> | null => {
-		if (patches.length === 0) {
-			return patches as Patches<never>;
-		}
-
-		const hasConflicts = patches.findIndex(isReplaceRootEntry) !== -1;
-		if (hasConflicts) {
-			return null;
-		}
-
-		const res: Patches<Y[]> = [];
-		for (const entry of patches) {
+export const forwardMapPatches = <X, Y>(
+	invokeMap: (xs: X[]) => Y[],
+	{ invoke: f, forward: df }: IF<X, Y, Patches<X>, Patches<Y>>,
+) =>
+	reducePatches(
+		invokeMap,
+		(xs: X[], entry: PatchEntry<X[]>, ys: Y[]): Patches<Y[]> | CannotReduce => {
+			const res: Patches<Y[]> = [];
 			const { path, op } = entry;
-			if (path.length > 1) {
+
+			if (path.length === 0) {
+				return CannotReduce;
+			}
+
+			if (path.length === 1) {
+				if (op === PatchOp.Add || op === PatchOp.Replace) {
+					// path.length === 1
+					res.push({
+						...entry,
+						value: f(entry.value as never),
+					} as PatchEntry<Y[]>);
+				} else if (op === PatchOp.Remove) {
+					// path.length === 1
+					res.push({ ...entry } as PatchEntry<Y[]>);
+				}
+			} else {
 				const [i, ...rest] = entry.path;
 				if (typeof i !== "number") {
 					throw new TypeError("index must be a number");
@@ -32,31 +44,11 @@ export const forwardMapPatches =
 				for (const p of liftPatch<Y[]>(i, df(xs[i], dx, ys[i]))) {
 					res.push(p);
 				}
-				continue;
 			}
 
-			if (path.length === 0) {
-				throw new Error("not possible");
-			}
-
-			// path.length === 1
-			if (op === PatchOp.Add || op === PatchOp.Replace) {
-				res.push({
-					...entry,
-					value: f(entry.value as never),
-				} as PatchEntry<Y[]>);
-				continue;
-			}
-
-			if (op === PatchOp.Remove) {
-				res.push({ ...entry } as PatchEntry<Y[]>);
-				continue;
-			}
-
-			throw new Error(`Invalid PatchOp: ${op}`);
-		}
-		return res;
-	};
+			return res;
+		},
+	);
 
 export const forwardScanPatches =
 	<T, Acc>(invokeScan: (xs: T[], acc: Acc) => Acc[]) =>

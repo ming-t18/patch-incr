@@ -1,6 +1,6 @@
 import { type CacheWrite, IncrCache } from "../cache/incr_cache";
 import { type StructuralChangeBuilder, patchesBuilder } from "./builder";
-import { type PatchEntry, type Patches, reducePatches } from "./patch";
+import { type Patches, applyPatches } from "./patch";
 import type { IF, IFInv } from "./types";
 
 /**
@@ -14,7 +14,6 @@ import type { IF, IFInv } from "./types";
  * @param outBuilder
  * @returns
  */
-
 export const compose = <Input, Interm, Output>(
 	f1: IF<Input, Interm>,
 	f2: IF<Interm, Output>,
@@ -26,17 +25,18 @@ export const compose = <Input, Interm, Output>(
 		const v = f1.invoke(x);
 		return [f2.invoke(v), v];
 	};
-	const forward = reducePatches<Input, [Output, Interm]>(
-		invokeCompose,
-		(input, entry: PatchEntry<Input>, [y, v]) => {
-			const dv = f1.forward(input, [entry], v);
-			const dy = f2.forward(v, dv, y);
-			return outBuilder.combine(
-				outBuilder.liftIndex(0, dy as never) as never,
-				outBuilder.liftIndex(1, dv as never) as never,
-			) as ComposeOutputChange;
-		},
-	);
+	const forward = (
+		input: Input,
+		change: Patches<Input>,
+		[output, interm]: [Output, Interm],
+	) => {
+		const dInterm = f1.forward(input, change, interm);
+		const dOutput = f2.forward(interm, dInterm, output);
+		return outBuilder.combine<ComposeOutputChange>(
+			outBuilder.liftIndex(0, dOutput),
+			outBuilder.liftIndex(1, dInterm),
+		);
+	};
 	return {
 		invoke: invokeCompose,
 		forward,
@@ -56,10 +56,10 @@ export const composeNoInterm = <
 ): IF<Input, Output, InputChange, OutputChange> => {
 	return {
 		invoke: (x) => f2.invoke(f1.invoke(x)),
-		forward: (input, change, y): OutputChange => {
+		forward: (input: Input, change: InputChange, y: Output): OutputChange => {
 			const v: Interm = f2.inverseInvoke(y);
 			const dv = f1.forward(input, change, v);
-			return f2.forward(v, dv, y);
+			return f2.forward(v, dv);
 		},
 	};
 };

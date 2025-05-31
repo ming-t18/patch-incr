@@ -5,7 +5,7 @@ import {
 	getReplaceOnly,
 	makeReplaceOnly,
 } from "../algebra/replaceOnly";
-import type { Apply, IF, Invoke } from "../incr/types";
+import type { Apply, IF, IgnoreForwardOutput, Invoke } from "../incr/types";
 import { type Cell, isMemoFn } from "./memoFn";
 
 export const identity = <T = unknown>(x: T): T => x;
@@ -38,10 +38,10 @@ export const atomic = <X, Y, DX, DY>(
 	invoke: Invoke<X, Y>,
 	ax: Apply<X, DX>,
 	ay: Apply<Y, DY>,
-): IF<X, Y, DX, DY> => {
+): IF<X, Y, DX, DY, IgnoreForwardOutput> => {
 	return {
 		invoke,
-		forward: (x, dx, _y) => {
+		forward: (x, dx) => {
 			const x1 = ax.apply(x, dx);
 			if (Object.is(x, x1)) {
 				return ay.empty;

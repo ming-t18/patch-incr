@@ -21,11 +21,10 @@ export const map = <Input, Output>(
 	f: IF<Input, Output>,
 ): IF<Input[], Output[]> => {
 	const invokeMap = (xs: Input[]) => xs.map((x) => f.invoke(x));
-	const fmp = forwardMapPatches(f);
+	const fmp = forwardMapPatches(invokeMap, f);
 	return {
 		invoke: invokeMap,
-		forward: (xs, dxs, ys) =>
-			fmp(xs, dxs, ys) ?? replacePatch(invokeMap(applyPatches(xs, dxs))),
+		forward: fmp,
 	};
 };
 
@@ -42,6 +41,7 @@ export const scan = <T, Acc>(
 		}
 		return values;
 	};
+	// TODO simplify replace-into-self
 	const fsp = forwardScanPatches(invokeScan);
 	return {
 		invoke: invokeScan,
@@ -207,7 +207,11 @@ export const concat = <T>(): IF<T[][], [T[], number[]]> => {
 	const invokeCombine = (xs: T[][]): T[] => {
 		const combined: T[] = [];
 		for (let i = 0; i < xs.length; i++) {
-			combined.push(...xs[i]);
+			const a = xs[i];
+			const n = a.length;
+			for (let j = 0; j < n; j++) {
+				combined.push(a[j]);
+			}
 		}
 		return combined;
 	};
