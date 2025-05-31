@@ -4,11 +4,10 @@ import {
 	PatchOp,
 	type Patches,
 	applyPatches,
-	isReplaceRootEntry,
 	liftPatch,
 	reducePatches,
-} from "./patch";
-import type { IF } from "./types";
+} from "../patch";
+import type { IF } from "../types";
 
 export const forwardMapPatches = <X, Y>(
 	invokeMap: (xs: X[]) => Y[],

@@ -24,7 +24,7 @@ export type AnyApplyCombine = ApplyCombine<any, any>;
 
 export type Invoke<Input, Output> = (input: Input) => Output;
 
-export type NoFrowardOutput = true | false;
+export type NoForwardOutput = true | false;
 
 export type Forward<
 	Input,
