@@ -41,5 +41,9 @@
  */
 
 export { compose } from "./compose";
-export { composeMemoLeft, composeMemo, MemoComposer } from "./memo";
+export {
+	composeMemoL as composeMemoLeft,
+	composeMemoR as composeMemo,
+	MemoComposer,
+} from "./memo";
 export { composeWithInv as composeNoInterm } from "./noInterm";

@@ -2,7 +2,7 @@ export class MultiWeakMap<Keys extends WeakKey[], Value>
 	implements WeakMap<Keys, Value>
 {
 	readonly _map: WeakMap<WeakKey, unknown>;
-	private constructor() {
+	public constructor() {
 		this._map = new WeakMap();
 	}
 
@@ -34,6 +34,15 @@ export class MultiWeakMap<Keys extends WeakKey[], Value>
 		}
 		const [map, key1] = p;
 		return map.get(key1);
+	}
+
+	getOrCompute(keys: Keys, compute: () => Value) {
+		if (!this.has(keys)) {
+			const value = compute();
+			this.set(keys, value);
+			return value;
+		}
+		return this.get(keys) as Value;
 	}
 
 	has(key: Keys): boolean {
