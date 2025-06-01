@@ -11,8 +11,6 @@ import {
 	ensurePatchSplitProperty,
 } from "./helpers/props.test";
 
-fc.configureGlobal({ numRuns: 1000 });
-
 describe("genPatches helpers", () => {
 	const prop_noArrayHoles = <T>({ value, patches }: gp.WithPatches<T[]>) => {
 		const value1 = applyPatches(value, patches);

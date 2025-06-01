@@ -221,10 +221,8 @@ describe("identity", () => {
 describe("constant", () => {
 	it("invoke returns constant value", () => {
 		fc.assert(
-			fc.property(
-				anything(),
-				anything(),
-				(c, x) => c === constant(c).invoke(x),
+			fc.property(anything(), anything(), (c, x) =>
+				Object.is(c, constant(c).invoke(x)),
 			),
 		);
 	});
