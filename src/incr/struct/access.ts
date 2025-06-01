@@ -38,13 +38,17 @@ export const accessRecord = <
 	type X = InferTypeFromRecordConstruction<C>;
 	type Y = InferTypeFromRecordConstruction<C>[K];
 	const invokeAccessRecord = (input: X): Y => input[key];
-	const forwardAccessRecord = (_input: X, dx: Patches<X>, _?: Y) => {
+	const forwardAccessRecord = (
+		_input: X,
+		dx: Patches<X>,
+		_?: Y,
+	): Patches<Y> => {
 		const res = schema.analyze(dx);
 		if (res === null) {
 			return schema.$[key].empty;
 		}
 		if (isReplaceOnly(res)) {
-			return makeReplaceOnly(getReplaceOnly(res)[key]);
+			return schema.$[key].fromReplace(getReplaceOnly(res)[key]);
 		}
 		return res[key]?.inner ?? schema.$[key].empty;
 	};
@@ -70,13 +74,13 @@ export const accessTuple = <
 	type X = InferTypeFromTupleConstruction<C>;
 	type Y = InferTypeFromTupleConstruction<C>[K];
 	const invokeAccessTuple = (input: X): Y => input[index];
-	const forwardAccessTuple = (_input: X, dx: Patches<X>, _?: Y) => {
+	const forwardAccessTuple = (_input: X, dx: Patches<X>, _?: Y): Patches<Y> => {
 		const res = schema.analyze(dx);
 		if (res === null) {
 			return schema.$[index].empty;
 		}
 		if (isReplaceOnly(res)) {
-			return makeReplaceOnly(getReplaceOnly(res)[index]);
+			return schema.$[index].fromReplace(getReplaceOnly(res)[index]);
 		}
 		return res[index]?.inner ?? schema.$[index].empty;
 	};
