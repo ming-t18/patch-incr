@@ -1,46 +1,55 @@
-import type { Patch } from "immer";
-import { type Equals, withCache } from "../cache/incr_cache";
-import { type StructuralChangeBuilder, patchesBuilder } from "./builder";
-import {
-	PatchBuilder,
-	type Patches,
-	applyPatches,
-	isEmptyPatches,
-} from "./patch";
+import * as ps from "../patchSchema";
+import type { Patches } from "./patch";
 import type { IF } from "./types";
 
 /**
  * Creates an incremental "let-binding" that is incremental as long as
  * the value of the binding does not change.
  * @param getBind Given input, gets the bound value
- * @param func Given the bound value, returns the `IF` base on the bound value that takes the input.
+ * @param func Given the bound value, returns the `IF` base on the bound value that takes the input,
+ * and assuming the input change to the `IF` will change in a way to affect
+ * the output of the `getBind`.
  */
-export const bind = <
-	Input,
-	Bind,
-	Output,
-	InputChange = Patches<Input>,
-	OutputChange = Patches<Output>,
->(
-	getBind: (input: Input) => Bind,
-	getIF: (inv: Bind) => IF<Input, Output, InputChange, OutputChange>,
-	bindCache: Map<Input, Bind>,
-	apply = applyPatches as (x: Input, dx: InputChange) => Input,
-	{ fromReplace } = patchesBuilder,
-	bindEquals = Object.is as Equals<Bind>,
-): IF<Input, Output, InputChange, OutputChange> => {
-	const bind = withCache(getBind, bindCache);
-	const invoke = (x: Input): Output => getIF(bind(x)).invoke(x);
+export const bind = <Input extends WeakKey, Bind, Output>(
+	getBind: IF<Input, Bind>,
+	getIF: (invariant: Bind) => IF<Input, Output>,
+	memo0?: WeakMap<Input, [Bind, IF<Input, Output>]>,
+): IF<Input, Output> => {
+	const inputSchema = ps.atomic<Input>();
+	const outputSchema = ps.atomic<Output>();
+	const bindSchema = ps.atomic<Bind>();
+	const memoBind = memo0 ?? new WeakMap();
+	const invokeBind = (x: Input): Output => {
+		const pair = memoBind.get(x);
+		if (typeof pair !== "undefined") {
+			const [_, f] = pair;
+			return f.invoke(x);
+		}
+		const v = getBind.invoke(x);
+		const f = getIF(v);
+		memoBind.set(x, [v, f]);
+		return f.invoke(x);
+	};
+
 	return {
-		invoke,
-		forward: (x: Input, dx: InputChange, y: Output): OutputChange => {
-			const x1 = apply(x, dx);
-			const b0 = bind(x);
-			const b1 = bind(x1);
-			if (!bindEquals(b0, b1)) {
-				return fromReplace(invoke(x1)) as OutputChange;
+		invoke: invokeBind,
+		forward: (x: Input, dx: Patches<Input>, y: Output): Patches<Output> => {
+			const pair = memoBind.get(x);
+			if (typeof pair !== "undefined") {
+				const [v, f] = pair;
+				const dv = getBind.forward(x, dx, v);
+
+				if (bindSchema.isEmpty(dv)) {
+					return f.forward(x, dx, y);
+				}
+				return outputSchema.fromReplace(invokeBind(inputSchema.apply(x, dx)));
 			}
-			return getIF(b0).forward(x, dx, y);
+
+			const x1 = inputSchema.apply(x, dx);
+			const v1 = getBind.invoke(x1);
+			const f1 = getIF(v1);
+			memoBind.set(x1, [v1, f1]);
+			return outputSchema.fromReplace(f1.invoke(inputSchema.apply(x, dx)));
 		},
 	};
 };

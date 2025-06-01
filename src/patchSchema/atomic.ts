@@ -7,6 +7,7 @@ export class PatchSchemaAtomicImpl<T>
 	extends BasePatchSchema<T>
 	implements PatchSchemaAtomic<T>
 {
+	static INSTANCE = new PatchSchemaAtomicImpl<unknown>();
 	analyze(patches: Patches<T>): DRO<T> | { inner: Patches<T> } {
 		if (patches.length === 0) {
 			return null;
