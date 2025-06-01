@@ -1,4 +1,4 @@
-import { applyPatches, replacePatch } from "../patch";
+import { type Patches, applyPatches, replacePatch } from "../patch";
 import type { IF } from "../types";
 import { forwardScanPatches } from "./forwardList";
 
@@ -19,7 +19,7 @@ export const scan = <T, Acc>(
 	const fsp = forwardScanPatches(invokeScan);
 	return {
 		invoke: invokeScan,
-		forward: (xs, dxs, ys) =>
+		forward: (xs: T[], dxs: Patches<T[]>, ys: Acc[]) =>
 			fsp(xs, dxs, ys) ?? replacePatch(invokeScan(applyPatches(xs, dxs))),
 	};
 };
