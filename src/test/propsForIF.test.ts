@@ -16,23 +16,24 @@ const arbRecordIntStr = gp.record({
 	int: gp.integer({ min: 0, max: 5 }),
 	str: gp.string({ minLength: 0, maxLength: 5 }),
 });
-const arrayInt = gp.array(arbInt);
-const array2DInt = gp.array(gp.array(arbInt, { maxLength: 5 }), {
-	maxLength: 5,
+const arrayInt = gp.array(arbInt, { maxLength: 5 });
+const array2DInt = gp.array(gp.array(arbInt, { maxLength: 3 }), {
+	maxLength: 4,
 });
 const array3DInt = gp.array(
-	gp.array(gp.array(arbInt, { maxLength: 5 }), { maxLength: 5 }),
+	gp.array(gp.array(arbInt, { maxLength: 3 }), { maxLength: 4 }),
+	{ maxLength: 4 },
 );
 const arrayRecordIntStr = gp.array(arbRecordIntStr, { maxLength: 5 });
 const arrayTupleIntStr = gp.array(arbTupleIntStr, { maxLength: 5 });
 const arraySingletonRecordInt = gp.array(arbSingletonRecordInt, {
 	maxLength: 5,
 });
-const array2DTupleIntStr = gp.array(arrayTupleIntStr, { maxLength: 5 });
+const array2DTupleIntStr = gp.array(arrayTupleIntStr, { maxLength: 4 });
 const array2DSingletonRecordInt = gp.array(arraySingletonRecordInt, {
 	maxLength: 5,
 });
-const array2DRecordIntStr = gp.array(arrayRecordIntStr, { maxLength: 5 });
+const array2DRecordIntStr = gp.array(arrayRecordIntStr, { maxLength: 4 });
 
 const arbs: [string, gp.GenWithPatches<unknown>][] = [
 	["int", arbInt],

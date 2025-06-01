@@ -1,9 +1,9 @@
 import fc from "fast-check";
 import { isReplaceOnly } from "../algebra/replaceOnly";
 import { bind } from "../incr/bind";
-import { access } from "../incr/builder";
 import { compose, composeNoInterm } from "../incr/compose";
 import { filter } from "../incr/list";
+import { access } from "../incr/struct/access";
 import { assocRight } from "../incr/tuple";
 import * as ps from "../patchSchema";
 import * as gp from "./helpers/genPatched.test";

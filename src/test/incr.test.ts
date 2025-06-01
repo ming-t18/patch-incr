@@ -1,11 +1,5 @@
 import fc, { anything } from "fast-check";
-import {
-	access,
-	atomicFunc,
-	constant,
-	identity,
-	record,
-} from "../incr/builder";
+import { atomicFunc, constant, identity } from "../incr/builder";
 import { compose } from "../incr/compose";
 import { IFGraphBuilder } from "../incr/graphBuilder";
 import {
@@ -15,6 +9,8 @@ import {
 	isAtomicValue,
 	replacePatch,
 } from "../incr/patch";
+import { access } from "../incr/struct/access";
+import { record } from "../incr/struct/record";
 import type { IF } from "../incr/types";
 import * as gp from "./helpers/genPatched.test";
 import {

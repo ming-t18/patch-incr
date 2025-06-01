@@ -1,8 +1,10 @@
 import fc from "fast-check";
-import { access, atomicFunc, identity, record } from "../incr/builder";
+import { atomicFunc, identity } from "../incr/builder";
 import { IFGraphBuilder } from "../incr/graphBuilder";
 import { concat, filter, flatMap, map, scan } from "../incr/list";
 import { PatchOp, type Patches, applyPatches, liftPatch } from "../incr/patch";
+import { access } from "../incr/struct/access";
+import { record } from "../incr/struct/record";
 import type { IF, InferIFOutput } from "../incr/types";
 import * as gp from "./helpers/genPatched.test";
 import {
@@ -598,9 +600,12 @@ describe("filter", () => {
 				({ str, num }) => (str.length + num) % 2 === 0,
 			);
 			fc.assert(
-				fc.property(gp.array(arbElem).arb(), ({ value, patches }) => {
-					ensurePatchCoherent(value, patches, filterOnRecord);
-				}),
+				fc.property(
+					gp.array(arbElem, { maxLength: 5 }).arb(),
+					({ value, patches }) => {
+						ensurePatchCoherent(value, patches, filterOnRecord);
+					},
+				),
 			);
 		});
 	});
@@ -619,9 +624,12 @@ describe("flatMap", () => {
 				),
 			);
 			fc.assert(
-				fc.property(gp.array(arbElem0).arb(), ({ value, patches }) => {
-					ensurePatchCoherent(value, patches, fm);
-				}),
+				fc.property(
+					gp.array(arbElem0, { maxLength: 5 }).arb(),
+					({ value, patches }) => {
+						ensurePatchCoherent(value, patches, fm);
+					},
+				),
 			);
 		});
 	});

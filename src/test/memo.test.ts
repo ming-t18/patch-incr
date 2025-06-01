@@ -1,11 +1,13 @@
 import { describe, expect, it, spyOn } from "bun:test";
 import type { InferApplyType } from "../algebra";
 import { bind } from "../incr/bind";
-import { access, atomicFunc, record } from "../incr/builder";
+import { atomicFunc } from "../incr/builder";
 import { compose } from "../incr/compose";
 import { filter, flatMap } from "../incr/list";
 import { memoInterm, memoIntermR } from "../incr/memoPair";
 import { PatchOp, type Patches } from "../incr/patch";
+import { access } from "../incr/struct/access";
+import { record } from "../incr/struct/record";
 import type { InferIFOutput } from "../incr/types";
 import * as ps from "../patchSchema";
 import * as gp from "./helpers/genPatched.test";
