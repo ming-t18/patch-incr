@@ -113,7 +113,12 @@ export const ensurePatchSplitProperty = <X, Y>(
 	const dyLeft = f.forward(x, dxLeft, y1);
 	const xInterm = applyPatches(x, dxLeft);
 	const yInterm = applyPatches(y1, dyLeft);
-	const dyRight = f.forward(xInterm, dxRight, yInterm);
+
+	// must call invoke before forward on strict mode of some memos
+	const yInterm1 = f.invoke(xInterm);
+	expect(yInterm1).toStrictEqual(yInterm);
+	const dyRight = f.forward(xInterm, dxRight, yInterm1);
+
 	const dyCombined: Patches<Y> = [...dyLeft, ...dyRight];
 	// console.log('LOG', { y, dy, yNext, dxLeft, y1, dyLeft, xInterm, yInterm });
 	const yNext1 = applyPatches(y, dyCombined);

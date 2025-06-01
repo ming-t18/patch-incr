@@ -2,7 +2,6 @@ import fc from "fast-check";
 import { atomicFunc, constant, identity } from "../incr/builder";
 import { compose, composeNoInterm } from "../incr/compose";
 import { concat, map } from "../incr/list";
-import { PatchOp, type Patches, applyPatches } from "../incr/patch";
 import { comm } from "../incr/tuple";
 import type { IF } from "../incr/types";
 import * as gp from "./helpers/genPatched.test";
