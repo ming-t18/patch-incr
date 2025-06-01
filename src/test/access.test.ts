@@ -7,7 +7,7 @@ import {
 } from "../dual/access";
 import { Finish, makeAccessProxy } from "../dual/proxy/access";
 import { type Path, applyPatches } from "../incr/patch";
-import { accessPath, accessRecord } from "../incr/struct/access";
+import { accessRecord } from "../incr/struct/access";
 import * as ps from "../patchSchema";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";

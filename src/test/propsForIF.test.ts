@@ -7,6 +7,8 @@ import type { IF } from "../incr/types";
 import * as gp from "./helpers/genPatched.test";
 import { propIsIdentity, propsForIF } from "./helpers/props.test";
 
+fc.configureGlobal({ numRuns: 100 });
+
 const arbInt = gp.integer();
 const arbStr = gp.string();
 const arbSingletonInt = gp.tuple(arbInt);
