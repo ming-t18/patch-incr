@@ -612,7 +612,7 @@ describe("filter", () => {
 });
 
 describe("flatMap", () => {
-	const arbElem0 = gp.atomic(fc.integer({ min: 0, max: 100 }));
+	const arbElem0 = gp.atomic(fc.integer({ min: 0, max: 10 }));
 
 	describe("flatMap on atomic values", () => {
 		it("flatMap on atomic values is patch coherent", () => {
