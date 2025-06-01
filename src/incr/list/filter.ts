@@ -147,7 +147,11 @@ export const filter = <T>(
 
 	return {
 		invoke: invokeFilter,
-		forward: (xs, dxs, [ys, cys]) => {
+		forward: (
+			xs: T[],
+			dxs: Patches<T[]>,
+			[ys, cys]: [T[], number[]],
+		): Patches<[T[], number[]]> => {
 			const res = reduceReplaceRoot(dxs);
 			if ("replace" in res) {
 				return replacePatch(invokeFilter(res.replace));

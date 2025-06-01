@@ -96,5 +96,6 @@ export interface PatchSchemaArray<
 	analyze: (
 		patches: Patches<Elem[]>,
 	) => DRO<Elem[]> | PatchSchemaArrayEntry<Elem>[];
+	fromEntries: (entries: PatchSchemaArrayEntry<Elem>[]) => Patches<Elem[]>;
 	liftIndex: (index: number, change: Patches<Elem>) => Patches<Elem[]>;
 }

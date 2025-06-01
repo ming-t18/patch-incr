@@ -66,6 +66,18 @@ export class PatchSchemaArrayImpl<
 		return ret;
 	}
 
+	fromEntries(entries: PatchSchemaArrayEntry<Elem>[]): Patches<Elem[]> {
+		return entries.map((e) => {
+			if ("inner" in e) {
+				return { ...e.inner, path: [...e.path, e.inner.path] } as PatchEntry<
+					Elem[]
+				>;
+			}
+
+			return e as PatchEntry<Elem[]>;
+		});
+	}
+
 	liftIndex(index: number, change: Patches<Elem>): Patches<Elem[]> {
 		return change.map(
 			(c) =>
