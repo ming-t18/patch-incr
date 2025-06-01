@@ -1,6 +1,90 @@
+import {
+	getReplaceOnly,
+	isReplaceOnly,
+	makeReplaceOnly,
+} from "../../algebra/replaceOnly";
 import { doAccess, filterAccessPatches } from "../../dual/access";
-import { CannotReduce, PatchOp, type Path, reducePatches } from "../patch";
-import type { IF } from "../types";
+import * as ps from "../../patchSchema";
+import type {
+	InferTypeFromRecordConstruction,
+	InferTypeFromTupleConstruction,
+	PatchSchemaRecord,
+	PatchSchemaTuple,
+	RecordConstruction,
+	TupleConstruction,
+} from "../../patchSchema/types";
+import {
+	CannotReduce,
+	PatchOp,
+	type Patches,
+	type Path,
+	reducePatches,
+} from "../patch";
+import type { IF, NoForwardOutput } from "../types";
+
+export const accessRecord = <
+	C extends RecordConstruction,
+	K extends string & keyof C = string & keyof C,
+>(
+	key: K,
+	schema: PatchSchemaRecord<C>,
+): IF<
+	InferTypeFromRecordConstruction<C>,
+	InferTypeFromRecordConstruction<C>[K],
+	Patches<InferTypeFromRecordConstruction<C>>,
+	Patches<InferTypeFromRecordConstruction<C>[K]>,
+	NoForwardOutput
+> => {
+	type X = InferTypeFromRecordConstruction<C>;
+	type Y = InferTypeFromRecordConstruction<C>[K];
+	const invokeAccessRecord = (input: X): Y => input[key];
+	const forwardAccessRecord = (_input: X, dx: Patches<X>, _?: Y) => {
+		const res = schema.analyze(dx);
+		if (res === null) {
+			return schema.$[key].empty;
+		}
+		if (isReplaceOnly(res)) {
+			return makeReplaceOnly(getReplaceOnly(res)[key]);
+		}
+		return res[key]?.inner ?? schema.$[key].empty;
+	};
+	return {
+		invoke: invokeAccessRecord,
+		forward: forwardAccessRecord,
+	};
+};
+
+export const accessTuple = <
+	C extends TupleConstruction,
+	K extends number & keyof C = number & keyof C,
+>(
+	index: K,
+	schema: PatchSchemaTuple<C>,
+): IF<
+	InferTypeFromTupleConstruction<C>,
+	InferTypeFromTupleConstruction<C>[K],
+	Patches<InferTypeFromTupleConstruction<C>>,
+	Patches<InferTypeFromTupleConstruction<C>[K]>,
+	NoForwardOutput
+> => {
+	type X = InferTypeFromTupleConstruction<C>;
+	type Y = InferTypeFromTupleConstruction<C>[K];
+	const invokeAccessTuple = (input: X): Y => input[index];
+	const forwardAccessTuple = (_input: X, dx: Patches<X>, _?: Y) => {
+		const res = schema.analyze(dx);
+		if (res === null) {
+			return schema.$[index].empty;
+		}
+		if (isReplaceOnly(res)) {
+			return makeReplaceOnly(getReplaceOnly(res)[index]);
+		}
+		return res[index]?.inner ?? schema.$[index].empty;
+	};
+	return {
+		invoke: invokeAccessTuple,
+		forward: forwardAccessTuple,
+	};
+};
 
 export const access = <
 	Output,
@@ -23,6 +107,7 @@ export const access = <
 		},
 	};
 };
+
 export const accessPath = <Output, Input>(
 	pathPrefix: Path,
 ): IF<Input, Output> => {
