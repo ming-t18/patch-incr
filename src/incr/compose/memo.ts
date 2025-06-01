@@ -25,7 +25,7 @@ export const composeMemoL = <
 	};
 	return {
 		invoke: (x: Input): Output => f2.invoke(invoke1(x)),
-		forward: (input: Input, change, y): OutputChange => {
+		forward: (input: Input, change: InputChange, y: Output): OutputChange => {
 			const v = invoke1(input);
 			const dv = f1.forward(input, change, v);
 			return f2.forward(v, dv, y);

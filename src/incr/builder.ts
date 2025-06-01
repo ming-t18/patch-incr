@@ -166,7 +166,11 @@ export const record = <
 
 	return {
 		invoke,
-		forward: (input: Input, change: InputChange, output) => {
+		forward: (
+			input: Input,
+			change: InputChange,
+			output: InferRecordOutput<Entries>,
+		) => {
 			let outChange: OutputChange = outBuilder.empty;
 			for (const key of keys) {
 				// @ts-expect-error Can't be checked
@@ -193,7 +197,7 @@ export const record = <
 export const access = <
 	Output,
 	Key extends string | number,
-	Input extends { [key in Key]: Output },
+	Input extends { [key in Key]: Output } = { [key in Key]: Output },
 >(
 	key: Key,
 ): IF<Input, Output> => {

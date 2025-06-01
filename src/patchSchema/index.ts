@@ -12,7 +12,8 @@ import type {
 	TupleConstruction,
 } from "./types";
 
-export const atomic = <T>(): PatchSchema<T> => new PatchSchemaAtomicImpl<T>();
+export const atomic = <T>(): PatchSchema<T> =>
+	PatchSchemaAtomicImpl.INSTANCE as PatchSchema<T>;
 export const array = <S extends AnyPatchSchema>(
 	schema: S,
 ): PatchSchemaArray<S> => new PatchSchemaArrayImpl(schema);
