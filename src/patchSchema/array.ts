@@ -55,27 +55,13 @@ export class PatchSchemaArrayImpl<
 			}
 
 			const i0 = entry.path[0];
-			const inner: Patches<Elem> = [];
-			while (i < len) {
-				const {
-					path: [i1, ...p1],
-					...rest
-				} = patches[i];
-				if (i1 !== i0) {
-					break;
-				}
-				inner.push({
-					path: p1,
-					...rest,
-				} as PatchEntry<Elem>);
-				i++;
-			}
-			if (inner.length > 0) {
-				ret.push({
-					path: [i0 as number],
-					inner,
-				});
-			}
+			ret.push({
+				path: [i0 as number],
+				inner: {
+					...entry,
+					path: entry.path.splice(1),
+				} as PatchEntry<Elem>,
+			});
 		}
 		return ret;
 	}

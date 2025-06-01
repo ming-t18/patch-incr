@@ -8,7 +8,6 @@ import {
 import { BasePatchSchema } from "./base";
 import type {
 	AnyTuple,
-	InferTupleIndex,
 	InferTypeFromTupleConstruction,
 	InnerPatches,
 	PatchSchemaTuple,
@@ -18,7 +17,7 @@ import type {
 export class PatchSchemaTupleImpl<
 		C extends TupleConstruction,
 		Tuple extends AnyTuple = InferTypeFromTupleConstruction<C>,
-		Index extends number & keyof Tuple = InferTupleIndex<C>,
+		Index extends keyof Tuple = keyof Tuple,
 	>
 	extends BasePatchSchema<Tuple>
 	implements PatchSchemaTuple<C, Tuple, Index>

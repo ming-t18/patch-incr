@@ -6,6 +6,7 @@ import type {
 } from "../algebra";
 import type {
 	PatchAdd,
+	PatchEntry,
 	PatchRemove,
 	PatchReplace,
 	Patches,
@@ -23,24 +24,6 @@ export type AnyTuple = any[];
 // biome-ignore lint/complexity/noBannedTypes: needed for type constraints
 export type AnyRecord = {};
 
-// biome-ignore lint/suspicious/noExplicitAny: For inferring
-type _Any = any;
-export type InferTupleIndex<T extends AnyTuple> = T extends []
-	? never
-	: T extends [_Any]
-		? 0
-		: T extends [_Any, _Any]
-			? 1
-			: T extends [_Any, _Any, _Any]
-				? 0 | 1 | 2
-				: T extends [_Any, _Any, _Any, _Any]
-					? 0 | 1 | 2 | 3
-					: T extends [_Any, _Any, _Any, _Any, _Any]
-						? 0 | 1 | 2 | 3 | 4
-						: T extends [_Any, _Any, _Any, _Any, _Any, _Any]
-							? 0 | 1 | 2 | 3 | 4 | 5
-							: number & keyof T;
-
 export type InnerPatches<Object, Key extends keyof Object> = {
 	[key in Key]?: { path: [key]; inner: Patches<Object[key]> };
 };
@@ -49,7 +32,7 @@ export const IndexEnd = "-" as const;
 export type IndexEnd = "-";
 
 export type PatchSchemaArrayEntry<Elem> =
-	| { path: [number]; inner: Patches<Elem> }
+	| { path: [number]; inner: PatchEntry<Elem> }
 	| PatchRemove<[number]>
 	| PatchAdd<Elem, [number | IndexEnd]>
 	| PatchReplace<Elem, [number]>;
@@ -73,7 +56,7 @@ export type InferTypeFromTupleConstruction<C extends TupleConstruction> =
 export interface PatchSchemaTuple<
 	C extends TupleConstruction,
 	Tuple extends AnyTuple = InferTypeFromTupleConstruction<C>,
-	Index extends number & keyof Tuple = InferTupleIndex<C>,
+	Index extends keyof Tuple = keyof Tuple,
 > extends PatchSchema<Tuple> {
 	readonly $: C;
 	readonly length: number;
