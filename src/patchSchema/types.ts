@@ -5,6 +5,7 @@ import type {
 	PatchRemove,
 	PatchReplace,
 	Patches,
+	Targeted,
 } from "../incr/patch";
 
 export interface PatchSchema<Value, Change = Patches<Value>>
@@ -30,9 +31,9 @@ export type IndexEnd = "-";
 
 export type PatchSchemaArrayEntry<Elem> =
 	| { path: [number]; inner: PatchEntry<Elem> }
-	| PatchRemove<[number]>
-	| PatchAdd<[number | IndexEnd], Elem>
-	| PatchReplace<[number], Elem>;
+	| (PatchRemove<[number]> & Targeted<Elem[]>)
+	| (PatchAdd<[number | IndexEnd], Elem> & Targeted<Elem[]>)
+	| (PatchReplace<[number], Elem> & Targeted<Elem[]>);
 
 export interface PatchSchemaAtomic<Value> extends PatchSchema<Value> {
 	analyze: (patches: Patches<Value>) => DRO<Value> | { inner: Patches<Value> };

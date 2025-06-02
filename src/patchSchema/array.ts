@@ -65,6 +65,10 @@ export class PatchSchemaArrayImpl<
 	}
 
 	fromEntries(entries: PatchSchemaArrayEntry<Elem>[]): Patches<Elem[]> {
+		if (entries.every((e) => !("inner" in e))) {
+			return entries as never;
+		}
+
 		return entries.map((e) => {
 			if ("inner" in e) {
 				return { ...e.inner, path: [...e.path, ...e.inner.path] } as PatchEntry<
