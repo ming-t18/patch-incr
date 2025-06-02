@@ -1,3 +1,11 @@
+import { getReplaceOnly, isReplaceOnly } from "../../algebra/replaceOnly";
+import * as ps from "../../patchSchema";
+import type {
+	AnyPatchSchema,
+	PatchSchema,
+	PatchSchemaArray,
+	PatchSchemaArrayEntry,
+} from "../../patchSchema/types";
 import {
 	CannotReduce,
 	type PatchEntry,
@@ -9,45 +17,73 @@ import {
 } from "../patch";
 import type { IF } from "../types";
 
+export const reduceArrayPatches =
+	<S extends AnyPatchSchema, S1 extends AnyPatchSchema, T, Output>(
+		inArraySchema: PatchSchemaArray<S, T>,
+		outSchema: PatchSchema<Output>,
+		invoke: (xs: T[]) => Output,
+		reduce: (
+			input: T[],
+			entry: PatchSchemaArrayEntry<T>,
+			output: Output,
+		) => Patches<Output>,
+	) =>
+	(input: T[], patches: Patches<T[]>, output: Output): Patches<Output> => {
+		const res = inArraySchema.analyze(patches);
+		if (res === null) {
+			return outSchema.empty;
+		}
+		if (isReplaceOnly(res)) {
+			return outSchema.fromReplace(invoke(getReplaceOnly(res)));
+		}
+
+		let input1 = input;
+		let output1 = output;
+		let outPatches: Patches<Output> = outSchema.empty;
+		for (const entry of res) {
+			const dys = reduce(input1, entry, output1);
+			input1 = inArraySchema.apply(input1, inArraySchema.fromEntries([entry]));
+			output1 = outSchema.apply(output1, dys);
+			outPatches = outSchema.combine(outPatches, dys);
+		}
+		return outPatches;
+	};
+
 export const forwardMapPatches = <X, Y>(
 	invokeMap: (xs: X[]) => Y[],
 	{ invoke: f, forward: df }: IF<X, Y, Patches<X>, Patches<Y>>,
-) =>
-	reducePatches(
+) => {
+	const inSchema = ps.atomic<X>();
+	const outSchema = ps.atomic<Y>();
+	const outArraySchema = ps.array(outSchema);
+	return reduceArrayPatches(
+		ps.array(inSchema),
+		outArraySchema,
 		invokeMap,
-		(xs: X[], entry: PatchEntry<X[]>, ys: Y[]): Patches<Y[]> | CannotReduce => {
-			const res: Patches<Y[]> = [];
-			const { path, op } = entry;
-
-			if (path.length === 0) {
-				return CannotReduce;
+		(xs: X[], entry: PatchSchemaArrayEntry<X>, ys: Y[]): Patches<Y[]> => {
+			if ("inner" in entry) {
+				const [i] = entry.path;
+				const dy = df(xs[i], inSchema.fromPatchEntries([entry.inner]), ys[i]);
+				return outArraySchema.liftIndex(i, dy);
 			}
 
-			if (path.length === 1) {
-				if (op === PatchOp.Add || op === PatchOp.Replace) {
-					// path.length === 1
-					res.push({
+			const { op } = entry;
+			if (op === PatchOp.Add || op === PatchOp.Replace) {
+				return outArraySchema.fromEntries([
+					{
 						...entry,
-						value: f(entry.value as never),
-					} as PatchEntry<Y[]>);
-				} else if (op === PatchOp.Remove) {
-					// path.length === 1
-					res.push({ ...entry } as PatchEntry<Y[]>);
-				}
-			} else {
-				const [i, ...rest] = entry.path;
-				if (typeof i !== "number") {
-					throw new TypeError("index must be a number");
-				}
-				const dx = [{ ...entry, path: rest }] as Patches<X>;
-				for (const p of liftPatch<Y[]>(i, df(xs[i], dx, ys[i]))) {
-					res.push(p);
-				}
+						value: f(entry.value),
+					},
+				]);
+			}
+			if (op === PatchOp.Remove) {
+				return outArraySchema.fromEntries([entry]);
 			}
 
-			return res;
+			throw new Error("not reachable");
 		},
 	);
+};
 
 export const forwardScanPatches =
 	<T, Acc>(invokeScan: (xs: T[], acc: Acc) => Acc[]) =>

@@ -13,7 +13,9 @@ import type {
 } from "../incr/patch";
 
 export interface PatchSchema<Value, Change = Patches<Value>>
-	extends ApplyCombine<Value, Change> {}
+	extends ApplyCombine<Value, Change> {
+	fromPatchEntries(entry: PatchEntry<Value>[]): Change;
+}
 
 // biome-ignore lint/suspicious/noExplicitAny: needd for type constraints
 export type AnyPatchSchema = PatchSchema<any, any>;
@@ -34,8 +36,8 @@ export type IndexEnd = "-";
 export type PatchSchemaArrayEntry<Elem> =
 	| { path: [number]; inner: PatchEntry<Elem> }
 	| PatchRemove<[number]>
-	| PatchAdd<Elem, [number | IndexEnd]>
-	| PatchReplace<Elem, [number]>;
+	| PatchAdd<[number | IndexEnd], Elem>
+	| PatchReplace<[number], Elem>;
 
 export interface PatchSchemaAtomic<Value> extends PatchSchema<Value> {
 	analyze: (patches: Patches<Value>) => DRO<Value> | { inner: Patches<Value> };

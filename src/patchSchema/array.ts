@@ -39,18 +39,16 @@ export class PatchSchemaArrayImpl<
 
 		const ret: PatchSchemaArrayEntry<Elem>[] = [];
 		const len = patches.length;
-		let i = 0;
-		while (i < len) {
+		for (let i = 0; i < len; i++) {
 			const entry = patches[i];
 			const { op, path } = entry;
 			if (path.length === 1) {
 				const index = path[0];
 				if (index === IndexEnd && op !== PatchOp.Add) {
-					throw new Error("can only Add to en end");
+					throw new Error("can only Add to the end");
 				}
 
 				ret.push(entry as never);
-				i++;
 				continue;
 			}
 
@@ -59,7 +57,7 @@ export class PatchSchemaArrayImpl<
 				path: [i0 as number],
 				inner: {
 					...entry,
-					path: entry.path.splice(1),
+					path: entry.path.slice(1),
 				} as PatchEntry<Elem>,
 			});
 		}
@@ -69,7 +67,7 @@ export class PatchSchemaArrayImpl<
 	fromEntries(entries: PatchSchemaArrayEntry<Elem>[]): Patches<Elem[]> {
 		return entries.map((e) => {
 			if ("inner" in e) {
-				return { ...e.inner, path: [...e.path, e.inner.path] } as PatchEntry<
+				return { ...e.inner, path: [...e.path, ...e.inner.path] } as PatchEntry<
 					Elem[]
 				>;
 			}

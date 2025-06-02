@@ -1,6 +1,7 @@
 import type { ReplaceOnly } from "../algebra";
 import { makeReplaceOnly } from "../algebra/replaceOnly";
 import {
+	type PatchEntry,
 	type Patches,
 	applyPatches,
 	reduceReplaceRoot,
@@ -9,7 +10,7 @@ import {
 import type { TypesKey } from "../incr/typeHelpers";
 import type { PatchSchema } from "./types";
 
-const EMPTY = [] as const;
+const EMPTY: readonly never[] = Object.freeze([]);
 
 export class BasePatchSchema<T> implements PatchSchema<T> {
 	combine(left: Patches<T>, right: Patches<T>) {
@@ -21,6 +22,10 @@ export class BasePatchSchema<T> implements PatchSchema<T> {
 		}
 
 		return [...left, ...right];
+	}
+
+	fromPatchEntries(entries: PatchEntry<T>[]): Patches<T> {
+		return entries;
 	}
 
 	apply(value: T, patches: Patches<T>): T {
