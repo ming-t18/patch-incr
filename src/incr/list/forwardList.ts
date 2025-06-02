@@ -18,7 +18,7 @@ import {
 import type { IF } from "../types";
 
 export const reduceArrayPatches =
-	<S extends AnyPatchSchema, S1 extends AnyPatchSchema, T, Output>(
+	<S extends AnyPatchSchema, T, Output>(
 		inArraySchema: PatchSchemaArray<S, T>,
 		outSchema: PatchSchema<Output>,
 		invoke: (xs: T[]) => Output,
@@ -39,7 +39,20 @@ export const reduceArrayPatches =
 
 		let input1 = input;
 		let output1 = output;
-		let outPatches: Patches<Output> = outSchema.empty;
+		if (outSchema.builder) {
+			const builder = outSchema.builder();
+			for (const entry of res) {
+				const dys = reduce(input1, entry, output1);
+				input1 = inArraySchema.apply(
+					input1,
+					inArraySchema.fromEntries([entry]),
+				);
+				output1 = outSchema.apply(output1, dys);
+				builder.append(dys);
+			}
+			return builder.build();
+		}
+		let outPatches: Patches<Output> = [...outSchema.empty];
 		for (const entry of res) {
 			const dys = reduce(input1, entry, output1);
 			input1 = inArraySchema.apply(input1, inArraySchema.fromEntries([entry]));

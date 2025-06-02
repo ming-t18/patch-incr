@@ -129,29 +129,6 @@ describe("concat", () => {
 				),
 			);
 		});
-
-		it("add empty list (for debugging)", () => {
-			const c = concat();
-			const x: number[][] = [[], [], []];
-			const dx: Patches<number[][]> = [
-				{
-					op: PatchOp.Replace,
-					path: [1],
-					value: [100],
-				},
-				{
-					op: PatchOp.Replace,
-					path: [1],
-					value: [],
-				},
-			];
-			const y = c.invoke(x);
-			const dy = c.forward(x, dx, y);
-			console.log({ x, y, dx, dy });
-			const x1 = applyPatches(x, dx);
-			const y1 = applyPatches(y, dy);
-			console.log({ x1, y1 });
-		});
 	});
 
 	describe("initially empty arrays of numbers", () => {

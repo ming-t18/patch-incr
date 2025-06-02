@@ -1,4 +1,4 @@
-import type { ReplaceOnly } from "../algebra";
+import type { ChangeBuilder, ReplaceOnly } from "../algebra";
 import { makeReplaceOnly } from "../algebra/replaceOnly";
 import {
 	type PatchEntry,
@@ -12,6 +12,18 @@ import type { PatchSchema } from "./types";
 
 const EMPTY: readonly never[] = Object.freeze([]);
 
+export class PatchesBuilder<T> implements ChangeBuilder<Patches<T>> {
+	private readonly _patches: Patches<T> = [];
+
+	append(patches: Patches<T>): void {
+		this._patches.push(...patches);
+	}
+
+	build(): Patches<T> {
+		return this._patches;
+	}
+}
+
 export class BasePatchSchema<T> implements PatchSchema<T> {
 	combine(left: Patches<T>, right: Patches<T>) {
 		if (left.length === 0) {
@@ -22,6 +34,10 @@ export class BasePatchSchema<T> implements PatchSchema<T> {
 		}
 
 		return [...left, ...right];
+	}
+
+	builder() {
+		return new PatchesBuilder<T>();
 	}
 
 	fromPatchEntries(entries: PatchEntry<T>[]): Patches<T> {

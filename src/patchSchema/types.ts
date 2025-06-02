@@ -1,9 +1,4 @@
-import type {
-	ApplyCombine,
-	DRO,
-	InferApplyType,
-	ReplaceOnly,
-} from "../algebra";
+import type { ApplyCombine, DRO, InferApplyType } from "../algebra";
 import type {
 	PatchAdd,
 	PatchEntry,

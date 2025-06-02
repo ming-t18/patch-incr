@@ -20,6 +20,12 @@ export type InferApplyType<T extends AnyApply> = AccessTypes<"value", T>;
 
 export type InferChangeType<T extends AnyApply> = AccessTypes<"change", T>;
 
+export interface ChangeBuilder<Change> {
+	append: (change: Change) => void;
+	build: () => Change;
+}
+
 export interface ApplyCombine<Value, Change> extends Apply<Value, Change> {
 	combine: (left: Change, right: Change) => Change;
+	builder?: () => ChangeBuilder<Change>;
 }
