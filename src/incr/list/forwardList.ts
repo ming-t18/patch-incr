@@ -39,27 +39,14 @@ export const reduceArrayPatches =
 
 		let input1 = input;
 		let output1 = output;
-		if (outSchema.builder) {
-			const builder = outSchema.builder();
-			for (const entry of res) {
-				const dys = reduce(input1, entry, output1);
-				input1 = inArraySchema.apply(
-					input1,
-					inArraySchema.fromEntries([entry]),
-				);
-				output1 = outSchema.apply(output1, dys);
-				builder.append(dys);
-			}
-			return builder.build();
-		}
-		let outPatches: Patches<Output> = [...outSchema.empty];
+		const builder = outSchema.builder();
 		for (const entry of res) {
 			const dys = reduce(input1, entry, output1);
 			input1 = inArraySchema.apply(input1, inArraySchema.fromEntries([entry]));
 			output1 = outSchema.apply(output1, dys);
-			outPatches = outSchema.combine(outPatches, dys);
+			builder.append(dys);
 		}
-		return outPatches;
+		return builder.build();
 	};
 
 export const forwardMapPatches = <X, Y>(

@@ -27,5 +27,5 @@ export interface ChangeBuilder<Change> {
 
 export interface ApplyCombine<Value, Change> extends Apply<Value, Change> {
 	combine: (left: Change, right: Change) => Change;
-	builder?: () => ChangeBuilder<Change>;
+	builder: () => ChangeBuilder<Change>;
 }

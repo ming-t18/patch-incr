@@ -1,5 +1,12 @@
+import type {
+	AnyRecord,
+	InferTypeFromRecordConstruction,
+	PatchSchemaRecord,
+	RecordConstruction,
+} from "../../patchSchema/types";
 import { type StructuralChangeBuilder, patchesBuilder } from "../builder";
 import type { Patches } from "../patch";
+import type { TypesKey } from "../typeHelpers";
 import { type IF, isIF } from "../types";
 import type {
 	InferRecordInput,
@@ -63,6 +70,35 @@ export const record = <
 				);
 			}
 			return outChange;
+		},
+	};
+};
+
+export const recordWithSchema = <Input, C extends RecordConstruction>(
+	entries: { [k in keyof C]: IF<Input, C[k]> },
+	outSchema: PatchSchemaRecord<C, InferTypeFromRecordConstruction<C>>,
+): IF<Input, InferTypeFromRecordConstruction<C>> => {
+	type Record = InferTypeFromRecordConstruction<C>;
+	type Key = keyof Record;
+	const keys: Key[] = Object.keys(entries as never);
+	const invoke = (input: Input): Record => {
+		const o: Record = {} as never;
+		for (const key of keys) {
+			o[key] = entries[key].invoke(input);
+		}
+		return o;
+	};
+
+	return {
+		invoke,
+		forward: (input: Input, change: Patches<Input>, output: Record) => {
+			const builder = outSchema.builder();
+			for (const key of keys) {
+				const outV = output[key];
+				const dv = entries[key].forward(input, change, outV as never);
+				builder.append(outSchema.liftKey(key, dv));
+			}
+			return builder.build();
 		},
 	};
 };
