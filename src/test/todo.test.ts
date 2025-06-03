@@ -17,7 +17,7 @@ describe("todoReducer", () => {
 		expect(
 			todoReducer.forward(
 				{ items: [{ done: true, text: "test 1" }] },
-				{ type: TodoActionType.Add, value: "test 2" },
+				[{ type: TodoActionType.Add, value: "test 2" }],
 				{ items: [{ done: true, text: "test 1" }] },
 			),
 		).toStrictEqual([

@@ -1,6 +1,7 @@
 import { encode } from "he";
 import type { DP } from "../dual";
 import type { Patches } from "../incr/patch";
+import type { IF } from "../incr/types";
 import type { Dispatch } from "./mount";
 import type {
 	AttrValue,
@@ -11,10 +12,20 @@ import type {
 	Events,
 } from "./types";
 
-export type RenderFunc<State, Action> = (
-	state: DP<State, Patches>,
-	dispatch: Dispatch<Action>,
-) => DP<ElementConstruction, Patches>;
+export interface StateDispatch<State, Action> {
+	state: State;
+	dispatch: Dispatch<Action>;
+}
+
+export type RenderFunc<State, Action> = ({
+	state,
+	dispatch,
+}: StateDispatch<State, Action>) => ElementConstruction;
+
+export type RenderIF<State, Action> = IF<
+	StateDispatch<State, Action>,
+	ElementConstruction
+>;
 
 export const fromAttrValue = (x: AttrValue): string =>
 	typeof x === "string" ? x : `${x}`;

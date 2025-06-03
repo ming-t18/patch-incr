@@ -7,13 +7,13 @@ import type {
 	PatchSchemaArrayEntry,
 } from "../../patchSchema/types";
 import {
-	CannotReduce,
-	type PatchEntry,
+	type PatchAdd,
 	PatchOp,
+	type PatchRemove,
+	type PatchReplace,
 	type Patches,
+	type Targeted,
 	applyPatches,
-	liftPatch,
-	reducePatches,
 } from "../patch";
 import type { IF } from "../types";
 
@@ -73,11 +73,14 @@ export const forwardMapPatches = <X, Y>(
 					{
 						...entry,
 						value: f(entry.value),
-					},
+					} as (PatchAdd<[number], Y> | PatchReplace<[number], Y>) &
+						Targeted<Y[]>,
 				]);
 			}
 			if (op === PatchOp.Remove) {
-				return outArraySchema.fromEntries([entry]);
+				return outArraySchema.fromEntries([
+					entry as PatchRemove<[number]> & Targeted<Y[]>,
+				]);
 			}
 
 			throw new Error("not reachable");

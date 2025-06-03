@@ -7,18 +7,20 @@ import {
 	isReplaceOnly,
 	makeReplaceOnly,
 } from "../algebra/replaceOnly";
-import type { Patches } from "./patch";
-import type { IF } from "./types";
+import type { PatchBuilder, Patches } from "./patch";
+import type { IF, NoForwardOutput } from "./types";
 enablePatches();
 
 export const fromReducerOnDraft = <State, Action>(
 	funcOnDraft: (draft: Draft<State>, action: Action) => void,
-): IF<State, State, Action, Patches> => {
+): IF<State, State, Action[], Patches, NoForwardOutput> => {
 	return {
 		evaluate: (state: State) => state,
-		forward: (state, action, _ignored) => {
+		forward: (state: State, actions: Action[], _ignored?: State) => {
 			const [_, patches] = produceWithPatches(state, (draft) => {
-				funcOnDraft(draft, action);
+				for (const action of actions) {
+					funcOnDraft(draft, action);
+				}
 			});
 			return patches as never[] as Patches;
 		},
@@ -43,6 +45,7 @@ export const applyFromReducer = <State, Action>(
 			}
 		});
 	};
+
 	return {
 		empty: null,
 		apply,

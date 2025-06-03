@@ -1,8 +1,4 @@
-import type {
-	StructuralChangeBuilder,
-	TupleOrRecord,
-	patchesBuilder,
-} from "../incr/builder";
+import type { StructuralChangeBuilder } from "../incr/builder";
 import { type DP, dp, isDP } from "./types";
 
 export type StructReturnArray<T extends unknown[]> = T extends []

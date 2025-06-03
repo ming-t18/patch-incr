@@ -32,7 +32,7 @@ export const fromGraph = <
 			}
 			return data;
 		},
-		forward: (input, changes, output) => {
+		forward: (input: Input, changes: Patches<Input>, output: unknown[]) => {
 			const patches = PatchBuilder.empty();
 			const depChanges: Patches[] = [];
 			let i = 0;

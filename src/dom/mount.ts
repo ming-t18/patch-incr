@@ -7,7 +7,7 @@ import {
 } from "rxjs";
 import { type Patches, applyPatches } from "../incr/patch";
 import type { IF } from "../incr/types";
-import { hydrate, renderToString } from "./render";
+import { type RenderIF, hydrate, renderToString } from "./render";
 import type { DOMConstruction } from "./types";
 
 export type Dispatch<Action> = (action: Action) => void;
@@ -42,19 +42,13 @@ export class DOMRoot<State, Action> {
 	readonly #root: Element;
 	readonly #subj: Subject<Action | null>;
 	readonly #states: Observable<[State, Patches | null]>;
-	readonly #renderFromState: (
-		state: State,
-		dispatch: Dispatch<Action>,
-	) => DOMConstruction;
+	readonly #renderFromState: RenderIF<State, Action>;
 
 	public constructor(
 		root: Element,
 		readonly initState: State,
-		readonly reducer: IF<State, State, Action, Patches>,
-		renderFromState: (
-			state: State,
-			dispatch: Dispatch<Action>,
-		) => DOMConstruction,
+		readonly reducer: IF<State, State, Action[], Patches>,
+		renderFromState: RenderIF<State, Action>,
 	) {
 		this.#root = root;
 		this.#subj = new Subject<Action | null>();
@@ -73,7 +67,7 @@ export class DOMRoot<State, Action> {
 		const renderFromState = this.#renderFromState;
 
 		const rerender = (state: State, dispatch: Dispatch<Action>) => {
-			const domc = renderFromState(state, dispatch);
+			const domc = renderFromState.evaluate({ state, dispatch });
 			root.innerHTML = renderToString(domc);
 			const node = root.firstElementChild;
 			if (!node) {
@@ -120,7 +114,7 @@ export class DOMRoot<State, Action> {
 			if (act === null) {
 				return [initState, null];
 			}
-			const patches = this.reducer.forward(state, act, state);
+			const patches = this.reducer.forward(state, [act], state);
 			return [applyPatches(state, patches), patches];
 		};
 	}

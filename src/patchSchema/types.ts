@@ -1,4 +1,9 @@
-import type { ApplyCombine, DRO, InferApplyType } from "../algebra";
+import type {
+	ApplyCombine,
+	ChangeBuilder,
+	DRO,
+	InferApplyType,
+} from "../algebra";
 import type {
 	PatchAdd,
 	PatchEntry,
@@ -11,6 +16,8 @@ import type {
 export interface PatchSchema<Value, Change = Patches<Value>>
 	extends ApplyCombine<Value, Change> {
 	fromPatchEntries(entry: PatchEntry<Value>[]): Change;
+	// not optional
+	builder: () => ChangeBuilder<Change>;
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: needd for type constraints

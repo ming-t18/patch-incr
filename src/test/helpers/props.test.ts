@@ -1,7 +1,6 @@
 import { expect, jest } from "bun:test";
 import fc from "fast-check";
 import type { Dispatch } from "../../dom/mount";
-import type { RenderForward } from "../../dom/render";
 import type { ElementConstruction } from "../../dom/types";
 import {
 	type Patches,
@@ -212,25 +211,6 @@ export const propIsIdentity = <X, Z = undefined>(
 			}),
 		);
 	});
-};
-
-export const ensureRenderPatchCoherent = <State, Action>(
-	state: State,
-	action: Action,
-	render: (state: State, dispatch: Dispatch<Action>) => ElementConstruction,
-	makeForward: RenderForward<State, Action>,
-	reducer: (state: State, action: Action) => State,
-) => {
-	const dispatch = (_: Action) => {};
-	ensurePatchCoherent(
-		state,
-		action,
-		{
-			evaluate: (s: State) => render(s, dispatch),
-			forward: makeForward(dispatch),
-		},
-		reducer,
-	);
 };
 
 export const ensurePatchLiftingProperty = <
