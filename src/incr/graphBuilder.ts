@@ -24,11 +24,11 @@ export const fromGraph = <
 	edges,
 }: Graph): IF<Input, unknown[]> => {
 	return {
-		invoke: (input) => {
+		evaluate: (input) => {
 			const data: unknown[] = [];
 			for (const [deps, func] of edges) {
 				const fromDeps = deps.map((i) => data[i]);
-				data.push(func.invoke([input, ...fromDeps]));
+				data.push(func.evaluate([input, ...fromDeps]));
 			}
 			return data;
 		},

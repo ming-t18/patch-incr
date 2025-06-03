@@ -4,10 +4,10 @@ import { forwardMapPatches } from "./forwardList";
 export const map = <Input, Output>(
 	f: IF<Input, Output>,
 ): IF<Input[], Output[]> => {
-	const invokeMap = (xs: Input[]) => xs.map((x) => f.invoke(x));
-	const fmp = forwardMapPatches(invokeMap, f);
+	const evaluateMap = (xs: Input[]) => xs.map((x) => f.evaluate(x));
+	const fmp = forwardMapPatches(evaluateMap, f);
 	return {
-		invoke: invokeMap,
+		evaluate: evaluateMap,
 		forward: fmp,
 	};
 };

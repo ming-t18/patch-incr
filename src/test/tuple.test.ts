@@ -23,7 +23,7 @@ describe("comm", () => {
 		const c = comm();
 		fc.assert(
 			fc.property(arbPair0.arb(), ({ value }) =>
-				expect(c.inverseInvoke(c.invoke(value))).toStrictEqual(value),
+				expect(c.inverseEvaluate(c.evaluate(value))).toStrictEqual(value),
 			),
 		);
 	});
@@ -43,7 +43,7 @@ describe("assocLeft", () => {
 		const al = assocLeft();
 		fc.assert(
 			fc.property(arbTriple0.arb(), ({ value }) =>
-				expect(al.inverseInvoke(al.invoke(value))).toStrictEqual(value),
+				expect(al.inverseEvaluate(al.evaluate(value))).toStrictEqual(value),
 			),
 		);
 	});
@@ -63,7 +63,7 @@ describe("assocRight", () => {
 		const al = assocRight();
 		fc.assert(
 			fc.property(arbTriple0.arb(), ({ value }) =>
-				expect(al.inverseInvoke(al.invoke(value))).toStrictEqual(value),
+				expect(al.inverseEvaluate(al.evaluate(value))).toStrictEqual(value),
 			),
 		);
 	});

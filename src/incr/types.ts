@@ -22,7 +22,7 @@ export type AnyApply = Apply<any, any>;
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export type AnyApplyCombine = ApplyCombine<any, any>;
 
-export type Invoke<Input, Output> = (input: Input) => Output;
+export type evaluate<Input, Output> = (input: Input) => Output;
 
 export type NoForwardOutput = false;
 export type HasForwardOutput = true | false;
@@ -44,7 +44,7 @@ export interface IncrementalFunction<
 	OutputChange = Patches<Output>,
 	ForwardOutput extends boolean = HasForwardOutput,
 > {
-	invoke: Invoke<Input, Output>;
+	evaluate: evaluate<Input, Output>;
 	forward: Forward<Input, Output, InputChange, OutputChange, ForwardOutput>;
 	[TypesKey]?: {
 		input: Input;
@@ -68,8 +68,8 @@ export type IF<
 	ForwardOutput
 >;
 
-export interface InverseInvoke<Input, Output> {
-	inverseInvoke: (output: Output) => Input;
+export interface InverseEvaluate<Input, Output> {
+	inverseEvaluate: (output: Output) => Input;
 }
 
 export type IFInv<
@@ -78,7 +78,7 @@ export type IFInv<
 	InputChange = Patches<Input>,
 	OutputChange = Patches<Output>,
 > = IF<Input, Output, InputChange, OutputChange, NoForwardOutput> &
-	InverseInvoke<Input, Output>;
+	InverseEvaluate<Input, Output>;
 
 // biome-ignore lint/suspicious/noExplicitAny: used on constraints
 export type AnyIF = IF<any, any, any, any>;
@@ -94,8 +94,8 @@ export const isIF = <
 	return (
 		value !== null &&
 		typeof value === "object" &&
-		"invoke" in value &&
-		typeof value.invoke === "function" &&
+		"evaluate" in value &&
+		typeof value.evaluate === "function" &&
 		"forward" in value &&
 		typeof value.forward === "function"
 	);

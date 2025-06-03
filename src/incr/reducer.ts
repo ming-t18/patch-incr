@@ -15,7 +15,7 @@ export const fromReducerOnDraft = <State, Action>(
 	funcOnDraft: (draft: Draft<State>, action: Action) => void,
 ): IF<State, State, Action, Patches> => {
 	return {
-		invoke: (state: State) => state,
+		evaluate: (state: State) => state,
 		forward: (state, action, _ignored) => {
 			const [_, patches] = produceWithPatches(state, (draft) => {
 				funcOnDraft(draft, action);

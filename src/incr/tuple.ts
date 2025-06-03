@@ -9,12 +9,12 @@ import {
 } from "./patch";
 import type { IF, IFInv } from "./types";
 
-const invokeComm = <A, B>([a, b]: [A, B]): [B, A] => [b, a];
+const evaluateComm = <A, B>([a, b]: [A, B]): [B, A] => [b, a];
 
 export const comm = <A, B>(): IFInv<[A, B], [B, A]> => {
 	return {
-		invoke: invokeComm,
-		inverseInvoke: invokeComm,
+		evaluate: evaluateComm,
+		inverseEvaluate: evaluateComm,
 		forward: (_x, patches) =>
 			patches.map((entry): PatchEntry<[B, A]> => {
 				const { path } = entry;
@@ -28,7 +28,7 @@ export const comm = <A, B>(): IFInv<[A, B], [B, A]> => {
 				}
 
 				if (isReplaceRootEntry(entry)) {
-					return makeReplaceRootEntry<[B, A]>(invokeComm(entry.value));
+					return makeReplaceRootEntry<[B, A]>(evaluateComm(entry.value));
 				}
 
 				throw new InvalidPatchEntry("comm:", entry);
@@ -36,19 +36,19 @@ export const comm = <A, B>(): IFInv<[A, B], [B, A]> => {
 	};
 };
 
-const invokeAssocRight = <A, B, C>([[a, b], c]: [[A, B], C]): [A, [B, C]] => [
+const evaluateAssocRight = <A, B, C>([[a, b], c]: [[A, B], C]): [A, [B, C]] => [
 	a,
 	[b, c],
 ];
-const invokeAssocLeft = <A, B, C>([a, [b, c]]: [A, [B, C]]): [[A, B], C] => [
+const evaluateAssocLeft = <A, B, C>([a, [b, c]]: [A, [B, C]]): [[A, B], C] => [
 	[a, b],
 	c,
 ];
 
 export const assocRight = <A, B, C>(): IFInv<[[A, B], C], [A, [B, C]]> => {
 	return {
-		invoke: invokeAssocRight,
-		inverseInvoke: invokeAssocLeft,
+		evaluate: evaluateAssocRight,
+		inverseEvaluate: evaluateAssocLeft,
 		forward: (_x, patches) => {
 			const res: PatchEntry<[A, [B, C]]>[] = [];
 			for (const entry of patches) {
@@ -94,7 +94,7 @@ export const assocRight = <A, B, C>(): IFInv<[[A, B], C], [A, [B, C]]> => {
 				}
 
 				if (isReplaceRootEntry(entry)) {
-					res.push(makeReplaceRootEntry(invokeAssocRight(entry.value)));
+					res.push(makeReplaceRootEntry(evaluateAssocRight(entry.value)));
 					continue;
 				}
 
@@ -107,8 +107,8 @@ export const assocRight = <A, B, C>(): IFInv<[[A, B], C], [A, [B, C]]> => {
 
 export const assocLeft = <A, B, C>(): IFInv<[A, [B, C]], [[A, B], C]> => {
 	return {
-		invoke: invokeAssocLeft,
-		inverseInvoke: invokeAssocRight,
+		evaluate: evaluateAssocLeft,
+		inverseEvaluate: evaluateAssocRight,
 		forward: (_x, patches, _y) => {
 			const res: PatchEntry<[[A, B], C]>[] = [];
 			for (const entry of patches) {
@@ -155,7 +155,7 @@ export const assocLeft = <A, B, C>(): IFInv<[A, [B, C]], [[A, B], C]> => {
 				}
 
 				if (isReplaceRootEntry(entry)) {
-					res.push(makeReplaceRootEntry(invokeAssocLeft(entry.value)));
+					res.push(makeReplaceRootEntry(evaluateAssocLeft(entry.value)));
 					continue;
 				}
 

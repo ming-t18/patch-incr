@@ -5,7 +5,7 @@ import {
 	getReplaceOnly,
 	makeReplaceOnly,
 } from "../algebra/replaceOnly";
-import type { Apply, IF, Invoke, NoForwardOutput } from "../incr/types";
+import type { Apply, IF, NoForwardOutput, evaluate } from "../incr/types";
 import { type Cell, isMemoFn } from "./memoFn";
 
 export const identity = <T = unknown>(x: T): T => x;
@@ -35,31 +35,31 @@ export const cellWeakMemo = <X, Y>(
 ) => weakMemo(({ value: x }: Cell<X>) => func(x), memo);
 
 export const atomic = <X, Y, DX, DY>(
-	invoke: Invoke<X, Y>,
+	evaluate: evaluate<X, Y>,
 	ax: Apply<X, DX>,
 	ay: Apply<Y, DY>,
 ): IF<X, Y, DX, DY, NoForwardOutput> => {
 	return {
-		invoke,
+		evaluate,
 		forward: (x, dx) => {
 			const x1 = ax.apply(x, dx);
 			if (Object.is(x, x1)) {
 				return ay.empty;
 			}
 
-			return ay.fromReplace(invoke(x1));
+			return ay.fromReplace(evaluate(x1));
 		},
 	};
 };
 
-export const atomicCell = <X, Y>(f: Invoke<X, Y>): IFRO<Cell<X>, Cell<Y>> => {
+export const atomicCell = <X, Y>(f: evaluate<X, Y>): IFRO<Cell<X>, Cell<Y>> => {
 	const ax = applyReplaceOnly<Cell<X>>();
 	const ay = applyReplaceOnly<Cell<Y>>();
-	const invoke = weakMemo<Cell<X>, Cell<Y>>(({ value: x }) => ({
+	const evaluate = weakMemo<Cell<X>, Cell<Y>>(({ value: x }) => ({
 		value: f(x),
 	}));
 	return {
-		invoke,
+		evaluate,
 		forward: (
 			x: Cell<X>,
 			dx: ReplaceOnly<Cell<X>> | null,
@@ -74,7 +74,7 @@ export const atomicCell = <X, Y>(f: Invoke<X, Y>): IFRO<Cell<X>, Cell<Y>> => {
 				return ay.empty;
 			}
 
-			return ay.fromReplace(invoke(x1));
+			return ay.fromReplace(evaluate(x1));
 		},
 	};
 };
@@ -84,9 +84,9 @@ export const composeWeakMemo = <X extends WeakKey, Y, Z, DX, DY, DZ>(
 	f2: IF<Y, Z, DY, DZ>,
 	map1?: WeakMap<X, Y>,
 ): IF<X, Z, DX, DZ> => {
-	const f1m: Invoke<X, Y> = weakMemo(f1.invoke, map1);
+	const f1m: evaluate<X, Y> = weakMemo(f1.evaluate, map1);
 	return {
-		invoke: (x: X) => f2.invoke(f1m(x)),
+		evaluate: (x: X) => f2.evaluate(f1m(x)),
 		forward: (x, dx, z) => {
 			const y = f1m(x);
 			const dy = f1.forward(x, dx, y);
@@ -111,10 +111,10 @@ export const composeWeakMemo3 = <
 	map1?: WeakMap<W, X>,
 	map2?: WeakMap<X, Y>,
 ): IF<W, Z, DW, DZ> => {
-	const f1m: Invoke<W, X> = weakMemo(f1.invoke, map1);
-	const f2m: Invoke<X, Y> = weakMemo(f2.invoke, map2);
+	const f1m: evaluate<W, X> = weakMemo(f1.evaluate, map1);
+	const f2m: evaluate<X, Y> = weakMemo(f2.evaluate, map2);
 	return {
-		invoke: (w: W) => f3.invoke(f2m(f1m(w))),
+		evaluate: (w: W) => f3.evaluate(f2m(f1m(w))),
 		forward: (w, dw, z) => {
 			const x = f1m(w);
 			const dx = f1.forward(w, dw, x);
@@ -130,9 +130,9 @@ export const joinTuple = <Args extends unknown[], Ret, DArgs, DRet>(
 	applyArgs: Apply<Args, DArgs>,
 	applyRet: Apply<Ret, DRet>,
 ): IF<Args, Ret, DArgs, DRet> => {
-	const invoke = (xs: Args) => join(...xs);
+	const evaluate = (xs: Args) => join(...xs);
 	return {
-		invoke,
+		evaluate,
 		forward: (xs, dxs, _y): DRet => {
 			if (applyArgs.isEmpty(dxs)) {
 				return applyRet.empty;
@@ -145,7 +145,7 @@ export const joinTuple = <Args extends unknown[], Ret, DArgs, DRet>(
 					return applyRet.empty;
 				}
 
-				return applyRet.fromReplace(invoke(xs1));
+				return applyRet.fromReplace(evaluate(xs1));
 			}
 
 			throw new Error("not possible");
@@ -157,7 +157,7 @@ export const mapChangeToReplaceOnly = <Input, Change>(
 	apply: Apply<Input, Change>,
 ): IF<Input, Input, Change, DRO<Input>> => {
 	return {
-		invoke: identity,
+		evaluate: identity,
 		forward: (x, dx, _y): DRO<Input> => {
 			if (apply.isEmpty(dx)) {
 				return null;

@@ -16,7 +16,7 @@
  * ```typescript
  * // x: X, f : IF<X, V>, g : IF<V, Y>
  * // compose(f, g): IF<X, [Y, V]>
- * [y, v] = compose(f, g).invoke(x)
+ * [y, v] = compose(f, g).evaluate(x)
  * // v is the value of g(x)
  * ```
  *

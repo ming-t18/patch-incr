@@ -71,7 +71,7 @@ computed based on the input, output and the patches on the input.
 
 ```typescript
 interface IncrementalFunction<X, Y, DX, DY> {
-    invoke: (input: X) => Y;
+    evaluate: (input: X) => Y;
     forward: (input: X, dInput: DX, output: Y) => DY;
 };
 
@@ -81,7 +81,7 @@ The **patch-coherent** property specifies the contract on the incremental functi
 
 ```typescript
 // f(x) @ dy = f(x @ dx)
-const y = f.invoke(x)
+const y = f.evaluate(x)
 const dy = f.forward(x, dx, y)
 equals(apply(x, dy), f(apply(x, dx)))
 ```

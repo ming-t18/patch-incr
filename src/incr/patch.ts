@@ -1,7 +1,7 @@
 import { applyPatches as applyPatchesImmer, enablePatches } from "immer";
 import { IndexEnd } from "../patchSchema/types";
 import type { HasTypes } from "./typeHelpers";
-import type { Forward, Invoke } from "./types";
+import type { Forward, evaluate } from "./types";
 enablePatches();
 
 export type Path = (number | string)[];
@@ -266,7 +266,7 @@ export type ReduceEntry<Input, Output> = (
 
 export const reducePatches =
 	<Input, Output>(
-		invoke: Invoke<Input, Output>,
+		evaluate: evaluate<Input, Output>,
 		reduceEntry: ReduceEntry<Input, Output>,
 	): Forward<Input, Output> =>
 	(input: Input, patches: Patches, output: Output) => {
@@ -286,7 +286,7 @@ export const reducePatches =
 				const res = reduceEntry(input, entry, output);
 				const input1 = applyPatches(input, [entry]);
 				if (res === CannotReduce) {
-					const output1 = invoke(input1);
+					const output1 = evaluate(input1);
 					return {
 						input: input1,
 						patches: [

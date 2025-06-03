@@ -8,7 +8,7 @@ import {
 
 export const atomicMemoLast = <X, Y>(f: (value: X) => Y): IFRO<X, Y> => {
 	let memo: { input: X; output: Y } | null = null;
-	const invoke = (x: X): Y => {
+	const evaluate = (x: X): Y => {
 		if (memo !== null && Object.is(x, memo.input)) {
 			return memo.output;
 		}
@@ -17,7 +17,7 @@ export const atomicMemoLast = <X, Y>(f: (value: X) => Y): IFRO<X, Y> => {
 		return output;
 	};
 	return {
-		invoke,
+		evaluate,
 		forward: (
 			_x: X,
 			dx: ReplaceOnly<X> | null,
@@ -27,7 +27,7 @@ export const atomicMemoLast = <X, Y>(f: (value: X) => Y): IFRO<X, Y> => {
 				return null;
 			}
 			if (isReplaceOnly(dx)) {
-				return makeReplaceOnly(invoke(getReplaceOnly(dx)));
+				return makeReplaceOnly(evaluate(getReplaceOnly(dx)));
 			}
 			throw new Error("not reachable");
 		},

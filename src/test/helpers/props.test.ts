@@ -37,9 +37,9 @@ export const ensurePatchCoherent = <X, Y, DX = Patches<X>>(
 	let y: Y | undefined = undefined;
 	let dy: Patches<Y> | undefined = undefined;
 	try {
-		y = f.invoke(x);
+		y = f.evaluate(x);
 		dy = f.forward(x, dx, y);
-		const yNext = f.invoke(xNext);
+		const yNext = f.evaluate(xNext);
 		const yApply = applyPatches(y, dy);
 		try {
 			compare(yApply, yNext);
@@ -104,18 +104,18 @@ export const ensurePatchSplitProperty = <X, Y>(
 	//
 	fc.pre(dx.length > 1);
 	const i = dx.length === 2 ? 1 : Math.floor(dx.length / 2);
-	const y = f.invoke(x);
+	const y = f.evaluate(x);
 	const dy = f.forward(x, dx, y);
 	const yNext = applyPatches(y, dy);
 	const dxLeft = dx.slice(0, i);
 	const dxRight = dx.slice(i);
-	const y1 = f.invoke(x);
+	const y1 = f.evaluate(x);
 	const dyLeft = f.forward(x, dxLeft, y1);
 	const xInterm = applyPatches(x, dxLeft);
 	const yInterm = applyPatches(y1, dyLeft);
 
-	// must call invoke before forward on strict mode of some memos
-	const yInterm1 = f.invoke(xInterm);
+	// must call evaluate before forward on strict mode of some memos
+	const yInterm1 = f.evaluate(xInterm);
 	expect(yInterm1).toStrictEqual(yInterm);
 	const dyRight = f.forward(xInterm, dxRight, yInterm1);
 
@@ -159,7 +159,7 @@ export const propsForIF = <X, Y, Z = undefined>(
 		fc.assert(
 			fc.property(arb, gen.arb(), (z, { value: x }) => {
 				const f = getIF(z);
-				const y = f.invoke(x);
+				const y = f.evaluate(x);
 				const dy = f.forward(x, [], y);
 				expect(dy).toStrictEqual([]);
 			}),
@@ -195,7 +195,7 @@ export const propIsIdentity = <X, Z = undefined>(
 		fc.assert(
 			fc.property(arb, gen.arb(), (z, { value: x }) => {
 				const f = getIF(z);
-				const y = f.invoke(x);
+				const y = f.evaluate(x);
 				expect(y).toStrictEqual(x);
 			}),
 		);
@@ -206,7 +206,7 @@ export const propIsIdentity = <X, Z = undefined>(
 			fc.property(arb, gen.arb(), (z, { value: x, patches: dx }) => {
 				fc.pre(!("replace" in reduceReplaceRoot(dx)));
 				const f = getIF(z);
-				const y = f.invoke(x);
+				const y = f.evaluate(x);
 				const dy = f.forward(x, dx, y);
 				expect(dy).toStrictEqual(dx);
 			}),
@@ -226,7 +226,7 @@ export const ensureRenderPatchCoherent = <State, Action>(
 		state,
 		action,
 		{
-			invoke: (s: State) => render(s, dispatch),
+			evaluate: (s: State) => render(s, dispatch),
 			forward: makeForward(dispatch),
 		},
 		reducer,
@@ -252,11 +252,11 @@ export const ensurePatchLiftingProperty = <
 		expect(a).toStrictEqual(e),
 ) => {
 	fc.pre((dx as Patches<X>).length <= 1);
-	const y = f.invoke(x);
+	const y = f.evaluate(x);
 	const dy = f.forward(x, dx, y);
 	const fx = mapValue(x);
 	const dfx = mapPatch(dx);
-	const fy = ff.invoke(fx);
+	const fy = ff.evaluate(fx);
 	const dfy = ff.forward(fx, dfx, fy);
 	// bypass test for "changing into itself" for the input
 	fc.pre(!Object.is(y, applyPatches(y, dy)));

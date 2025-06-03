@@ -134,19 +134,19 @@ export const filter = <T>(
 		0,
 	);
 
-	const invokeFilter = (xs: T[]): [T[], number[]] => [
+	const evaluateFilter = (xs: T[]): [T[], number[]] => [
 		xs.filter(pred),
-		csum.invoke(xs),
+		csum.evaluate(xs),
 	];
 
 	const forward1 = reducePatches(
-		invokeFilter,
+		evaluateFilter,
 		(xs1: T[], entry, [_ys1, cys1]: [T[], number[]]) =>
 			forwardFilterPatchEntry(pred, csum, xs1, entry, cys1),
 	);
 
 	return {
-		invoke: invokeFilter,
+		evaluate: evaluateFilter,
 		forward: (
 			xs: T[],
 			dxs: Patches<T[]>,
@@ -154,7 +154,7 @@ export const filter = <T>(
 		): Patches<[T[], number[]]> => {
 			const res = reduceReplaceRoot(dxs);
 			if ("replace" in res) {
-				return replacePatch(invokeFilter(res.replace));
+				return replacePatch(evaluateFilter(res.replace));
 			}
 
 			return forward1(xs, dxs, [ys, cys]);

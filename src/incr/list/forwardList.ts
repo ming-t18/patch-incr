@@ -21,7 +21,7 @@ export const reduceArrayPatches =
 	<S extends AnyPatchSchema, T, Output>(
 		inArraySchema: PatchSchemaArray<S, T>,
 		outSchema: PatchSchema<Output>,
-		invoke: (xs: T[]) => Output,
+		evaluate: (xs: T[]) => Output,
 		reduce: (
 			input: T[],
 			entry: PatchSchemaArrayEntry<T>,
@@ -34,7 +34,7 @@ export const reduceArrayPatches =
 			return outSchema.empty;
 		}
 		if (isReplaceOnly(res)) {
-			return outSchema.fromReplace(invoke(getReplaceOnly(res)));
+			return outSchema.fromReplace(evaluate(getReplaceOnly(res)));
 		}
 
 		let input1 = input;
@@ -50,8 +50,8 @@ export const reduceArrayPatches =
 	};
 
 export const forwardMapPatches = <X, Y>(
-	invokeMap: (xs: X[]) => Y[],
-	{ invoke: f, forward: df }: IF<X, Y, Patches<X>, Patches<Y>>,
+	evaluateMap: (xs: X[]) => Y[],
+	{ evaluate: f, forward: df }: IF<X, Y, Patches<X>, Patches<Y>>,
 ) => {
 	const inSchema = ps.atomic<X>();
 	const outSchema = ps.atomic<Y>();
@@ -59,7 +59,7 @@ export const forwardMapPatches = <X, Y>(
 	return reduceArrayPatches(
 		ps.array(inSchema),
 		outArraySchema,
-		invokeMap,
+		evaluateMap,
 		(xs: X[], entry: PatchSchemaArrayEntry<X>, ys: Y[]): Patches<Y[]> => {
 			if ("inner" in entry) {
 				const [i] = entry.path;
@@ -86,7 +86,7 @@ export const forwardMapPatches = <X, Y>(
 };
 
 export const forwardScanPatches =
-	<T, Acc>(invokeScan: (xs: T[], acc: Acc) => Acc[]) =>
+	<T, Acc>(evaluateScan: (xs: T[], acc: Acc) => Acc[]) =>
 	(xs: T[], patches: Patches<T[]>, ys: Acc[]): Patches<Acc[]> | null => {
 		if (patches.length === 0) {
 			return patches as Patches<never>;
@@ -148,7 +148,7 @@ export const forwardScanPatches =
 			});
 		}
 		const xsAfter = applyPatches(xs.slice(iInit), reducedPatches);
-		const rest = invokeScan(xsAfter, ys[iInit - 1]);
+		const rest = evaluateScan(xsAfter, ys[iInit - 1]);
 		return [
 			...removePart,
 			...rest.map((value, i) => ({

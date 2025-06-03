@@ -31,7 +31,7 @@ export const toIF = <X, DX, Y, DY>(
 	empty: DX,
 ): IF<X, Y, DX, DY> => {
 	return {
-		invoke: (x: X) => f(dp(x, empty))[0],
+		evaluate: (x: X) => f(dp(x, empty))[0],
 		forward: (x: X, dx: DX, _y: Y): DY => f(dp(x, dx))[1],
 	};
 };

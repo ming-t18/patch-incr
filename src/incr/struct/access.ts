@@ -37,7 +37,7 @@ export const accessRecord = <
 > => {
 	type X = InferTypeFromRecordConstruction<C>;
 	type Y = InferTypeFromRecordConstruction<C>[K];
-	const invokeAccessRecord = (input: X): Y => input[key];
+	const evaluateAccessRecord = (input: X): Y => input[key];
 	const forwardAccessRecord = (
 		_input: X,
 		dx: Patches<X>,
@@ -53,7 +53,7 @@ export const accessRecord = <
 		return res[key]?.inner ?? schema.$[key].empty;
 	};
 	return {
-		invoke: invokeAccessRecord,
+		evaluate: evaluateAccessRecord,
 		forward: forwardAccessRecord,
 	};
 };
@@ -73,7 +73,7 @@ export const accessTuple = <
 > => {
 	type X = InferTypeFromTupleConstruction<C>;
 	type Y = InferTypeFromTupleConstruction<C>[K];
-	const invokeAccessTuple = (input: X): Y => input[index];
+	const evaluateAccessTuple = (input: X): Y => input[index];
 	const forwardAccessTuple = (_input: X, dx: Patches<X>, _?: Y): Patches<Y> => {
 		const res = schema.analyze(dx);
 		if (res === null) {
@@ -85,7 +85,7 @@ export const accessTuple = <
 		return res[index]?.inner ?? schema.$[index].empty;
 	};
 	return {
-		invoke: invokeAccessTuple,
+		evaluate: evaluateAccessTuple,
 		forward: forwardAccessTuple,
 	};
 };
@@ -102,9 +102,9 @@ export const access = <
 	key: Key,
 ): IF<Input, Output> => {
 	const path = [key];
-	const invoke = (input: Input) => doAccess(input, path) as never;
+	const evaluate = (input: Input) => doAccess(input, path) as never;
 	return {
-		invoke,
+		evaluate,
 		// @ts-expect-error Can't be checked
 		forward: (input, change, _output) => {
 			return filterAccessPatches(path, input, change);
@@ -115,7 +115,7 @@ export const access = <
 export const accessPath = <Output, Input>(
 	pathPrefix: Path,
 ): IF<Input, Output> => {
-	const invoke = (input: Input): Output => {
+	const evaluate = (input: Input): Output => {
 		let v: unknown = input;
 		for (const elem of pathPrefix) {
 			// @ts-expect-error avoid checking
@@ -124,8 +124,8 @@ export const accessPath = <Output, Input>(
 		return v as never;
 	};
 	return {
-		invoke,
-		forward: reducePatches(invoke, (_input, entry, _output) => {
+		evaluate,
+		forward: reducePatches(evaluate, (_input, entry, _output) => {
 			const { path } = entry;
 			if (path.length < pathPrefix.length) {
 				return CannotReduce;

@@ -9,11 +9,11 @@ export const cond = <Input, A, B, DInput = Patches<Input>>(
 	right: IF<Input, B, DInput>,
 	apply = applyPatches as (input: Input, change: DInput) => Input,
 ): IF<Input, CondOutput<A, B>, DInput> => {
-	const invoke = (x: Input): CondOutput<A, B> =>
-		cond(x) ? [true, left.invoke(x)] : [false, right.invoke(x)];
+	const evaluate = (x: Input): CondOutput<A, B> =>
+		cond(x) ? [true, left.evaluate(x)] : [false, right.evaluate(x)];
 
 	return {
-		invoke,
+		evaluate,
 		forward: (
 			input: Input,
 			change: DInput,
@@ -28,8 +28,14 @@ export const cond = <Input, A, B, DInput = Patches<Input>>(
 			}
 
 			return nextBranch
-				? replacePatch([false, left.invoke(next)] as never as CondOutput<A, B>)
-				: replacePatch([true, right.invoke(next)] as never as CondOutput<A, B>);
+				? replacePatch([false, left.evaluate(next)] as never as CondOutput<
+						A,
+						B
+					>)
+				: replacePatch([true, right.evaluate(next)] as never as CondOutput<
+						A,
+						B
+					>);
 		},
 	};
 };

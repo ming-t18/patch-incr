@@ -3,14 +3,14 @@ import { TodoActionType, todoReducer } from "../todo_state";
 
 describe("todoReducer", () => {
 	it("should be identity function", () => {
-		expect(todoReducer.invoke({ items: [] })).toStrictEqual({ items: [] });
+		expect(todoReducer.evaluate({ items: [] })).toStrictEqual({ items: [] });
 		const todo1 = {
 			items: [
 				{ done: false, text: "item 1" },
 				{ done: true, text: "item 2" },
 			],
 		};
-		expect(todoReducer.invoke(todo1)).toStrictEqual(todo1);
+		expect(todoReducer.evaluate(todo1)).toStrictEqual(todo1);
 	});
 
 	it("should reduce add", () => {

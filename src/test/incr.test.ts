@@ -189,9 +189,9 @@ describe("arbValidPatchesOnValue", () => {
 });
 
 describe("identity", () => {
-	it("invoke returns itself", () => {
+	it("evaluate returns itself", () => {
 		fc.assert(
-			fc.property(anything(), (x) => Object.is(x, identity().invoke(x))),
+			fc.property(anything(), (x) => Object.is(x, identity().evaluate(x))),
 		);
 	});
 
@@ -199,7 +199,7 @@ describe("identity", () => {
 		fc.assert(
 			fc.property(gp.valuePatches(), ({ value, patches }) => {
 				const id = identity();
-				const y = id.invoke(value);
+				const y = id.evaluate(value);
 				return expect(id.forward(value, patches, y)).toStrictEqual(patches);
 			}),
 		);
@@ -215,10 +215,10 @@ describe("identity", () => {
 });
 
 describe("constant", () => {
-	it("invoke returns constant value", () => {
+	it("evaluate returns constant value", () => {
 		fc.assert(
 			fc.property(anything(), anything(), (c, x) =>
-				Object.is(c, constant(c).invoke(x)),
+				Object.is(c, constant(c).evaluate(x)),
 			),
 		);
 	});
@@ -227,7 +227,7 @@ describe("constant", () => {
 		fc.assert(
 			fc.property(anything(), gp.valuePatches(), (c, { value, patches }) => {
 				const f = constant(c);
-				const y = f.invoke(value);
+				const y = f.evaluate(value);
 				return expect(f.forward(value, patches, y)).toStrictEqual([]);
 			}),
 		);
@@ -257,12 +257,12 @@ describe("atomic", () => {
 });
 
 describe("record", () => {
-	it("invoke returns record", () => {
+	it("evaluate returns record", () => {
 		fc.assert(
 			fc.property(
 				anything(),
 				arbRecord(),
-				(value, rec) => typeof rec.invoke(value) === "object",
+				(value, rec) => typeof rec.evaluate(value) === "object",
 			),
 		);
 	});
@@ -288,9 +288,9 @@ describe("compose", () => {
 				arbAtomic(),
 				arbAtomic(),
 				({ value, patches }, f1, f2) => {
-					const y = f2.invoke(f1.invoke(value));
+					const y = f2.evaluate(f1.evaluate(value));
 					const composed = compose(f1, f2);
-					expect(y).toStrictEqual(composed.invoke(value)[0]);
+					expect(y).toStrictEqual(composed.evaluate(value)[0]);
 				},
 			),
 		);
@@ -374,7 +374,9 @@ describe("access", () => {
 					),
 				({ value, patches, key }) => {
 					try {
-						access(key as never).invoke(applyPatches(value, patches) as never);
+						access(key as never).evaluate(
+							applyPatches(value, patches) as never,
+						);
 					} catch (e) {
 						fc.pre(false);
 					}
@@ -391,17 +393,17 @@ describe("access", () => {
 			fc.property(fc.string(), anything(), arbAtomic(), (key, value, f) => {
 				// @ts-expect-error doesn't work
 				const composed = compose(record({ [key]: f }), access(key));
-				expect(composed.invoke(value)[0]).toStrictEqual(f.invoke(value));
+				expect(composed.evaluate(value)[0]).toStrictEqual(f.evaluate(value));
 			}),
 		);
 	});
 });
 
 describe("arbIF", () => {
-	it("should invoke", () => {
+	it("should evaluate", () => {
 		fc.assert(
 			fc.property(arbIF([]), anything(), ({ func }, v) => {
-				func.invoke(v);
+				func.evaluate(v);
 				return true;
 			}),
 		);
@@ -444,7 +446,7 @@ describe("GraphBuilder", () => {
 
 	it("example", () => {
 		const input = 5;
-		const res = testCompose.invoke(input);
+		const res = testCompose.evaluate(input);
 		// console.log(res);
 		ensurePatchCoherent(input, replacePatch(15), testCompose);
 	});

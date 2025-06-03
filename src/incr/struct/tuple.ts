@@ -15,11 +15,11 @@ export const tupleWithSchema = <Input, C extends TupleConstruction>(
 	const keys: Key[] = Array(entries.length)
 		.fill(null)
 		.map((_, i) => i) as never[];
-	const invoke = (input: Input): Tuple =>
-		keys.map((key) => entries[key as never].invoke(input)) as Tuple;
+	const evaluate = (input: Input): Tuple =>
+		keys.map((key) => entries[key as never].evaluate(input)) as Tuple;
 
 	return {
-		invoke,
+		evaluate,
 		forward: (input: Input, change: Patches<Input>, output: Tuple) => {
 			const builder = outSchema.builder();
 			for (const key of keys) {

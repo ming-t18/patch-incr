@@ -11,8 +11,8 @@ export const memoInterm = <Input extends WeakKey, Output, Interm>(
 	const outSchema = ps.atomic<Output>();
 	const pairSchema = ps.tuple(ps.atomic<Output>(), ps.atomic<Interm>());
 	const memo = memo0 ?? new WeakMap();
-	const invokeMemoPair = (x: Input): Output => {
-		const p = f1.invoke(x);
+	const evaluateMemoPair = (x: Input): Output => {
+		const p = f1.evaluate(x);
 		const y = p[0];
 		memo.set(x, p);
 		return y;
@@ -29,7 +29,7 @@ export const memoInterm = <Input extends WeakKey, Output, Interm>(
 				console.error("key not found", { x, dx });
 				throw new Error("Key not found");
 			}
-			pair = f1.invoke(x);
+			pair = f1.evaluate(x);
 			memo.set(x, pair);
 		}
 		const dPair = f1.forward(x, dx, pair);
@@ -55,7 +55,7 @@ export const memoInterm = <Input extends WeakKey, Output, Interm>(
 
 		return res[0]?.inner ?? pairSchema.$[0].empty;
 	};
-	return { invoke: invokeMemoPair, forward: forwardMemoPair };
+	return { evaluate: evaluateMemoPair, forward: forwardMemoPair };
 };
 
 export const memoIntermR = <Input, Output extends WeakKey, Interm>(
@@ -67,8 +67,8 @@ export const memoIntermR = <Input, Output extends WeakKey, Interm>(
 	const memo = memo0 ?? new WeakMap();
 	const pairSchema = ps.tuple(ps.atomic<Output>(), ps.atomic<Interm>());
 
-	const invokeMemoPair = (x: Input): Output => {
-		const p = f1.invoke(x);
+	const evaluateMemoPair = (x: Input): Output => {
+		const p = f1.evaluate(x);
 		const y = p[0];
 		memo.set(y, p);
 		return y;
@@ -86,7 +86,7 @@ export const memoIntermR = <Input, Output extends WeakKey, Interm>(
 			if (strict) {
 				throw new Error("Key not found");
 			}
-			pair = f1.invoke(x);
+			pair = f1.evaluate(x);
 			memo.set(y, pair);
 		}
 
@@ -103,5 +103,5 @@ export const memoIntermR = <Input, Output extends WeakKey, Interm>(
 
 		return res[0]?.inner ?? pairSchema.$[0].empty;
 	};
-	return { invoke: invokeMemoPair, forward: forwardMemoPair };
+	return { evaluate: evaluateMemoPair, forward: forwardMemoPair };
 };

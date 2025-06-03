@@ -42,7 +42,7 @@ describe("memoInterm", () => {
 		const spySet = spyOn(map, "set");
 		const spyGet = spyOn(map, "get");
 		const f = memoInterm(filterFunc, map);
-		const y = f.invoke(x);
+		const y = f.evaluate(x);
 		expect(spySet).toHaveBeenCalledWith(x, expect.anything());
 		expect(y).toStrictEqual(yExpected);
 		const dy = f.forward(x, dx, y);
@@ -83,7 +83,7 @@ describe("memoIntermR", () => {
 		const spySet = spyOn(map, "set");
 		const spyGet = spyOn(map, "get");
 		const f = memoIntermR(filterFunc, map);
-		const y = f.invoke(x);
+		const y = f.evaluate(x);
 		expect(spySet).toHaveBeenCalledWith(y, expect.anything());
 		expect(y).toStrictEqual(yExpected);
 		const dy = f.forward(x, dx, y);

@@ -27,15 +27,15 @@ export const withMemoPair = <Input, Output, Interm>(
 	func: IF<Input, [Output, Interm]>,
 	cache: CacheWrite<Input, [Output, Interm]>,
 ): IF<Input, Output> => {
-	const invoke1 = withCache(func.invoke, new IncrCache());
+	const evaluate1 = withCache(func.evaluate, new IncrCache());
 	return {
-		invoke: (x: Input) => invoke1(x)[0],
+		evaluate: (x: Input) => evaluate1(x)[0],
 		forward: (
 			input: Input,
 			dx: Patches<Input>,
 			output: Output,
 		): Patches<Output> => {
-			const interm = invoke1(input)[1];
+			const interm = evaluate1(input)[1];
 			throw new Error("TODO");
 		},
 	};

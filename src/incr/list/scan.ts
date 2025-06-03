@@ -6,7 +6,7 @@ export const scan = <T, Acc>(
 	func: (acc: Acc, value: T) => Acc,
 	init: Acc,
 ): IF<T[], Acc[]> => {
-	const invokeScan = (xs: T[], init0 = init): Acc[] => {
+	const evaluateScan = (xs: T[], init0 = init): Acc[] => {
 		let acc = init0;
 		const values: Acc[] = [];
 		for (let i = 0; i < xs.length; i++) {
@@ -16,10 +16,10 @@ export const scan = <T, Acc>(
 		return values;
 	};
 	// TODO simplify replace-into-self
-	const fsp = forwardScanPatches(invokeScan);
+	const fsp = forwardScanPatches(evaluateScan);
 	return {
-		invoke: invokeScan,
+		evaluate: evaluateScan,
 		forward: (xs: T[], dxs: Patches<T[]>, ys: Acc[]) =>
-			fsp(xs, dxs, ys) ?? replacePatch(invokeScan(applyPatches(xs, dxs))),
+			fsp(xs, dxs, ys) ?? replacePatch(evaluateScan(applyPatches(xs, dxs))),
 	};
 };

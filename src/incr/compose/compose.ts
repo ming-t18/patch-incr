@@ -16,9 +16,9 @@ export const compose = <Input, Interm, Output>(
 ): IF<Input, [Output, Interm]> => {
 	const outSchema = ps.tuple(ps.atomic<Output>(), ps.atomic<Interm>());
 
-	const invokeCompose = (x: Input): [Output, Interm] => {
-		const v = f1.invoke(x);
-		return [f2.invoke(v), v];
+	const evaluateCompose = (x: Input): [Output, Interm] => {
+		const v = f1.evaluate(x);
+		return [f2.evaluate(v), v];
 	};
 	const forward = (
 		input: Input,
@@ -33,7 +33,7 @@ export const compose = <Input, Interm, Output>(
 		);
 	};
 	return {
-		invoke: invokeCompose,
+		evaluate: evaluateCompose,
 		forward,
 	};
 };
@@ -45,12 +45,12 @@ export const composePair1 = <Input, InputPassed, Interm, Output>(
 	const pairSchema = ps.tuple(ps.atomic<Input>(), ps.atomic<InputPassed>());
 	const outPairSchema = ps.tuple(ps.atomic<InputPassed>(), ps.atomic<Interm>());
 	const outSchema = ps.tuple(ps.atomic<Output>(), outPairSchema);
-	const invokeCompose = ([x, z]: [Input, InputPassed]): [
+	const evaluateCompose = ([x, z]: [Input, InputPassed]): [
 		Output,
 		[InputPassed, Interm],
 	] => {
-		const v = f1.invoke(x);
-		return [f2.invoke(v), [z, v]];
+		const v = f1.evaluate(x);
+		return [f2.evaluate(v), [z, v]];
 	};
 
 	const forward = (
@@ -70,7 +70,7 @@ export const composePair1 = <Input, InputPassed, Interm, Output>(
 		}
 
 		if (isReplaceOnly(res)) {
-			return replacePatch(invokeCompose(applyPatches(input, change)));
+			return replacePatch(evaluateCompose(applyPatches(input, change)));
 		}
 
 		const dx = res[0]?.inner ?? pairSchema.$[0].empty;
@@ -90,7 +90,7 @@ export const composePair1 = <Input, InputPassed, Interm, Output>(
 	};
 
 	return {
-		invoke: invokeCompose,
+		evaluate: evaluateCompose,
 		forward,
 	};
 };
@@ -101,9 +101,9 @@ export const composePair2 = <Input, Interm, IntermSaved, Output>(
 ): IF<Input, [Output, [Interm, IntermSaved]]> => {
 	const pairSchema = ps.tuple(ps.atomic<Interm>(), ps.atomic<IntermSaved>());
 	const outSchema = ps.tuple(ps.atomic<Output>(), pairSchema);
-	const invokeCompose = (x: Input): [Output, [Interm, IntermSaved]] => {
-		const [v, w] = f1.invoke(x);
-		return [f2.invoke(v), [v, w]];
+	const evaluateCompose = (x: Input): [Output, [Interm, IntermSaved]] => {
+		const [v, w] = f1.evaluate(x);
+		return [f2.evaluate(v), [v, w]];
 	};
 	const forward = (
 		input: Input,
@@ -121,7 +121,7 @@ export const composePair2 = <Input, Interm, IntermSaved, Output>(
 		}
 
 		if (isReplaceOnly(res)) {
-			return replacePatch(invokeCompose(applyPatches(input, change)));
+			return replacePatch(evaluateCompose(applyPatches(input, change)));
 		}
 
 		const dInterm = res[0]?.inner ?? pairSchema.$[0].empty;
@@ -133,7 +133,7 @@ export const composePair2 = <Input, Interm, IntermSaved, Output>(
 		);
 	};
 	return {
-		invoke: invokeCompose,
+		evaluate: evaluateCompose,
 		forward,
 	};
 };

@@ -93,17 +93,17 @@ export const tuple = <Input, Change, Def extends TupleDef<Input, Change>>(
 	apply: Apply<Input, Change>,
 ): IF<Input, InferTupleDefReturn<Def>, Change, InferTupleDefChanges<Def>> => {
 	// @ts-expect-error Reassigning type
-	const invoke: Invoke<Input, InferTupleDefReturn<Def>> = (x: Input) =>
-		def.map((f) => f.invoke(x));
+	const evaluate: evaluate<Input, InferTupleDefReturn<Def>> = (x: Input) =>
+		def.map((f) => f.evaluate(x));
 	return {
-		invoke,
+		evaluate,
 		forward: (x: Input, dx: Change, y: InferTupleDefReturn<Def>) => {
 			if (apply.isEmpty(dx)) {
 				return null;
 			}
 			const r = apply.isReplace(dx);
 			if (r !== null) {
-				return makeReplaceOnly(invoke(getReplaceOnly(r)));
+				return makeReplaceOnly(evaluate(getReplaceOnly(r)));
 			}
 
 			const out: AccessTypesTuple<"outputChange", Def> = [] as never;

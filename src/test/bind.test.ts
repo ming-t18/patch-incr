@@ -47,7 +47,7 @@ describe("bind", () => {
 				fc.property(arbRecord.arb(), ({ value, patches }) => {
 					const res = patchSchema.analyze(patches);
 					fc.pre(res !== null && !isReplaceOnly(res) && !res.min?.inner);
-					const y = f.invoke(value);
+					const y = f.evaluate(value);
 					const dy = f.forward(value, patches, y);
 					return !isReplaceOnly(outSchema.analyze(dy));
 				}),

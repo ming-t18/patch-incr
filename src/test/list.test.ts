@@ -664,7 +664,7 @@ describe("flatMap", () => {
 		);
 		fc.assert(
 			fc.property(gp.array(arbElem).arb(), ({ value }) => {
-				expect(fm.invoke(value)[0]).toEqual(filter(pred).invoke(value)[0]);
+				expect(fm.evaluate(value)[0]).toEqual(filter(pred).evaluate(value)[0]);
 			}),
 		);
 	});

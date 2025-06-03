@@ -7,7 +7,7 @@ import {
 	liftPatch,
 	replacePatch,
 } from "./patch";
-import type { IF, IFInv, Invoke, NoForwardOutput } from "./types";
+import type { IF, IFInv, NoForwardOutput, evaluate } from "./types";
 
 const _identity = <T>(x: T) => x;
 
@@ -18,8 +18,8 @@ export const identity = <Input, Change = Patches<Input>>(): IFInv<
 	Change
 > => {
 	return {
-		invoke: _identity,
-		inverseInvoke: _identity,
+		evaluate: _identity,
+		inverseEvaluate: _identity,
 		forward: (_1, d) => d,
 	};
 };
@@ -35,13 +35,13 @@ export const constant = <
 ): IF<Input, T, InputChange, OutputChange, NoForwardOutput> => {
 	const forwardConstant = (_1: Input, _2: InputChange): OutputChange => empty;
 	return {
-		invoke: (_: Input) => value,
+		evaluate: (_: Input) => value,
 		forward: forwardConstant,
 	};
 };
 
 export const atomicFunc = <Input, Output>(
-	invoke: Invoke<Input, Output>,
+	evaluate: evaluate<Input, Output>,
 ): IF<Input, Output, Patches<Input>, Patches<Output>, NoForwardOutput> => {
 	const forwardAtomicFunc = (input: Input, patches: Patches<Input>) => {
 		if (patches.length === 0) {
@@ -49,20 +49,13 @@ export const atomicFunc = <Input, Output>(
 		}
 
 		const newInput = applyPatches(input, patches);
-		return replacePatch(invoke(newInput));
+		return replacePatch(evaluate(newInput));
 	};
 	return {
-		invoke,
+		evaluate,
 		forward: forwardAtomicFunc,
 	};
 };
-
-export type InferOutput<T> = T extends {
-	// biome-ignore lint/suspicious/noExplicitAny: used in infer
-	invoke: (...args: any[]) => infer Output;
-}
-	? Output
-	: "FAILED_TO_INFER_OUTPUT";
 
 // biome-ignore lint/suspicious/noExplicitAny: used in infer
 export type FirstArg<T> = T extends (v: infer Arg, ...args: any[]) => any

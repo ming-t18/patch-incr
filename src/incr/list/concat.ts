@@ -21,7 +21,7 @@ export const concat = <T>(): IF<T[][], [T[], number[]]> => {
 	const outSchema = ps.tuple(concatSchema, csumSchema);
 
 	const csum = scan((acc: number, { length }: T[]) => acc + length, 0);
-	const invokeCombine = (xs: T[][]): T[] => {
+	const evaluateCombine = (xs: T[][]): T[] => {
 		const combined: T[] = [];
 		for (let i = 0; i < xs.length; i++) {
 			const a = xs[i];
@@ -33,13 +33,13 @@ export const concat = <T>(): IF<T[][], [T[], number[]]> => {
 		return combined;
 	};
 
-	const invokeConcat = (xss: T[][]): [T[], number[]] => [
-		invokeCombine(xss),
-		csum.invoke(xss),
+	const evaluateConcat = (xss: T[][]): [T[], number[]] => [
+		evaluateCombine(xss),
+		csum.evaluate(xss),
 	];
 
 	const forwardConcat = reducePatches(
-		invokeConcat,
+		evaluateConcat,
 		(
 			xs1: T[][],
 			entry0: PatchEntry<T[][]>,
@@ -123,11 +123,11 @@ export const concat = <T>(): IF<T[][], [T[], number[]]> => {
 	);
 
 	return {
-		invoke: invokeConcat,
+		evaluate: evaluateConcat,
 		forward: (xs: T[][], dxs: Patches<T[][]>, p: [T[], number[]]) => {
 			const res = reduceReplaceRoot(dxs);
 			if ("replace" in res) {
-				return replacePatch(invokeConcat(res.replace));
+				return replacePatch(evaluateConcat(res.replace));
 			}
 
 			return forwardConcat(xs, dxs, p);

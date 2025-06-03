@@ -19,20 +19,20 @@ export const bind = <Input extends WeakKey, Bind, Output>(
 	const outputSchema = ps.atomic<Output>();
 	const bindSchema = ps.atomic<Bind>();
 	const memoBind = memo0 ?? new WeakMap();
-	const invokeBind = (x: Input): Output => {
+	const evaluateBind = (x: Input): Output => {
 		const pair = memoBind.get(x);
 		if (typeof pair !== "undefined") {
 			const [_, f] = pair;
-			return f.invoke(x);
+			return f.evaluate(x);
 		}
-		const v = getBind.invoke(x);
+		const v = getBind.evaluate(x);
 		const f = getIF(v);
 		memoBind.set(x, [v, f]);
-		return f.invoke(x);
+		return f.evaluate(x);
 	};
 
 	return {
-		invoke: invokeBind,
+		evaluate: evaluateBind,
 		forward: (x: Input, dx: Patches<Input>, y: Output): Patches<Output> => {
 			const pair = memoBind.get(x);
 			if (typeof pair !== "undefined") {
@@ -42,14 +42,14 @@ export const bind = <Input extends WeakKey, Bind, Output>(
 				if (bindSchema.isEmpty(dv)) {
 					return f.forward(x, dx, y);
 				}
-				return outputSchema.fromReplace(invokeBind(inputSchema.apply(x, dx)));
+				return outputSchema.fromReplace(evaluateBind(inputSchema.apply(x, dx)));
 			}
 
 			const x1 = inputSchema.apply(x, dx);
-			const v1 = getBind.invoke(x1);
+			const v1 = getBind.evaluate(x1);
 			const f1 = getIF(v1);
 			memoBind.set(x1, [v1, f1]);
-			return outputSchema.fromReplace(f1.invoke(inputSchema.apply(x, dx)));
+			return outputSchema.fromReplace(f1.evaluate(inputSchema.apply(x, dx)));
 		},
 	};
 };

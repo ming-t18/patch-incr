@@ -32,20 +32,20 @@ export const record = <
 				.fill(null)
 				.map((_, i) => i)
 		: Object.keys(entries);
-	const invoke = (input: Input): InferRecordOutput<Entries> => {
+	const evaluate = (input: Input): InferRecordOutput<Entries> => {
 		// @ts-expect-error Can't be checked
 		const o: Record<string | number, unknown> = isTuple ? [] : {};
 		for (const key of keys) {
 			// @ts-expect-error Can't be checked
 			const v = entries[key] as unknown;
-			o[key] = isIF<Input, unknown, InputChange>(v) ? v.invoke(input) : v;
+			o[key] = isIF<Input, unknown, InputChange>(v) ? v.evaluate(input) : v;
 		}
 		// @ts-expect-error Can't be checked
 		return o;
 	};
 
 	return {
-		invoke,
+		evaluate,
 		forward: (
 			input: Input,
 			change: InputChange,
@@ -81,16 +81,16 @@ export const recordWithSchema = <Input, C extends RecordConstruction>(
 	type Record = InferTypeFromRecordConstruction<C>;
 	type Key = keyof Record;
 	const keys: Key[] = Object.keys(entries as never);
-	const invoke = (input: Input): Record => {
+	const evaluate = (input: Input): Record => {
 		const o: Record = {} as never;
 		for (const key of keys) {
-			o[key] = entries[key].invoke(input);
+			o[key] = entries[key].evaluate(input);
 		}
 		return o;
 	};
 
 	return {
-		invoke,
+		evaluate,
 		forward: (input: Input, change: Patches<Input>, output: Record) => {
 			const builder = outSchema.builder();
 			for (const key of keys) {
