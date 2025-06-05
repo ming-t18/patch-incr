@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { atomicFunc, identity } from "../incr/builder";
 import { IFGraphBuilder } from "../incr/graphBuilder";
 import { concat, filter, flatMap, map, scan } from "../incr/list";
+import { slice } from "../incr/list/slice";
 import { PatchOp, type Patches, applyPatches, liftPatch } from "../incr/patch";
 import { access } from "../incr/struct/access";
 import { record } from "../incr/struct/record";
@@ -11,6 +12,7 @@ import {
 	ensurePatchCoherent,
 	ensurePatchLiftingProperty,
 	ensurePatchSplitProperty,
+	propsForIF,
 } from "./helpers/props.test";
 
 describe("genPatches helpers", () => {
@@ -693,4 +695,40 @@ describe("flatMap", () => {
 	// 		}),
 	// 	);
 	// })
+});
+
+describe("slice", () => {
+	describe("no ends", () => {
+		propsForIF(it, gp.array(arbElem, { maxLength: 5 }), () => slice());
+	});
+
+	describe("start only", () => {
+		propsForIF(
+			it,
+			gp.array(arbElem, { maxLength: 5 }),
+			(start) => slice(start),
+			fc.integer({ min: 0, max: 8 }),
+		);
+	});
+
+	describe("end only", () => {
+		propsForIF(
+			it,
+			gp.array(arbElem, { maxLength: 5 }),
+			(end) => slice(undefined, end),
+			fc.integer({ min: 0, max: 8 }),
+		);
+	});
+
+	describe("both ends", () => {
+		propsForIF(
+			it,
+			gp.array(arbElem, { maxLength: 5 }),
+			({ start, end }) => slice(start, end),
+			fc.record({
+				start: fc.integer({ min: 0, max: 8 }),
+				end: fc.integer({ min: 0, max: 8 }),
+			}),
+		);
+	});
 });

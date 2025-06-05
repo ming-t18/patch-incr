@@ -7,6 +7,7 @@ import type {
 	PatchSchemaArrayEntry,
 } from "../../patchSchema/types";
 import {
+	CannotReduce,
 	type PatchAdd,
 	PatchOp,
 	type PatchRemove,
@@ -26,7 +27,7 @@ export const reduceArrayPatches =
 			input: T[],
 			entry: PatchSchemaArrayEntry<T>,
 			output: Output,
-		) => Patches<Output>,
+		) => CannotReduce | Patches<Output>,
 	) =>
 	(input: T[], patches: Patches<T[]>, output: Output): Patches<Output> => {
 		const res = inArraySchema.analyze(patches);
@@ -42,6 +43,12 @@ export const reduceArrayPatches =
 		const builder = outSchema.builder();
 		for (const entry of res) {
 			const dys = reduce(input1, entry, output1);
+			if (dys === CannotReduce) {
+				return outSchema.fromReplace(
+					evaluate(inArraySchema.apply(input, patches)),
+				);
+			}
+
 			input1 = inArraySchema.apply(input1, inArraySchema.fromEntries([entry]));
 			output1 = outSchema.apply(output1, dys);
 			builder.append(dys);
