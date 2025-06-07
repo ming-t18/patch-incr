@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { atomicFunc, identity } from "../incr/builder";
 import { IFGraphBuilder } from "../incr/graphBuilder";
 import { concat, filter, flatMap, map, scan } from "../incr/list";
+import { seq } from "../incr/list/seq";
 import { slice } from "../incr/list/slice";
 import { PatchOp, type Patches, applyPatches, liftPatch } from "../incr/patch";
 import { access } from "../incr/struct/access";
@@ -729,6 +730,83 @@ describe("slice", () => {
 				start: fc.integer({ min: 0, max: 8 }),
 				end: fc.integer({ min: 0, max: 8 }),
 			}),
+		);
+	});
+});
+
+describe("seq", () => {
+	describe("base 0, step 1", () => {
+		describe("evaluate", () => {
+			it("same as array index", () => {
+				fc.assert(
+					fc.property(fc.integer({ min: 0, max: 10 }), (n) => {
+						expect(seq().evaluate(n)).toStrictEqual(
+							Array(n)
+								.fill(null)
+								.map((_, i) => i),
+						);
+					}),
+				);
+			});
+		});
+		propsForIF(it, gp.integer({ min: 0, max: 10 }), () => seq());
+	});
+
+	describe("any base, step 1", () => {
+		describe("evaluate", () => {
+			it("same as array index plus offset", () => {
+				fc.assert(
+					fc.property(
+						fc.integer({ min: 0, max: 10 }),
+						fc.integer({ min: 0, max: 10 }),
+						(base, n) => {
+							expect(seq(base).evaluate(n)).toStrictEqual(
+								Array(n)
+									.fill(null)
+									.map((_, i) => base + i),
+							);
+						},
+					),
+				);
+			});
+		});
+
+		propsForIF(
+			it,
+			gp.integer({ min: 0, max: 10 }),
+			(base) => seq(base),
+			fc.integer({ min: -5, max: 5 }),
+		);
+	});
+
+	describe("any base, any step", () => {
+		describe("evaluate", () => {
+			it("formula based on base and step", () => {
+				fc.assert(
+					fc.property(
+						fc.integer({ min: 0, max: 10 }),
+						fc.integer({ min: 0, max: 10 }),
+						fc.integer({ min: 0, max: 10 }),
+						(base, step, n) => {
+							expect(seq(base, step).evaluate(n)).toStrictEqual(
+								Array(n)
+									.fill(null)
+									.map((_, i) => base + step * i),
+							);
+						},
+					),
+				);
+			});
+		});
+
+		propsForIF(
+			it,
+			gp.integer({ min: 0, max: 10 }),
+			([base, step]) => seq(base, step),
+			fc.tuple(
+				fc.integer({ min: -5, max: 5 }),
+				fc.integer({ min: -5, max: 5 }),
+			),
 		);
 	});
 });
