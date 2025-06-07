@@ -2,7 +2,7 @@ import { get } from "lodash-es";
 import { type Patches, type Path, applyPatches, replacePatch } from "../patch";
 import type { AnyIF, IF, InferIFInput, InferIFOutput } from "../types";
 
-export const assign = <Input, Output extends Record<string, unknown>>(
+export const assign = <Input, Output>(
 	getInitial: () => Output,
 	changes: { path: Path; getValue: IF<Input, unknown> }[],
 ): IF<Input, Output> => {
@@ -74,6 +74,14 @@ type InferTemplateSlots<Evals extends Record<string, IF<unknown, unknown>>> = {
 	[key in keyof Evals]: InferIFOutput<Evals[key]>;
 };
 
+export class TemplatePlaceholder {
+	constructor(public readonly label: string) {}
+
+	toString(): string {
+		return `TemplatePlaceholder(${this.label})`;
+	}
+}
+
 /**
  * Creates an incremental function that is a potentially nested record with
  * specific slots being incremental functions from a single input to the output.
@@ -105,10 +113,10 @@ type InferTemplateSlots<Evals extends Record<string, IF<unknown, unknown>>> = {
  */
 export const template = <
 	VarSlots extends Record<string, AnyIF>,
+	Output,
 	Input = {
 		[key in keyof VarSlots]: InferIFInput<VarSlots[key]>;
 	}[keyof VarSlots],
-	Output extends Record<string, unknown> = Record<string, unknown>,
 >(
 	varSlots: VarSlots,
 	getTemplate: (slots: InferTemplateSlots<VarSlots>) => Output,
@@ -117,7 +125,7 @@ export const template = <
 	const keys: (keyof VarSlots)[] = Object.keys(varSlots) as never;
 	const inputSlots: Slots = {} as never;
 	for (const key of keys) {
-		inputSlots[key] = Symbol(`inputSlots[${key as string}]`) as never;
+		inputSlots[key] = new TemplatePlaceholder(key as string) as never;
 	}
 
 	const template1: Output = getTemplate(inputSlots);
@@ -134,5 +142,16 @@ export const template = <
 		});
 	}
 
-	return assign(() => template1, changes);
+	const { forward } = assign(() => template1, changes);
+	const evaluateTemplate = (input: Input): Output => {
+		const slots: Slots = {} as never;
+		for (const key of keys) {
+			slots[key] = varSlots[key].evaluate(input);
+		}
+		return getTemplate(slots);
+	};
+	return {
+		evaluate: evaluateTemplate,
+		forward,
+	};
 };

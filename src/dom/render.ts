@@ -155,7 +155,10 @@ export const hydrate = (el: Element, c: DOMConstruction) => {
 		const child = children[i];
 		if (!elem) {
 			if (child) {
-				console.warn("hydrate: mismatch: children", elem, child);
+				console.warn("hydrate: mismatch: children", {
+					existingElem: el,
+					newConstruction: c,
+				});
 			}
 			break;
 		}

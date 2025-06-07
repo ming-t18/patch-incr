@@ -79,7 +79,7 @@ export class DOMRoot<State, Action> {
 
 		teardowns.push(
 			this.#states.subscribe(([state, patches]) => {
-				// console.log('re-render', { state, patches });
+				console.log("re-render", { state, patches });
 				rerender(state, (a) => subj.next(a));
 			}),
 		);

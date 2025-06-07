@@ -65,3 +65,16 @@ export const arbTodoState: fc.Arbitrary<TodoState> = fc
 export const arbTodoStateAction = arbTodoState.chain((state) =>
 	fc.record({ state: fc.constant(state), action: arbTodoAction(state) }),
 );
+
+export const arbTodoStateDispatchAction = () => ({
+	arb: () =>
+		arbTodoState.chain((state) =>
+			fc.record({
+				value: fc.record({
+					state: fc.constant(state),
+					dispatch: fc.constant((_: TodoAction) => {}),
+				}),
+				patches: fc.tuple(arbTodoAction(state)),
+			}),
+		),
+});
