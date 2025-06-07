@@ -1,0 +1,57 @@
+import { atomicFunc, identity } from "../incr/builder";
+import { assign, template } from "../incr/struct/assign";
+import { record } from "../incr/struct/record";
+import * as gp from "./helpers/genPatched.test";
+import { propsForIF } from "./helpers/props.test";
+
+const getAssign1 = record({
+	int: 2,
+	str: atomicFunc((x: number) => x + 1),
+});
+
+describe("assign", () => {
+	const af = assign(
+		() => ({
+			test: 123,
+			assign1: {
+				int: 1,
+				str: "test2",
+			},
+			record1: {
+				xyz: "value",
+				abc: [1, 2],
+			},
+		}),
+		[
+			{
+				path: ["assign1"],
+				getValue: getAssign1 as never,
+			},
+			{
+				path: ["record1", "abc", 1],
+				getValue: identity<number>() as never,
+			},
+		],
+	);
+
+	propsForIF(it, gp.integer(), () => af);
+});
+
+describe("template", () => {
+	const af = template(
+		{
+			assign1: getAssign1,
+			number1: identity<number>(),
+		},
+		(slots) => ({
+			test: 123,
+			assign1: slots.assign1,
+			record1: {
+				xyz: "value",
+				abc: [1, slots.number1],
+			},
+		}),
+	);
+
+	propsForIF(it, gp.integer(), () => af);
+});
