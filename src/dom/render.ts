@@ -168,4 +168,8 @@ export const hydrate = (el: Element, c: DOMConstruction) => {
 			elem = elem?.nextElementSibling;
 		}
 	}
+
+	if (elem?.nextElementSibling) {
+		console.warn("hydrate: mismatch: children", { elem });
+	}
 };

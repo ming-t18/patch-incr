@@ -11,6 +11,7 @@ import { template } from "../src/incr/struct/assign";
 import {
 	type TodoAction,
 	TodoActionType,
+	type TodoItem,
 	type TodoState,
 	getEditingIndexById,
 	todoReducer,
@@ -29,135 +30,158 @@ const accessDispatch = accessPath<
 	StateDispatch<TodoState, TodoAction>
 >(["dispatch"]);
 
+const accessItemDone = access<boolean, "done", TodoItem>("done");
+
 export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 	accessDispatch,
-	(dispatch) =>
-		template(
-			{
-				list: composeMemoL(
-					accessItems,
-					map(
-						template(
-							{
-								done: access("done"),
-								text: access("text"),
-								id: access("id"),
-							},
-							({ done, text, id }) =>
-								elem0("li", [
-									elem0("label", [
-										elemEvents(
-											"input",
-											{ type: "checkbox", checked: done || undefined },
-											{
-												change: (e: { target: { checked: boolean } }) => {
-													dispatch({
-														type: TodoActionType.SetDone,
-														id,
-														done: e.target.checked,
-													});
-												},
-											},
-										),
-										elem0("span", [text]),
-										elem0Events(
-											"button",
-											{
-												click: () =>
-													dispatch({ type: TodoActionType.StartEditing, id }),
-											},
-											["Edit"],
-										),
-									]),
-								]),
+	(dispatch) => {
+		const mapTodoItems = map(
+			template(
+				{
+					checked: composeMemoL(
+						accessItemDone,
+						atomicFunc((x: boolean) => x || undefined),
+					),
+					text: access("text"),
+					dispatchStartEditing: composeMemoL(
+						access<string, "id", TodoItem>("id"),
+						atomicFunc(
+							(id) => () => dispatch({ type: TodoActionType.StartEditing, id }),
 						),
 					),
-				),
-			},
-			({ list }) => elem0("ul", list),
-		),
-);
-
-export const renderEditor: RenderIF<TodoState, TodoAction> = bind(
-	atomicFunc(
-		({ state }: StateDispatch<TodoState, TodoAction>): boolean =>
-			typeof state.editingId === "string",
-	),
-	(hasEditingIndex) => {
-		if (!hasEditingIndex) {
-			return constant<
-				ElementConstruction,
-				StateDispatch<TodoState, TodoAction>
-			>(elem0("div"));
-		}
+					dispatchSetDone: composeMemoL(
+						access<string, "id", TodoItem>("id"),
+						atomicFunc((id) => (e: { target: { checked: boolean } }) => {
+							dispatch({
+								type: TodoActionType.SetDone,
+								id,
+								done: e.target.checked,
+							});
+						}),
+					),
+				},
+				({ checked, text, dispatchSetDone, dispatchStartEditing }) =>
+					elem0("li", [
+						elem0("label", [
+							elemEvents(
+								"input",
+								{ type: "checkbox", checked },
+								{
+									change: dispatchSetDone,
+								},
+							),
+							elem0("span", [text]),
+							elem0Events(
+								"button",
+								{
+									click: dispatchStartEditing,
+								},
+								["Edit"],
+							),
+						]),
+					]),
+			),
+		);
 
 		return template(
 			{
-				dispatch: accessDispatch,
-				editingText: atomicFunc(({ state }) => {
-					const { items, editingId } = state;
-					return typeof editingId === "string"
-						? items[getEditingIndexById(state, editingId)].text
-						: "";
-				}),
+				list: composeMemoL(accessItems, mapTodoItems),
 			},
-			({ editingText, dispatch }): ElementConstruction => {
-				return elemEvents(
-					"input",
-					{
-						type: "text",
-						value: editingText,
-					},
-					{
-						change: (e: Event) => {
-							dispatch({
-								type: TodoActionType.EditText,
-								value: (e.target as HTMLInputElement | null)?.value ?? "",
-							});
-						},
-					},
-				);
-			},
+			({ list }) => elem0("ul", list),
 		);
 	},
 );
 
-export const renderTodo: RenderIF<TodoState, TodoAction> = template(
-	{
-		todoItems: renderTodoItems,
-		editor: renderEditor,
-		dispatch: accessDispatch,
-		newItemName: composeMemoL(
-			accessItems,
-			atomicFunc((items) => `item ${items.length}`),
-		),
-	},
-	({ todoItems, dispatch, editor, newItemName }): ElementConstruction => {
-		return elem("div", { id: "todo-app" }, [
-			elem0("h1", ["Todo App"]),
-			elem0("div", [
-				todoItems,
-				elem0Events(
-					"button",
+export const renderEditor: RenderIF<TodoState, TodoAction> = bind(
+	accessDispatch,
+	(dispatch) =>
+		bind(
+			atomicFunc(
+				({ state }: StateDispatch<TodoState, TodoAction>): boolean =>
+					typeof state.editingId === "string",
+			),
+			(hasEditingIndex) => {
+				if (!hasEditingIndex) {
+					return constant<
+						ElementConstruction,
+						StateDispatch<TodoState, TodoAction>
+					>(elem0("div"));
+				}
+
+				return template(
 					{
-						click: () =>
+						editingText: atomicFunc(({ state }) => {
+							const { items, editingId } = state;
+							return typeof editingId === "string"
+								? items[getEditingIndexById(state, editingId)].text
+								: "";
+						}),
+					},
+					({ editingText }): ElementConstruction => {
+						return elemEvents(
+							"input",
+							{
+								type: "text",
+								value: editingText,
+							},
+							{
+								change: (e: Event) => {
+									dispatch({
+										type: TodoActionType.EditText,
+										value: (e.target as HTMLInputElement | null)?.value ?? "",
+									});
+								},
+							},
+						);
+					},
+				);
+			},
+		),
+);
+
+export const renderTodo: RenderIF<TodoState, TodoAction> = bind(
+	accessDispatch,
+	(dispatch) =>
+		template(
+			{
+				todoItems: renderTodoItems,
+				editor: renderEditor,
+				dispatchAddItem: composeMemoL(
+					accessItems,
+					atomicFunc(
+						(items) => () =>
 							dispatch({
 								type: TodoActionType.Add,
-								value: newItemName,
+								value: `item ${items.length}`,
 							}),
-					},
-					["Add"],
+					),
 				),
-				elem0Events(
-					"button",
-					{ click: () => dispatch({ type: TodoActionType.Clear }) },
-					["Clear"],
-				),
-				elem0("hr"),
+				dispatchClear: constant(() => dispatch({ type: TodoActionType.Clear })),
+			},
+			({
+				todoItems,
 				editor,
-			]),
-		]);
-	},
+				dispatchAddItem,
+				dispatchClear,
+			}): ElementConstruction => {
+				return elem("div", { id: "todo-app" }, [
+					elem0("h1", ["Todo App"]),
+					elem0("div", [
+						todoItems,
+						elem0Events(
+							"button",
+							{
+								click: dispatchAddItem,
+							},
+							["Add"],
+						),
+						elem0Events("button", { click: dispatchClear }, ["Clear"]),
+						elem0("hr"),
+						editor,
+					]),
+				]);
+			},
+		),
 );
 
 const initState: TodoState = {
@@ -177,7 +201,8 @@ const load = () => {
 		return;
 	}
 
-	new DOMRoot(root, initState, todoReducer, renderTodo);
+	const dom = new DOMRoot(root, initState, todoReducer, renderTodo);
+	const _teardown = dom.connect();
 };
 
 // document.body.addEventListener('load', load);

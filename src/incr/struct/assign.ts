@@ -43,6 +43,10 @@ const findPath = (
 	value: unknown,
 	path: Path = [],
 ): Path | null => {
+	if (obj instanceof TemplatePlaceholder) {
+		return Object.is(obj, value) ? path : null;
+	}
+
 	if (Object.is(obj, value)) {
 		return path;
 	}
@@ -50,7 +54,7 @@ const findPath = (
 	if (Array.isArray(obj)) {
 		for (let i = 0; i < obj.length; i++) {
 			const res = findPath(obj[i], value, [...path, i]);
-			if (res) {
+			if (res !== null) {
 				return res;
 			}
 		}
@@ -59,8 +63,8 @@ const findPath = (
 
 	if (obj !== null && typeof obj === "object") {
 		for (const [key, objValue] of Object.entries(obj)) {
-			const res = findPath(value, objValue, [...path, key]);
-			if (res) {
+			const res = findPath(objValue, value, [...path, key]);
+			if (res !== null) {
 				return res;
 			}
 		}
@@ -81,6 +85,49 @@ export class TemplatePlaceholder {
 		return `TemplatePlaceholder(${this.label})`;
 	}
 }
+
+const makePlaceholder = <T>(label: string) => {
+	const prefix = `TemplatePlaceholder(${label}): cannot perform`;
+	const placeholder = new TemplatePlaceholder(label);
+	return new Proxy(placeholder, {
+		apply() {
+			throw new Error(`${prefix} apply`);
+		},
+		construct() {
+			throw new Error(`${prefix} construct`);
+		},
+		defineProperty() {
+			throw new Error(`${prefix} defineProperty`);
+		},
+		deleteProperty() {
+			throw new Error(`${prefix} deleteProperty`);
+		},
+		get(_target, key) {
+			throw new Error(
+				`${prefix} get: ${typeof key === "symbol" ? "[Symbol]" : key}`,
+			);
+		},
+		set(_target, key) {
+			throw new Error(
+				`${prefix} set: ${typeof key === "symbol" ? "[Symbol]" : key}`,
+			);
+		},
+		has(_target, key) {
+			throw new Error(
+				`${prefix} has: ${typeof key === "symbol" ? "[Symbol]" : key}`,
+			);
+		},
+		getOwnPropertyDescriptor() {
+			throw new Error(`${prefix} getOwnPropertyDescriptor`);
+		},
+		isExtensible() {
+			throw new Error(`${prefix} isExtensible`);
+		},
+		ownKeys() {
+			throw new Error(`${prefix} ownKeys`);
+		},
+	}) as T;
+};
 
 /**
  * Creates an incremental function that is a potentially nested record with
@@ -125,17 +172,19 @@ export const template = <
 	const keys: (keyof VarSlots)[] = Object.keys(varSlots) as never;
 	const inputSlots: Slots = {} as never;
 	for (const key of keys) {
-		inputSlots[key] = new TemplatePlaceholder(key as string) as never;
+		inputSlots[key] = makePlaceholder(key as string) as never;
 	}
 
 	const template1: Output = getTemplate(inputSlots);
 	const changes: { path: Path; getValue: IF<Input, unknown> }[] = [];
+	const notTaken = new Set(keys);
 	for (const key of keys) {
 		const path = findPath(template1, inputSlots[key]);
 		if (!path) {
 			continue;
 		}
 
+		notTaken.delete(key);
 		changes.push({
 			path,
 			getValue: varSlots[key] as never,
@@ -150,6 +199,18 @@ export const template = <
 		}
 		return getTemplate(slots);
 	};
+
+	if (notTaken.size > 0) {
+		const message = `template: Unable to locate the placeholders [${[...notTaken].join(", ")}]. Placeholders cannot be put into callbacks or conditionals.`;
+		console.trace("template: Unable to locate placeholders.", {
+			unableToLocate: notTaken,
+			inputSlots,
+			template1,
+			changes,
+		});
+		throw new Error(message);
+	}
+
 	return {
 		evaluate: evaluateTemplate,
 		forward,

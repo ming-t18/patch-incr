@@ -13,12 +13,16 @@ import type {
 	RecordConstruction,
 	TupleConstruction,
 } from "../../patchSchema/types";
+import { composeMemoL } from "../compose/memo";
 import {
 	CannotReduce,
+	type PatchEntry,
 	PatchOp,
 	type Patches,
 	type Path,
+	applyPatches,
 	reducePatches,
+	replacePatch,
 } from "../patch";
 import type { IF, NoForwardOutput } from "../types";
 
@@ -100,59 +104,50 @@ export const access = <
 	},
 >(
 	key: Key,
-): IF<Input, Output> => {
-	const path = [key];
-	const evaluate = (input: Input) => doAccess(input, path) as never;
+): IF<Input, Output, Patches<Input>, Patches<Output>, NoForwardOutput> => {
+	const evaluateAccess = (input: Input) => input[key];
+	const forwardAccess = (
+		input: Input,
+		change: Patches<Input>,
+		_ignored?: Output,
+	): Patches<Output> => {
+		const res = [] as Patches<Output>;
+		for (const entry of change) {
+			const { path } = entry;
+			if (path.length === 0) {
+				const updated = applyPatches(input, change);
+				return replacePatch(evaluateAccess(updated));
+			}
+
+			const [head, ...rest] = path;
+			if (head === key) {
+				res.push({
+					...entry,
+					path: rest,
+				} as PatchEntry<Output>);
+			}
+		}
+
+		return res;
+	};
 	return {
-		evaluate,
-		// @ts-expect-error Can't be checked
-		forward: (input, change, _output) => {
-			return filterAccessPatches(path, input, change);
-		},
+		evaluate: evaluateAccess,
+		forward: forwardAccess,
 	};
 };
 
-export const accessPath = <Output, Input>(
-	pathPrefix: Path,
+export const accessPath = <Output, Input extends WeakKey>(
+	path: Path,
 ): IF<Input, Output> => {
-	const evaluate = (input: Input): Output => {
-		let v: unknown = input;
-		for (const elem of pathPrefix) {
-			// @ts-expect-error avoid checking
-			v = v[elem];
-		}
-		return v as never;
-	};
-	return {
-		evaluate,
-		forward: reducePatches(evaluate, (_input, entry, _output) => {
-			const { path } = entry;
-			if (path.length < pathPrefix.length) {
-				return CannotReduce;
-			}
+	if (path.length === 0) {
+		throw new Error("accessPath: cannot be empty path");
+	}
 
-			let match = true;
-			for (let i = 0; i < pathPrefix.length; i++) {
-				if (pathPrefix[i] === path[i]) {
-					match = false;
-					break;
-				}
-			}
+	if (path.length === 1) {
+		// @ts-expect-error Can't be checked
+		return access(path[0]);
+	}
 
-			if (match) {
-				if (entry.op === PatchOp.Replace && path.length === pathPrefix.length) {
-					return CannotReduce;
-				}
-
-				return [
-					{
-						...entry,
-						path: path.slice(1),
-					},
-				];
-			}
-
-			return [];
-		}),
-	};
+	// @ts-expect-error Can't be checked
+	return composeMemoL(access(path[0]), accessPath(path.slice(1)));
 };

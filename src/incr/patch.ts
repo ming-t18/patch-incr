@@ -184,25 +184,22 @@ export const applyPatches = <T>(value: T, patches: Patches): T => {
 		const patch = patches[i];
 		if (patch.path.length > 0) {
 			if (value1 === null || typeof value1 !== "object") {
+				// console.error("applyPatches fail", { patch, value1, value, patches });
 				throw new Error(
-					`applyPatches: cannot apply non-root patch on atomic value: ${value1}, index=${i}`,
+					"applyPatches: cannot apply non-root patch on atomic value.",
 				);
 			}
 			return applyPatches(value1, patches.slice(i)) as T;
 		}
 
 		if (patch.op === PatchOp.Add) {
-			throw new Error(
-				`applyPatches: cannot add on atomic value: ${value1}, index=${i}`,
-			);
+			throw new Error("applyPatches: cannot add on atomic value.");
 		}
 
 		if (patch.op === PatchOp.Replace) {
 			value1 = patch.value;
 		} else {
-			throw new Error(
-				`applyPatches: unsupported patch: ${patch.op}, index=${i}`,
-			);
+			throw new Error(`applyPatches: unsupported patch: ${patch.op}.`);
 		}
 	}
 	return value1 as T;

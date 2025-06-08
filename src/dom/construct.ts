@@ -17,21 +17,21 @@ export const elemEvents = (
 	tag: string,
 	attrs?: Attrs,
 	events?: Events,
-	children?: ChildConstruction[],
+	children?: ChildConstruction[] | null,
 ): ElementConstruction => ({ tag, attrs, events, children });
 
 export const elem0Events = (
 	tag: string,
 	events?: Events,
-	children?: ChildConstruction[],
+	children?: ChildConstruction[] | null,
 ): ElementConstruction => ({ tag, events, children });
 
 export const elem0 = (
 	tag: string,
-	children?: string | ChildConstruction | ChildConstruction[] | null,
+	children?: ChildConstruction[] | null,
 ): ElementConstruction => ({
 	tag,
-	children: Array.isArray(children) ? children : [children],
+	children,
 });
 
 export type Props = Record<string, unknown>;

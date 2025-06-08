@@ -69,7 +69,7 @@ export interface TodoState {
 const genId = (counter: number) => `id-${counter}`;
 
 const findById = (items: TodoItem[], id0: string): number =>
-	items.findIndex(({ id }) => id == id0);
+	items.findIndex(({ id }) => id === id0);
 
 export const getEditingIndexById = (state: TodoState, id: string): number =>
 	findById(state.items, id);

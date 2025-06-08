@@ -1,14 +1,15 @@
-import {
-	Observable,
-	Subject,
-	type Subscription,
-	type TeardownLogic,
-	scan,
-} from "rxjs";
+import { Observable, Subject, type TeardownLogic, map } from "rxjs";
 import { type Patches, applyPatches } from "../incr/patch";
-import type { IF } from "../incr/types";
-import { type RenderIF, hydrate, renderToString } from "./render";
-import type { DOMConstruction } from "./types";
+import type { IF, NoForwardOutput } from "../incr/types";
+import * as gp from "../patchSchema";
+import { type ForwardPatchEntry, forwardPatch } from "../rxjs";
+import {
+	type RenderIF,
+	type StateDispatch,
+	hydrate,
+	renderToString,
+} from "./render";
+import type { DOMConstruction, ElementConstruction } from "./types";
 
 export type Dispatch<Action> = (action: Action) => void;
 
@@ -38,64 +39,85 @@ export const observeRemoval = (root: Element) => {
 	});
 };
 
-export interface StateChange<State, Action> {
-	prevState: State;
-	nextState: State;
-	action: Action | null;
-	stateChange: Patches<State> | null;
-}
-
 export class DOMRoot<State, Action> {
 	readonly #root: Element;
-	readonly #actions$: Subject<Action | null>;
-	readonly stateChanges$: Observable<StateChange<State, Action>>;
+	readonly #actions$: Subject<Action[]>;
 	readonly #renderFromState: RenderIF<State, Action>;
+	readonly #stateChanges$: Observable<
+		ForwardPatchEntry<State, State, Action[], Patches<State>>
+	>;
+	readonly #domChanges$: Observable<
+		ForwardPatchEntry<StateDispatch<State, Action>, ElementConstruction>
+	>;
+	readonly #dispatch: Dispatch<Action>;
 
 	public constructor(
 		root: Element,
 		readonly initState: State,
-		readonly reducer: IF<State, State, Action[], Patches>,
+		readonly reducer: IF<
+			State,
+			State,
+			Action[],
+			Patches<State>,
+			NoForwardOutput
+		>,
 		renderFromState: RenderIF<State, Action>,
 	) {
+		const schema = gp.record({
+			state: gp.atomic<State>(),
+			dispatch: gp.atomic<Dispatch<Action>>(),
+		});
 		this.#root = root;
-		this.#actions$ = new Subject<Action | null>();
-		this.stateChanges$ = this.#actions$.pipe(
-			scan(this.makeScanFunc(), {
-				prevState: initState,
-				nextState: initState,
-				action: null,
-				stateChange: null,
-			}),
+		this.#actions$ = new Subject();
+		this.#stateChanges$ = this.#actions$.pipe(
+			forwardPatch<State, State, Action[], Patches<State>>(
+				initState,
+				reducer,
+				(s: State, as: Action[]): State =>
+					applyPatches(s, reducer.forward(s, as)),
+				applyPatches,
+			),
+		);
+		const dispatch = (a: Action) => {
+			console.log("dispatch()", a);
+			return this.#actions$.next([a]);
+		};
+		this.#dispatch = dispatch;
+
+		this.#domChanges$ = this.#stateChanges$.pipe(
+			map(
+				(x): Patches<StateDispatch<State, Action>> =>
+					schema.liftKey("state", x.dOutput),
+			),
+			forwardPatch<StateDispatch<State, Action>, DOMConstruction>(
+				{ state: initState, dispatch },
+				renderFromState,
+			),
 		);
 		this.#renderFromState = renderFromState;
-		this.#connect();
 	}
 
-	#connect(): TeardownLogic {
+	connect(): TeardownLogic {
 		const root = this.#root;
 		const actions$ = this.#actions$;
-		const dispatch = (a: Action) => actions$.next(a);
 
 		const teardowns: TeardownLogic[] = [];
-		teardowns.push(actions$.subscribe((x) => console.log("dispatch", x)));
-		const renderFromState = this.#renderFromState;
-
 		teardowns.push(
-			this.stateChanges$.subscribe((obj) => {
+			this.#domChanges$.subscribe((obj) => {
 				const {
-					prevState,
-					nextState: state,
-					action,
-					stateChange: patches,
+					input: state,
+					output: domc,
+					dInput: stateChanges,
+					dOutput: domChanges,
 				} = obj;
-				console.log("re-render", {
-					prevState,
-					action,
-					stateChange: patches,
+				const string = renderToString(domc);
+				root.innerHTML = string;
+				console.log("render change", {
+					state,
+					dom: { string, domc },
+					stateChanges,
+					domChanges,
 				});
-
-				const domc = renderFromState.evaluate({ state, dispatch });
-				root.innerHTML = renderToString(domc);
 				const node = root.firstElementChild;
 				if (!node) {
 					console.warn("DOMRoot.render: is empty");
@@ -104,7 +126,8 @@ export class DOMRoot<State, Action> {
 				hydrate(node, domc);
 			}),
 		);
-		actions$.next(null);
+
+		actions$.next([]);
 		teardowns.push(
 			observeRemoval(root)?.subscribe({
 				complete: () => {
@@ -124,29 +147,6 @@ export class DOMRoot<State, Action> {
 				}
 				teardown();
 			}
-		};
-	}
-
-	makeScanFunc() {
-		return (
-			obj: StateChange<State, Action>,
-			action: Action | null,
-		): StateChange<State, Action> => {
-			const { nextState: state } = obj;
-			if (action === null) {
-				return obj;
-			}
-			const patches: Patches<State> = this.reducer.forward(
-				state,
-				[action],
-				state,
-			);
-			return {
-				prevState: state,
-				nextState: applyPatches(state, patches),
-				action,
-				stateChange: patches,
-			};
 		};
 	}
 }
