@@ -8,11 +8,13 @@ import { composeMemoL } from "../src/incr/compose/memo";
 import { map } from "../src/incr/list";
 import { access, accessPath } from "../src/incr/struct/access";
 import { template } from "../src/incr/struct/assign";
+import { record } from "../src/incr/struct/record";
 import {
 	type TodoAction,
 	TodoActionType,
 	type TodoItem,
 	type TodoState,
+	findById,
 	getEditingIndexById,
 	todoReducer,
 } from "../src/todo_state";
@@ -21,6 +23,13 @@ const accessItems = accessPath<
 	TodoState["items"],
 	StateDispatch<TodoState, TodoAction>
 >(["state", "items"]);
+const accessNumberOfItems = composeMemoL(
+	accessPath<TodoState["items"], StateDispatch<TodoState, TodoAction>>([
+		"state",
+		"items",
+	]),
+	atomicFunc((x) => x.length),
+);
 const accessEditingId = accessPath<
 	TodoState["editingId"],
 	StateDispatch<TodoState, TodoAction>
@@ -110,12 +119,17 @@ export const renderEditor: RenderIF<TodoState, TodoAction> = bind(
 
 				return template(
 					{
-						editingText: atomicFunc(({ state }) => {
-							const { items, editingId } = state;
-							return typeof editingId === "string"
-								? items[getEditingIndexById(state, editingId)].text
-								: "";
-						}),
+						editingText: composeMemoL(
+							record({
+								items: accessItems,
+								editingId: accessEditingId,
+							}),
+							atomicFunc(({ items, editingId }) => {
+								return typeof editingId === "string"
+									? items[findById(items, editingId)].text
+									: "";
+							}),
+						),
 					},
 					({ editingText }): ElementConstruction => {
 						return elemEvents(
@@ -147,12 +161,12 @@ export const renderTodo: RenderIF<TodoState, TodoAction> = bind(
 				todoItems: renderTodoItems,
 				editor: renderEditor,
 				dispatchAddItem: composeMemoL(
-					accessItems,
+					accessNumberOfItems,
 					atomicFunc(
-						(items) => () =>
+						(n) => () =>
 							dispatch({
 								type: TodoActionType.Add,
-								value: `item ${items.length}`,
+								value: `item ${n}`,
 							}),
 					),
 				),
