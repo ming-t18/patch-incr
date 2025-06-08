@@ -119,7 +119,7 @@ export function* renderToStringGen(
 				yield "<!-- -->";
 			}
 			lastText = true;
-			if (child) {
+			if (child !== null && child !== undefined) {
 				yield encode(fromAttrValue(child));
 			}
 		} else {
@@ -146,15 +146,15 @@ export const hydrate = (el: Element, c: DOMConstruction) => {
 		console.warn("hydrate: mismatch: tag name", el, c);
 	}
 
-	let elem = el.firstElementChild;
-	if (!elem) {
+	let childElem = el.firstElementChild;
+	if (!childElem) {
 		return;
 	}
 
 	for (let i = 0; i < children.length; i++) {
 		const child = children[i];
-		if (!elem) {
-			if (child) {
+		if (!childElem) {
+			if (child !== null && child !== undefined) {
 				console.warn("hydrate: mismatch: children", {
 					existingElem: el,
 					newConstruction: c,
@@ -163,13 +163,13 @@ export const hydrate = (el: Element, c: DOMConstruction) => {
 			break;
 		}
 
-		if (child && typeof child === "object") {
-			hydrate(elem, child);
-			elem = elem?.nextElementSibling;
+		if (child !== null && typeof child === "object") {
+			hydrate(childElem, child);
+			childElem = childElem?.nextElementSibling;
 		}
 	}
 
-	if (elem?.nextElementSibling) {
-		console.warn("hydrate: mismatch: children", { elem });
+	if (childElem?.nextElementSibling) {
+		console.warn("hydrate: mismatch: children", { elem: childElem });
 	}
 };
