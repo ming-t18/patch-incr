@@ -171,15 +171,17 @@ export const renderTodo: RenderIF<TodoState, TodoAction> = bind(
 					),
 				),
 				dispatchClear: constant(() => dispatch({ type: TodoActionType.Clear })),
+				numberOfItems: accessNumberOfItems,
 			},
 			({
 				todoItems,
 				editor,
 				dispatchAddItem,
 				dispatchClear,
+				numberOfItems,
 			}): ElementConstruction => {
 				return elem("div", { id: "todo-app" }, [
-					elem0("h1", ["Todo App"]),
+					elem0("h1", ["Todo App ", "(", numberOfItems, ")"]),
 					elem0("div", [
 						todoItems,
 						elem0Events(
