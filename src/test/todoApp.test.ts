@@ -1,11 +1,79 @@
 import { describe, it } from "bun:test";
 import fc from "fast-check";
-import { renderTodo } from "../../server/app";
+import { renderTodoApp } from "../../server/app";
+import { renderToString } from "../dom/render";
+import { atomicFunc } from "../incr/builder";
+import { composeMemoL } from "../incr/compose/memo";
 // import { forwardTodo, renderTodo } from "../../server/app";
-import { todoReducerFunc } from "../todo_state";
-import { arbTodoStateAction, arbTodoStateDispatchAction } from "./genTodo.test";
+import { type TodoAction, TodoActionType, type TodoState } from "../todo_state";
+import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 
+const arbAction = (state: TodoState): fc.Arbitrary<TodoAction> => {
+	const arbClear = fc.constant({ type: TodoActionType.Clear as const });
+	const arbAdd = fc.record({
+		type: fc.constant(TodoActionType.Add as const),
+		value: fc.string(),
+	});
+	if (state.items.length === 0) {
+		return fc.oneof(arbClear, arbAdd);
+	}
+
+	const arbId: fc.Arbitrary<string> = fc.constantFrom(
+		...state.items.map((x) => x.id),
+	);
+
+	return fc.oneof(
+		arbClear,
+		arbAdd,
+		fc.record({
+			type: fc.constant(TodoActionType.SetDone as const),
+			id: arbId,
+			done: fc.boolean(),
+		}),
+		fc.record({
+			type: fc.constant(TodoActionType.Remove as const),
+			id: arbId,
+			done: fc.boolean(),
+		}),
+		fc.record({
+			type: fc.constant(TodoActionType.StartEditing as const),
+			id: arbId,
+		}),
+		fc.record({ type: fc.constant(TodoActionType.StopEditing as const) }),
+		fc.record({
+			type: fc.constant(TodoActionType.EditText as const),
+			value: fc.string(),
+		}),
+	);
+};
+
+const arbTodoState: gp.GenWithPatches<TodoState> = gp.record({
+	counter: gp.integer({ min: 0 }),
+	items: gp.array(
+		gp.record({
+			id: gp.atomic(fc.integer({ min: 0 }).map((i) => `id-${i}`)),
+			done: gp.boolean(),
+			text: gp.string(),
+		}),
+		{ maxLength: 10 },
+	),
+	editingId: gp.atomic(
+		fc.oneof(
+			fc.constant(null),
+			fc.integer({ min: 0 }).map((i) => `id-${i}`),
+		),
+	),
+});
+
+const DISPATCH = (_: TodoAction) => {};
+const arbTodoStateDispatch = gp.record({
+	state: arbTodoState,
+	dispatch: gp.atomic(fc.constant(DISPATCH)),
+});
+
 describe("renderTodo", () => {
-	propsForIF(it, arbTodoStateDispatchAction(), () => renderTodo);
+	propsForIF(it, arbTodoStateDispatch, () =>
+		composeMemoL(renderTodoApp, atomicFunc(renderToString)),
+	);
 });

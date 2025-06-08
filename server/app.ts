@@ -27,6 +27,7 @@ const accessNumberOfItems = composeMemoL(
 	]),
 	atomicFunc((x) => x.length),
 );
+const accessItemId = access<string, "id", TodoItem>("id");
 const accessEditingId = accessPath<
 	TodoState["editingId"],
 	StateDispatch<TodoState, TodoAction>
@@ -50,13 +51,13 @@ export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 					),
 					text: access("text"),
 					dispatchStartEditing: composeMemoL(
-						access<string, "id", TodoItem>("id"),
+						accessItemId,
 						atomicFunc(
 							(id) => () => dispatch({ type: TodoActionType.StartEditing, id }),
 						),
 					),
 					dispatchSetDone: composeMemoL(
-						access<string, "id", TodoItem>("id"),
+						accessItemId,
 						atomicFunc((id) => (e: { target: { checked: boolean } }) => {
 							dispatch({
 								type: TodoActionType.SetDone,
@@ -122,9 +123,12 @@ export const renderEditor: RenderIF<TodoState, TodoAction> = bind(
 								editingId: accessEditingId,
 							}),
 							atomicFunc(({ items, editingId }) => {
-								return typeof editingId === "string"
-									? items[findById(items, editingId)].text
-									: "";
+								if (typeof editingId !== "string") {
+									return "";
+								}
+
+								const index = findById(items, editingId);
+								return index !== -1 ? items[index].text : "";
 							}),
 						),
 					},
@@ -150,7 +154,7 @@ export const renderEditor: RenderIF<TodoState, TodoAction> = bind(
 		),
 );
 
-export const renderTodo: RenderIF<TodoState, TodoAction> = bind(
+export const renderTodoApp: RenderIF<TodoState, TodoAction> = bind(
 	accessDispatch,
 	(dispatch) =>
 		template(
@@ -214,7 +218,7 @@ const load = () => {
 		return;
 	}
 
-	const dom = new DOMRoot(root, initState, todoReducer, renderTodo);
+	const dom = new DOMRoot(root, initState, todoReducer, renderTodoApp);
 	const _teardown = dom.connect();
 };
 
