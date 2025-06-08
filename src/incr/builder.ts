@@ -42,14 +42,22 @@ export const constant = <
 
 export const atomicFunc = <Input, Output>(
 	evaluate: evaluate<Input, Output>,
-): IF<Input, Output, Patches<Input>, Patches<Output>, NoForwardOutput> => {
-	const forwardAtomicFunc = (input: Input, patches: Patches<Input>) => {
+): IF<Input, Output, Patches<Input>, Patches<Output>> => {
+	const forwardAtomicFunc = (
+		input: Input,
+		patches: Patches<Input>,
+		output: Output,
+	) => {
 		if (patches.length === 0) {
 			return [];
 		}
 
 		const newInput = applyPatches(input, patches);
-		return replacePatch(evaluate(newInput));
+		const newOutput = evaluate(newInput);
+		if (Object.is(newOutput, output)) {
+			return [];
+		}
+		return replacePatch(newOutput);
 	};
 	return {
 		evaluate,
