@@ -9,8 +9,7 @@ import {
 	isAtomicValue,
 	replacePatch,
 } from "../incr/patch";
-import { access } from "../incr/struct/access";
-import { record } from "../incr/struct/record";
+import { access, record } from "../incr/struct";
 import type { IF } from "../incr/types";
 import * as gp from "./helpers/genPatched.test";
 import {

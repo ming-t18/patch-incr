@@ -6,16 +6,13 @@ import { bind } from "../src/incr/bind";
 import { atomicFunc, constant } from "../src/incr/builder";
 import { composeMemoL } from "../src/incr/compose/memo";
 import { map } from "../src/incr/list";
-import { access, accessPath } from "../src/incr/struct/access";
-import { template } from "../src/incr/struct/assign";
-import { record } from "../src/incr/struct/record";
+import { access, accessPath, record, template } from "../src/incr/struct";
 import {
 	type TodoAction,
 	TodoActionType,
 	type TodoItem,
 	type TodoState,
 	findById,
-	getEditingIndexById,
 	todoReducer,
 } from "../src/todo_state";
 

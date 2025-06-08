@@ -3,7 +3,7 @@ import { isReplaceOnly } from "../algebra/replaceOnly";
 import { bind } from "../incr/bind";
 import { compose, composeNoInterm } from "../incr/compose";
 import { filter } from "../incr/list";
-import { access } from "../incr/struct/access";
+import { access } from "../incr/struct";
 import { assocRight } from "../incr/tuple";
 import * as ps from "../patchSchema";
 import * as gp from "./helpers/genPatched.test";

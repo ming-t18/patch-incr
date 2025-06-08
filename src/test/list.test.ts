@@ -1,13 +1,18 @@
 import fc from "fast-check";
 import { atomicFunc, identity } from "../incr/builder";
 import { IFGraphBuilder } from "../incr/graphBuilder";
-import { concat, filter, flatMap, map, scan } from "../incr/list";
-import { seq } from "../incr/list/seq";
-import { slice } from "../incr/list/slice";
-import { zip } from "../incr/list/zip";
+import {
+	concat,
+	filter,
+	flatMap,
+	map,
+	scan,
+	seq,
+	slice,
+	zip,
+} from "../incr/list";
 import { PatchOp, type Patches, applyPatches, liftPatch } from "../incr/patch";
-import { access } from "../incr/struct/access";
-import { record } from "../incr/struct/record";
+import { access, record } from "../incr/struct";
 import type { IF, InferIFOutput } from "../incr/types";
 import * as gp from "./helpers/genPatched.test";
 import {

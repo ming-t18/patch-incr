@@ -1,6 +1,6 @@
 import { atomicFunc, identity } from "../incr/builder";
-import { assign, template } from "../incr/struct/assign";
-import { record } from "../incr/struct/record";
+import { record, template } from "../incr/struct";
+import { assign } from "../incr/struct/assign";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 
