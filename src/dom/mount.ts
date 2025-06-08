@@ -38,10 +38,17 @@ export const observeRemoval = (root: Element) => {
 	});
 };
 
+export interface StateChange<State, Action> {
+	prevState: State;
+	nextState: State;
+	action: Action | null;
+	stateChange: Patches<State> | null;
+}
+
 export class DOMRoot<State, Action> {
 	readonly #root: Element;
-	readonly #subj: Subject<Action | null>;
-	readonly #states: Observable<[State, Patches | null]>;
+	readonly #actions$: Subject<Action | null>;
+	readonly stateChanges$: Observable<StateChange<State, Action>>;
 	readonly #renderFromState: RenderIF<State, Action>;
 
 	public constructor(
@@ -51,9 +58,14 @@ export class DOMRoot<State, Action> {
 		renderFromState: RenderIF<State, Action>,
 	) {
 		this.#root = root;
-		this.#subj = new Subject<Action | null>();
-		this.#states = this.#subj.pipe(
-			scan(this.makeScanFunc(initState), [initState, null as Patches | null]),
+		this.#actions$ = new Subject<Action | null>();
+		this.stateChanges$ = this.#actions$.pipe(
+			scan(this.makeScanFunc(), {
+				prevState: initState,
+				nextState: initState,
+				action: null,
+				stateChange: null,
+			}),
 		);
 		this.#renderFromState = renderFromState;
 		this.#connect();
@@ -61,33 +73,42 @@ export class DOMRoot<State, Action> {
 
 	#connect(): TeardownLogic {
 		const root = this.#root;
-		const subj = this.#subj;
+		const actions$ = this.#actions$;
+		const dispatch = (a: Action) => actions$.next(a);
+
 		const teardowns: TeardownLogic[] = [];
-		teardowns.push(subj.subscribe((x) => console.log("dispatch", x)));
+		teardowns.push(actions$.subscribe((x) => console.log("dispatch", x)));
 		const renderFromState = this.#renderFromState;
 
-		const rerender = (state: State, dispatch: Dispatch<Action>) => {
-			const domc = renderFromState.evaluate({ state, dispatch });
-			root.innerHTML = renderToString(domc);
-			const node = root.firstElementChild;
-			if (!node) {
-				console.warn("DOMRoot.render: is empty");
-				return;
-			}
-			hydrate(node, domc);
-		};
-
 		teardowns.push(
-			this.#states.subscribe(([state, patches]) => {
-				console.log("re-render", { state, patches });
-				rerender(state, (a) => subj.next(a));
+			this.stateChanges$.subscribe((obj) => {
+				const {
+					prevState,
+					nextState: state,
+					action,
+					stateChange: patches,
+				} = obj;
+				console.log("re-render", {
+					prevState,
+					action,
+					stateChange: patches,
+				});
+
+				const domc = renderFromState.evaluate({ state, dispatch });
+				root.innerHTML = renderToString(domc);
+				const node = root.firstElementChild;
+				if (!node) {
+					console.warn("DOMRoot.render: is empty");
+					return;
+				}
+				hydrate(node, domc);
 			}),
 		);
-		subj.next(null);
+		actions$.next(null);
 		teardowns.push(
 			observeRemoval(root)?.subscribe({
 				complete: () => {
-					subj.complete();
+					actions$.complete();
 				},
 			}),
 		);
@@ -106,16 +127,26 @@ export class DOMRoot<State, Action> {
 		};
 	}
 
-	makeScanFunc(initState: State) {
+	makeScanFunc() {
 		return (
-			[state, _patches]: [State, Patches | null],
-			act: Action | null,
-		): [State, Patches | null] => {
-			if (act === null) {
-				return [initState, null];
+			obj: StateChange<State, Action>,
+			action: Action | null,
+		): StateChange<State, Action> => {
+			const { nextState: state } = obj;
+			if (action === null) {
+				return obj;
 			}
-			const patches = this.reducer.forward(state, [act], state);
-			return [applyPatches(state, patches), patches];
+			const patches: Patches<State> = this.reducer.forward(
+				state,
+				[action],
+				state,
+			);
+			return {
+				prevState: state,
+				nextState: applyPatches(state, patches),
+				action,
+				stateChange: patches,
+			};
 		};
 	}
 }

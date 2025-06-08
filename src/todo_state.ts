@@ -22,18 +22,18 @@ export interface TodoActionAdd {
 
 export interface TodoActionSetDone {
 	type: TodoActionType.SetDone;
-	index: number;
+	id: string;
 	done: boolean;
 }
 
 export interface TodoActionRemove {
 	type: TodoActionType.Remove;
-	index: number;
+	id: string;
 }
 
 export interface TodoActionStartEditing {
 	type: TodoActionType.StartEditing;
-	index: number;
+	id: string;
 }
 
 export interface TodoActionStopEditing {
@@ -54,10 +54,25 @@ export type TodoAction =
 	| TodoActionStopEditing
 	| TodoActionEditText;
 
-export interface TodoState {
-	items: { done: boolean; text: string }[];
-	editingIndex?: number | null;
+export interface TodoItem {
+	id: string;
+	done: boolean;
+	text: string;
 }
+
+export interface TodoState {
+	counter: number;
+	items: TodoItem[];
+	editingId?: string | null;
+}
+
+const genId = (counter: number) => `id-${counter}`;
+
+const findById = (items: TodoItem[], id0: string): number =>
+	items.findIndex(({ id }) => id == id0);
+
+export const getEditingIndexById = (state: TodoState, id: string): number =>
+	findById(state.items, id);
 
 export const todoStateReducerOnDraft = (
 	draft: Draft<TodoState>,
@@ -65,40 +80,59 @@ export const todoStateReducerOnDraft = (
 ) => {
 	switch (action.type) {
 		case TodoActionType.Clear: {
-			draft.editingIndex = null;
+			draft.editingId = null;
 			draft.items = [];
 			return;
 		}
 		case TodoActionType.Add: {
-			draft.items.push({ done: false, text: action.value });
+			draft.items.push({
+				done: false,
+				text: action.value,
+				id: genId(draft.counter),
+			});
+			draft.counter += 1;
 			return;
 		}
 		case TodoActionType.SetDone: {
-			draft.items[action.index].done = action.done;
+			const index = findById(draft.items, action.id);
+			if (index !== -1) {
+				draft.items[index].done = action.done;
+			}
 			return;
 		}
 		case TodoActionType.Remove: {
-			draft.items.splice(action.index, 1);
+			const index = findById(draft.items, action.id);
+			if (index === -1) {
+				return;
+			}
+
+			draft.items.splice(index, 1);
 			if (
-				typeof draft.editingIndex === "number" &&
-				draft.editingIndex >= draft.items.length
+				typeof draft.editingId === "string" &&
+				draft.editingId === action.id
 			) {
-				draft.editingIndex = null;
+				draft.editingId = null;
 			}
 			return;
 		}
 		case TodoActionType.StartEditing: {
-			draft.editingIndex = action.index;
+			draft.editingId = action.id;
 			return;
 		}
 		case TodoActionType.StopEditing: {
 			return;
 		}
 		case TodoActionType.EditText: {
-			if (typeof draft.editingIndex !== "number") {
+			if (typeof draft.editingId !== "string") {
 				return;
 			}
-			draft.items[draft.editingIndex].text = action.value;
+
+			const index = findById(draft.items, draft.editingId);
+			if (index === -1) {
+				return;
+			}
+
+			draft.items[index].text = action.value;
 			return;
 		}
 		default: {

@@ -4,6 +4,7 @@ import { IFGraphBuilder } from "../incr/graphBuilder";
 import { concat, filter, flatMap, map, scan } from "../incr/list";
 import { seq } from "../incr/list/seq";
 import { slice } from "../incr/list/slice";
+import { zip } from "../incr/list/zip";
 import { PatchOp, type Patches, applyPatches, liftPatch } from "../incr/patch";
 import { access } from "../incr/struct/access";
 import { record } from "../incr/struct/record";
@@ -809,4 +810,8 @@ describe("seq", () => {
 			),
 		);
 	});
+});
+
+describe("zip", () => {
+	propsForIF(it, gp.tuple(gp.array(arbElem), gp.array(arbElem)), () => zip());
 });

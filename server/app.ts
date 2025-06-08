@@ -5,12 +5,14 @@ import type { ElementConstruction } from "../src/dom/types";
 import { bind } from "../src/incr/bind";
 import { atomicFunc, constant } from "../src/incr/builder";
 import { composeMemoL } from "../src/incr/compose/memo";
-import { accessPath } from "../src/incr/struct/access";
+import { map } from "../src/incr/list";
+import { access, accessPath } from "../src/incr/struct/access";
 import { template } from "../src/incr/struct/assign";
 import {
 	type TodoAction,
 	TodoActionType,
 	type TodoState,
+	getEditingIndexById,
 	todoReducer,
 } from "../src/todo_state";
 
@@ -18,10 +20,10 @@ const accessItems = accessPath<
 	TodoState["items"],
 	StateDispatch<TodoState, TodoAction>
 >(["state", "items"]);
-const accessEditingIndex = accessPath<
-	TodoState["editingIndex"],
+const accessEditingId = accessPath<
+	TodoState["editingId"],
 	StateDispatch<TodoState, TodoAction>
->(["state", "editingIndex"]);
+>(["state", "editingId"]);
 const accessDispatch = accessPath<
 	Dispatch<TodoAction>,
 	StateDispatch<TodoState, TodoAction>
@@ -30,49 +32,56 @@ const accessDispatch = accessPath<
 export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 	accessDispatch,
 	(dispatch) =>
-		composeMemoL(
-			accessItems,
-			atomicFunc(
-				(items: TodoState["items"]): ElementConstruction =>
-					elem0(
-						"ul",
-						items.map(({ done, text }, index) =>
-							elem0("li", [
-								elem0("label", [
-									elemEvents(
-										"input",
-										{ type: "checkbox", checked: done || undefined },
-										{
-											change: (e: { target: { checked: boolean } }) => {
-												dispatch({
-													type: TodoActionType.SetDone,
-													index,
-													done: e.target.checked,
-												});
+		template(
+			{
+				list: composeMemoL(
+					accessItems,
+					map(
+						template(
+							{
+								done: access("done"),
+								text: access("text"),
+								id: access("id"),
+							},
+							({ done, text, id }) =>
+								elem0("li", [
+									elem0("label", [
+										elemEvents(
+											"input",
+											{ type: "checkbox", checked: done || undefined },
+											{
+												change: (e: { target: { checked: boolean } }) => {
+													dispatch({
+														type: TodoActionType.SetDone,
+														id,
+														done: e.target.checked,
+													});
+												},
 											},
-										},
-									),
-									elem0("span", [text]),
-									elem0Events(
-										"button",
-										{
-											click: () =>
-												dispatch({ type: TodoActionType.StartEditing, index }),
-										},
-										["Edit"],
-									),
+										),
+										elem0("span", [text]),
+										elem0Events(
+											"button",
+											{
+												click: () =>
+													dispatch({ type: TodoActionType.StartEditing, id }),
+											},
+											["Edit"],
+										),
+									]),
 								]),
-							]),
 						),
 					),
-			),
+				),
+			},
+			({ list }) => elem0("ul", list),
 		),
 );
 
 export const renderEditor: RenderIF<TodoState, TodoAction> = bind(
 	atomicFunc(
 		({ state }: StateDispatch<TodoState, TodoAction>): boolean =>
-			typeof state.editingIndex === "number",
+			typeof state.editingId === "string",
 	),
 	(hasEditingIndex) => {
 		if (!hasEditingIndex) {
@@ -85,9 +94,12 @@ export const renderEditor: RenderIF<TodoState, TodoAction> = bind(
 		return template(
 			{
 				dispatch: accessDispatch,
-				editingText: atomicFunc(({ state: { items, editingIndex } }) =>
-					typeof editingIndex === "number" ? items[editingIndex].text : "",
-				),
+				editingText: atomicFunc(({ state }) => {
+					const { items, editingId } = state;
+					return typeof editingId === "string"
+						? items[getEditingIndexById(state, editingId)].text
+						: "";
+				}),
 			},
 			({ editingText, dispatch }): ElementConstruction => {
 				return elemEvents(
@@ -149,12 +161,13 @@ export const renderTodo: RenderIF<TodoState, TodoAction> = template(
 );
 
 const initState: TodoState = {
+	counter: 3,
 	items: [
-		{ done: true, text: "Hello, world!" },
-		{ done: false, text: "Update app" },
-		{ done: false, text: "Add event handlers" },
+		{ done: true, text: "Hello, world!", id: "id0" },
+		{ done: false, text: "Update app", id: "id1" },
+		{ done: false, text: "Add event handlers", id: "id2" },
 	],
-	editingIndex: null,
+	editingId: null,
 };
 
 const load = () => {
