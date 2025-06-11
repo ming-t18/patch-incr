@@ -15,7 +15,6 @@ export const scan = <T, Acc>(
 		}
 		return values;
 	};
-	// TODO simplify replace-into-self
 	const fsp = forwardScanPatches(evaluateScan);
 	return {
 		evaluate: evaluateScan,

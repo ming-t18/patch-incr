@@ -12,6 +12,7 @@ import {
 	replacePatch,
 } from "../patch";
 import type { IF } from "../types";
+import { splice } from "./arrayPatchHelpers";
 import { scan } from "./scan";
 
 export const concat = <T>(): IF<T[][], [T[], number[]]> => {
@@ -84,30 +85,15 @@ export const concat = <T>(): IF<T[][], [T[], number[]]> => {
 				] as Patches<T[]>;
 			} else {
 				const builder = concatSchema.builder();
+				let toRemove = 0;
 				if (entry.op === PatchOp.Remove || entry.op === PatchOp.Replace) {
-					const n = (xs1[index] as T[]).length;
-					builder.append(
-						concatSchema.fromEntries(
-							Array(n)
-								.fill(null)
-								.map(() => ({
-									op: PatchOp.Remove,
-									path: [indexMapped],
-								})),
-						),
-					);
+					toRemove = (xs1[index] as T[]).length;
 				}
+				let toAdd: T[][] = [];
 				if (entry.op === PatchOp.Add || entry.op === PatchOp.Replace) {
-					builder.append(
-						concatSchema.fromEntries(
-							[...entry.value].reverse().map((value) => ({
-								op: PatchOp.Add,
-								path: [indexMapped],
-								value,
-							})),
-						),
-					);
+					toAdd = entry.value;
 				}
+				builder.append(splice(indexMapped, toRemove, toAdd));
 				listPatches = builder.build();
 			}
 
