@@ -11,6 +11,7 @@ import {
 	slice,
 	zip,
 } from "../incr/list";
+import { bisectEquals, bisectLeft, bisectRight, sort } from "../incr/list/sort";
 import { PatchOp, type Patches, applyPatches, liftPatch } from "../incr/patch";
 import { access, record } from "../incr/struct";
 import type { IF, InferIFOutput } from "../incr/types";
@@ -819,4 +820,101 @@ describe("seq", () => {
 
 describe("zip", () => {
 	propsForIF(it, gp.tuple(gp.array(arbElem), gp.array(arbElem)), () => zip());
+});
+
+describe("sort", () => {
+	const asc = (a: number, b: number) => a - b;
+	const arbSorted = fc
+		.array(fc.integer({ min: -100, max: 100 }))
+		.map((x) => x.toSorted(asc));
+	describe("bisectRight", () => {
+		it("should find element", () => {
+			expect(bisectRight([1, 2, 5, 10, 20, 30], 3, asc)).toBe(2);
+		});
+
+		it("left elements are less than or equal to", () => {
+			fc.assert(
+				fc.property(arbSorted, fc.integer(), (xs, y) => {
+					const i = bisectRight(xs, y, asc);
+					const ys = xs.slice(0, i);
+					return ys.every((z) => z <= y);
+				}),
+			);
+		});
+
+		it("right elements are greater", () => {
+			fc.assert(
+				fc.property(arbSorted, fc.integer(), (xs, y) => {
+					const i = bisectRight(xs, y, asc);
+					const ys = xs.slice(i);
+					return ys.every((z) => z > y);
+				}),
+			);
+		});
+	});
+
+	describe("bisectLeft", () => {
+		it("should find element", () => {
+			expect(bisectLeft([1, 2, 5, 10, 20, 30], 3, asc)).toBe(2);
+		});
+
+		it("left elements are less than", () => {
+			fc.assert(
+				fc.property(arbSorted, fc.integer(), (xs, y) => {
+					const i = bisectLeft(xs, y, asc);
+					const ys = xs.slice(0, i);
+					return ys.every((z) => z < y);
+				}),
+			);
+		});
+
+		it("right elements are than or equal to", () => {
+			fc.assert(
+				fc.property(arbSorted, fc.integer(), (xs, y) => {
+					const i = bisectLeft(xs, y, asc);
+					const ys = xs.slice(i);
+					return ys.every((z) => z >= y);
+				}),
+			);
+		});
+	});
+
+	describe("bisectEquals", () => {
+		it("should find existing element", () => {
+			fc.assert(
+				fc.property(
+					arbSorted
+						.filter((xs) => xs.length > 0)
+						.chain((xs) =>
+							fc.tuple(
+								fc.constant(xs),
+								fc.integer({ min: 0, max: xs.length - 1 }),
+							),
+						),
+					([xs, k]) => {
+						const i = bisectEquals(xs, xs[k], asc);
+						return xs[i] === xs[k];
+					},
+				),
+			);
+		});
+	});
+
+	describe("sort integers", () => {
+		propsForIF(it, gp.array(gp.integer({ min: -50, max: 50 })), () =>
+			sort(asc),
+		);
+	});
+
+	describe("sort records, comprehensive compare fn", () => {
+		propsForIF(it, gp.array(arbElem), () =>
+			sort((x, y) => {
+				const c1 = x.num - y.num;
+				if (c1 !== 0) {
+					return c1;
+				}
+				return x.str.localeCompare(y.str);
+			}),
+		);
+	});
 });
