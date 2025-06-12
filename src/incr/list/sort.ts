@@ -1,9 +1,6 @@
 import * as ps from "../../patchSchema";
-import type {
-	PatchSchemaArray,
-	PatchSchemaArrayEntry,
-} from "../../patchSchema/types";
-import { CannotReduce, type PatchEntry, PatchOp, type Patches } from "../patch";
+import type { PatchSchemaArrayEntry } from "../../patchSchema/types";
+import { CannotReduce, PatchOp, type Patches } from "../patch";
 import type { IF } from "../types";
 import { reduceArrayPatches } from "./forwardList";
 
@@ -83,6 +80,29 @@ export const sort = <T>(compareFn?: (a: T, b: T) => number): IF<T[], T[]> => {
 
 	const compareFn1 =
 		compareFn ?? ((a: T, b: T) => String(a).localeCompare(String(b)));
+
+	const _replace = (
+		comp: number,
+		next: T,
+		indexPrev: number,
+		indexNext: number,
+	) => {
+		const add = {
+			op: PatchOp.Add as const,
+			path: [indexNext] as [number],
+			value: next,
+		};
+		const remove = {
+			op: PatchOp.Remove as const,
+			path: [indexPrev] as [number],
+		};
+		if (comp > 0) {
+			return outputSchema.fromEntries([remove, add]);
+		}
+
+		return outputSchema.fromEntries([add, remove]);
+	};
+
 	const forwardSort = reduceArrayPatches(
 		inputSchema,
 		outputSchema,
@@ -93,29 +113,28 @@ export const sort = <T>(compareFn?: (a: T, b: T) => number): IF<T[], T[]> => {
 			sorted: T[],
 		): Patches<T[]> | CannotReduce => {
 			if ("inner" in entry) {
-				const [index] = entry.path;
-				const prev = unsorted[index];
-				const updated: T = elemSchema.apply(
-					prev,
-					elemSchema.fromPatchEntries([entry.inner]),
-				);
-				const index0: number = bisectEquals(sorted, prev, compareFn1);
-				const index1: number = bisectEquals(sorted, updated, compareFn1);
-				if (index0 === -1) {
+				const prev = unsorted[entry.path[0]];
+				const indexPrev: number = bisectEquals(sorted, prev, compareFn1);
+				if (indexPrev === -1) {
 					throw new Error("forwardSort: existing value not found");
 				}
 
-				if (index0 !== index1) {
-					// TOOD changing ordering
-					return CannotReduce;
+				const next: T = elemSchema.apply(
+					prev,
+					elemSchema.fromPatchEntries([entry.inner]),
+				);
+				const comp = compareFn1(prev, next);
+				if (comp === 0) {
+					return outputSchema.fromEntries([
+						{
+							path: [indexPrev],
+							inner: entry.inner,
+						},
+					]);
 				}
 
-				return outputSchema.fromEntries([
-					{
-						inner: entry.inner,
-						path: [index1],
-					},
-				]);
+				const indexNext: number = bisectLeft(sorted, next, compareFn1);
+				return _replace(comp, next, indexPrev, indexNext);
 			}
 
 			const { op } = entry;
@@ -127,18 +146,19 @@ export const sort = <T>(compareFn?: (a: T, b: T) => number): IF<T[], T[]> => {
 					throw new Error("forwardSort: existing value not found");
 				}
 
-				if (compareFn1(prev, next) !== 0) {
-					// TODO changing ordering
-					return CannotReduce;
+				const comp = compareFn1(prev, next);
+				if (comp === 0) {
+					return outputSchema.fromEntries([
+						{
+							op: PatchOp.Replace,
+							path: [indexPrev],
+							value: next,
+						},
+					]);
 				}
 
-				return outputSchema.fromEntries([
-					{
-						op: PatchOp.Replace,
-						path: [indexPrev],
-						value: next,
-					},
-				]);
+				const indexNext: number = bisectLeft(sorted, next, compareFn1);
+				return _replace(comp, next, indexPrev, indexNext);
 			}
 
 			if (op === PatchOp.Add) {
