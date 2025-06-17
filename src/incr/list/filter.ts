@@ -1,129 +1,98 @@
-import { applyPatches } from "../patch";
+import * as ps from "../../patchSchema";
 import {
-	CannotReduce,
+	IndexEnd,
+	type PatchSchema,
+	type PatchSchemaArray,
+	type PatchSchemaArrayEntry,
+} from "../../patchSchema/types";
+import {
+	type CannotReduce,
 	type PatchEntry,
 	PatchOp,
 	type Patches,
-	liftPatch,
-	normalizeArrayEntry,
-	reducePatches,
-	reduceReplaceRoot,
-	replacePatch,
-	unliftPatch,
 } from "../patch";
 import type { IF } from "../types";
+import { forwardWithArraySchema } from "./forwardList";
 import { scan } from "./scan";
 
-const forwardFilterInternal = <T>(
+const forwardFilterInternal = <T, S extends PatchSchema<T>>(
 	pred: (value: T) => boolean,
-	entry: PatchEntry<T[]>,
 	xs: T[],
+	inner: PatchEntry<T>,
 	index: number,
 	index1: number,
-) => {
-	// internal change
+	valueSchema: PatchSchema<T>,
+	outArraySchema: PatchSchemaArray<S, T>,
+): Patches<T[]> => {
 	const value = xs[index];
-	const valueUpdated = applyPatches(value, unliftPatch(index, [entry]));
+	const dInner = valueSchema.fromPatchEntries([inner]);
+	const valueUpdated = valueSchema.apply(value, dInner);
 	const prev = pred(value);
 	const next = pred(valueUpdated);
 	if (!prev && !next) {
-		return [];
+		return outArraySchema.empty;
 	}
 	if (prev && next) {
-		return [
-			{
-				...entry,
-				path: [index1, ...entry.path.slice(1)],
-			},
-		] as Patches<never>;
+		return outArraySchema.liftIndex(index1, dInner);
 	}
 	if (prev && !next) {
-		return [
+		return outArraySchema.fromPatchEntries([
 			{
 				op: PatchOp.Remove,
 				path: [index1],
 			},
-		] as Patches<never>;
+		]);
 	}
 
 	// !prev && next
-	return [
+	return outArraySchema.fromPatchEntries([
 		{
 			op: PatchOp.Add,
 			path: [index1],
 			value: valueUpdated,
 		},
-	] as Patches<never>;
+	]);
 };
 
-const forwardFilterSingleListOp = <T>(
+const forwardFilterSingleListOp = <T, S extends PatchSchema<T>>(
 	pred: (value: T) => boolean,
 	entry: PatchEntry<T[]>,
 	xs: T[],
 	index: number,
 	index1: number,
+	schema: PatchSchemaArray<S, T>,
 ): Patches<T[]> => {
 	const { op } = entry;
 	if (op === PatchOp.Add) {
 		if (!pred(entry.value)) {
-			return [];
+			return schema.empty;
 		}
 	} else if (op === PatchOp.Remove) {
 		if (!pred(xs[index])) {
-			return [];
+			return schema.empty;
 		}
 	} else if (op === PatchOp.Replace) {
 		const prev = pred(xs[index]);
 		const next = pred(entry.value);
 		if (prev !== next) {
-			return [
+			return schema.fromPatchEntries([
 				{
 					op: next ? PatchOp.Add : PatchOp.Remove,
 					path: [index1],
 					value: entry.value,
 				},
-			] as Patches<never>;
+			]);
 		}
 		if (!prev) {
-			return [];
+			return schema.empty;
 		}
 	}
-	return [
+	return schema.fromPatchEntries([
 		{
 			...entry,
 			path: [index1],
 		},
-	] as Patches<never>;
-};
-
-const forwardFilterPatchEntry = <T>(
-	pred: (value: T) => boolean,
-	csum: IF<T[], number[]>,
-	xs: T[],
-	entry0: PatchEntry<T[]>,
-	cys: number[],
-): Patches<[T[], number[]]> | CannotReduce => {
-	if (entry0.path.length === 0) {
-		throw new Error("replace root should not be there");
-	}
-	const entry = normalizeArrayEntry(xs, entry0);
-	if (entry === null) {
-		return CannotReduce;
-	}
-
-	const index = entry.path[0];
-	const index1 = index === 0 ? 0 : cys[index - 1];
-
-	const csumPatches: Patches<number[]> = csum.forward(xs, [entry], cys);
-	const listPatches: Patches<T[]> =
-		entry.path.length > 1
-			? forwardFilterInternal(pred, entry, xs, index, index1)
-			: forwardFilterSingleListOp(pred, entry, xs, index, index1);
-
-	return [
-		...liftPatch<[T[], number[]]>(0, listPatches),
-		...liftPatch<[T[], number[]]>(1, csumPatches),
-	];
+	]);
 };
 
 export const filter = <T>(
@@ -139,7 +108,60 @@ export const filter = <T>(
 		csum.evaluate(xs),
 	];
 
-	const forward1 = reducePatches(
+	const elemSchema = ps.atomic<T>();
+	const inSchema = ps.array(elemSchema);
+	const outSchema = inSchema satisfies PatchSchema<T[]>;
+	const csumSchema = ps.array(ps.atomic<number>());
+	const outTupleSchema = ps.tuple(outSchema, csumSchema) satisfies PatchSchema<
+		[T[], number[]]
+	>;
+
+	const forwardFilterPatchEntry = (
+		pred: (value: T) => boolean,
+		csum: IF<T[], number[]>,
+		xs: T[],
+		entry: PatchSchemaArrayEntry<T>,
+		cys: number[],
+	): Patches<[T[], number[]]> | CannotReduce => {
+		const index = entry.path[0] === IndexEnd ? xs.length : entry.path[0];
+		const index1 = index === 0 ? 0 : cys[index - 1];
+
+		let listPatches: Patches<T[]>;
+		if ("inner" in entry) {
+			listPatches = forwardFilterInternal(
+				pred,
+				xs,
+				entry.inner,
+				index,
+				index1,
+				elemSchema,
+				outSchema,
+			);
+		} else {
+			listPatches = forwardFilterSingleListOp(
+				pred,
+				entry,
+				xs,
+				index,
+				index1,
+				outSchema,
+			);
+		}
+		const csumPatches: Patches<number[]> = csum.forward(
+			xs,
+			inSchema.fromEntries([entry]),
+			cys,
+		);
+
+		return outTupleSchema.combine(
+			outTupleSchema.liftIndex(0, listPatches),
+			outTupleSchema.liftIndex(1, csumPatches),
+		);
+	};
+
+	const forwardFilter = forwardWithArraySchema(
+		inSchema,
+		outTupleSchema,
 		evaluateFilter,
 		(xs1: T[], entry, [_ys1, cys1]: [T[], number[]]) =>
 			forwardFilterPatchEntry(pred, csum, xs1, entry, cys1),
@@ -147,17 +169,6 @@ export const filter = <T>(
 
 	return {
 		evaluate: evaluateFilter,
-		forward: (
-			xs: T[],
-			dxs: Patches<T[]>,
-			[ys, cys]: [T[], number[]],
-		): Patches<[T[], number[]]> => {
-			const res = reduceReplaceRoot(dxs);
-			if ("replace" in res) {
-				return replacePatch(evaluateFilter(res.replace));
-			}
-
-			return forward1(xs, dxs, [ys, cys]);
-		},
+		forward: forwardFilter,
 	};
 };

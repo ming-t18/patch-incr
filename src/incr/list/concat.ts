@@ -60,15 +60,6 @@ export const concat = <T>(): IF<T[][], [T[], number[]]> => {
 				return CannotReduce;
 			}
 
-			if (
-				!(
-					typeof path[0] === "number" ||
-					(entry.op === PatchOp.Add && path[0] === IndexEnd)
-				)
-			) {
-				return CannotReduce;
-			}
-
 			const index = path[0] === IndexEnd ? xs1.length : (path[0] as number);
 			const indexMapped = index === 0 ? 0 : cys[index - 1];
 			let listPatches: Patches<T[]> | null = null;
