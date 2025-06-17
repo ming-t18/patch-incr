@@ -64,7 +64,7 @@ describe("tryAccessElement", () => {
 
 	const domc: DOMConstruction = elem("div", { class: "class1" }, [
 		elem0("div", [
-			elem0("h1", "Heading"),
+			elem0("h1", ["Heading"]),
 			elem("p", { id: "test" }, ["Hello, world!"]),
 			elem0("ul", [
 				elem0("li", ["Item 1"]),

@@ -43,12 +43,14 @@ export const arbTodoAction = (state: TodoState): fc.Arbitrary<TodoAction> => {
 const arbTodoItem = fc.record({
 	done: fc.boolean(),
 	text: arbText,
+	id: fc.string(),
 });
 
 export const arbTodoState: fc.Arbitrary<TodoState> = fc
 	.array(arbTodoItem, { maxLength: 20 })
 	.chain((items) =>
 		fc.record({
+			counter: fc.integer({ min: 0 }),
 			items: fc.constant(items),
 			editingIndex: fc.oneof(
 				{ weight: 1, arbitrary: fc.constantFrom(undefined, null) },
