@@ -1,3 +1,4 @@
+import type { ChangeBuilder } from "../../algebra";
 import * as ps from "../../patchSchema";
 import { IndexEnd } from "../../patchSchema/types";
 import {
@@ -84,12 +85,12 @@ export const concat = <T>(): IF<T[][], [T[], number[]]> => {
 					},
 				] as Patches<T[]>;
 			} else {
-				const builder = concatSchema.builder();
+				const builder: ChangeBuilder<Patches<T[]>> = concatSchema.builder();
 				let toRemove = 0;
 				if (entry.op === PatchOp.Remove || entry.op === PatchOp.Replace) {
 					toRemove = (xs1[index] as T[]).length;
 				}
-				let toAdd: T[][] = [];
+				let toAdd: T[] = [];
 				if (entry.op === PatchOp.Add || entry.op === PatchOp.Replace) {
 					toAdd = entry.value;
 				}

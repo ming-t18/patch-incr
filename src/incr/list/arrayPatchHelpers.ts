@@ -3,7 +3,6 @@ import {
 	PatchOp,
 	type PatchRemove,
 	type PatchReplace,
-	type Patches,
 	type Targeted,
 } from "../patch";
 
