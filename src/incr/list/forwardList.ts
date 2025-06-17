@@ -1,12 +1,12 @@
-import type { ChangeBuilder, InferApplyType } from "../../algebra";
+import type { InferApplyType } from "../../algebra";
 import { getReplaceOnly, isReplaceOnly } from "../../algebra/replaceOnly";
 import * as ps from "../../patchSchema";
-import {
-	type AnyPatchSchema,
+import type {
+	AnyPatchSchema,
 	IndexEnd,
-	type PatchSchema,
-	type PatchSchemaArray,
-	type PatchSchemaArrayEntry,
+	PatchSchema,
+	PatchSchemaArray,
+	PatchSchemaArrayEntry,
 } from "../../patchSchema/types";
 import {
 	CannotReduce,
@@ -15,8 +15,8 @@ import {
 	type PatchRemove,
 	type PatchReplace,
 	type Patches,
+	type Path,
 	type Targeted,
-	applyPatches,
 } from "../patch";
 import type { IF } from "../types";
 
@@ -103,76 +103,30 @@ export const forwardMapPatches = <X, Y>(
 	);
 };
 
-export const forwardScanPatches =
-	<T, Acc>(evaluateScan: (xs: T[], acc: Acc) => Acc[]) =>
-	(xs: T[], patches: Patches<T[]>, ys: Acc[]): Patches<Acc[]> | null => {
-		if (patches.length === 0) {
-			return patches as Patches<never>;
+export const getMinUpdatedIndex = <T>(
+	arr: T[],
+	entries: (
+		| PatchReplace<[number]>
+		| PatchAdd<[number | IndexEnd], T>
+		| PatchRemove<[number]>
+		| { path: Path }
+	)[],
+): number => {
+	let minIndex = arr.length;
+	for (const entry of entries) {
+		if (entry.path.length === 0) {
+			return 0;
 		}
 
-		const hasConflicts =
-			patches.findIndex(({ path }) => path.length === 0) !== -1;
-		if (hasConflicts) {
-			return null;
+		const index = entry.path[0];
+
+		if (typeof index === "string") {
+			continue;
 		}
 
-		const removePart: Patches<Acc[]> = [];
-		const hasRemove =
-			patches.findIndex(({ op }) => op === PatchOp.Remove) !== -1;
-		if (hasRemove) {
-			if (patches.length > 1) {
-				return null;
-			}
-
-			const index = patches[0].path[0];
-			if (index === IndexEnd) {
-				return null;
-			}
-			if (typeof index !== "number") {
-				throw new Error("index must be a number");
-			}
-			removePart.push({
-				op: PatchOp.Remove,
-				path: [index],
-			});
+		if (index < minIndex) {
+			minIndex = index;
 		}
-
-		const iInit = patches.reduce((i, { path }) => {
-			const j = path[0] as number;
-			return j < i ? j : i;
-		}, xs.length);
-
-		if (iInit <= 0) {
-			return null;
-		}
-
-		const reducedPatches: Patches<T[]> = [];
-		for (const patch of patches) {
-			const { path } = patch;
-			if (path[0] === IndexEnd) {
-				return null;
-			}
-			if (typeof path[0] !== "number") {
-				throw new TypeError("index must be a number");
-			}
-			const i1 = path[0];
-			if (i1 < iInit) {
-				continue;
-			}
-
-			reducedPatches.push({
-				...patch,
-				path: path.length === 1 ? [i1 - iInit] : [i1 - iInit, ...path.slice(1)],
-			});
-		}
-		const xsAfter = applyPatches(xs.slice(iInit), reducedPatches);
-		const rest = evaluateScan(xsAfter, ys[iInit - 1]);
-		return [
-			...removePart,
-			...rest.map((value, i) => ({
-				op: PatchOp.Replace,
-				path: [i + iInit],
-				value,
-			})),
-		];
-	};
+	}
+	return minIndex;
+};

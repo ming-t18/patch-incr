@@ -11,6 +11,7 @@ import {
 	slice,
 	zip,
 } from "../incr/list";
+import { getMinUpdatedIndex } from "../incr/list/forwardList";
 import { bisectEquals, bisectLeft, bisectRight, sort } from "../incr/list/sort";
 import { PatchOp, type Patches, applyPatches, liftPatch } from "../incr/patch";
 import { access, record } from "../incr/struct";
@@ -914,6 +915,19 @@ describe("sort", () => {
 					return c1;
 				}
 				return x.str.localeCompare(y.str);
+			}),
+		);
+	});
+});
+
+describe("getMinUpdatedIndex", () => {
+	it("array before the index is not changed by the patch", () => {
+		fc.assert(
+			fc.property(gp.array(arbElem).arb(), ({ value, patches }) => {
+				const i = getMinUpdatedIndex(value, patches);
+				const start = value.slice(0, i);
+				const updated = applyPatches(value, patches).slice(0, i);
+				expect(start).toStrictEqual(updated);
 			}),
 		);
 	});

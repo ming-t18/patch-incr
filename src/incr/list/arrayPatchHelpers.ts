@@ -8,9 +8,9 @@ import {
 } from "../patch";
 
 type ArrayOp<T> =
-	| (PatchAdd<[number], T> & Targeted<T>)
-	| (PatchReplace<[number], T> & Targeted<T>)
-	| (PatchRemove<[number]> & Targeted<T>);
+	| (PatchAdd<[number], T> & Targeted<T[]>)
+	| (PatchReplace<[number], T> & Targeted<T[]>)
+	| (PatchRemove<[number]> & Targeted<T[]>);
 
 export const splice = <T>(
 	index: number,
