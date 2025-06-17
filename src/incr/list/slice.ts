@@ -2,7 +2,7 @@ import * as ps from "../../patchSchema";
 import { IndexEnd } from "../../patchSchema/types";
 import { CannotReduce, PatchOp } from "../patch";
 import type { IF } from "../types";
-import { reduceArrayPatches } from "./forwardList";
+import { forwardWithArraySchema } from "./forwardList";
 
 export const slice = <T>(start?: number, end?: number): IF<T[], T[]> => {
 	const start1 = start ?? 0;
@@ -14,7 +14,7 @@ export const slice = <T>(start?: number, end?: number): IF<T[], T[]> => {
 		!((typeof end === "number" && index >= end) || index < start1);
 	const isCopySlice = typeof end !== "number" && typeof start !== "number";
 	const isEmptySlice = typeof end === "number" && start1 >= end;
-	const forwardSlice = reduceArrayPatches(
+	const forwardSlice = forwardWithArraySchema(
 		inSchema,
 		outSchema,
 		evaluateSlice,

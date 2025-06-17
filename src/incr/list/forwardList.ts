@@ -1,10 +1,12 @@
+import type { ChangeBuilder, InferApplyType } from "../../algebra";
 import { getReplaceOnly, isReplaceOnly } from "../../algebra/replaceOnly";
 import * as ps from "../../patchSchema";
-import type {
-	AnyPatchSchema,
-	PatchSchema,
-	PatchSchemaArray,
-	PatchSchemaArrayEntry,
+import {
+	type AnyPatchSchema,
+	IndexEnd,
+	type PatchSchema,
+	type PatchSchemaArray,
+	type PatchSchemaArrayEntry,
 } from "../../patchSchema/types";
 import {
 	CannotReduce,
@@ -18,42 +20,47 @@ import {
 } from "../patch";
 import type { IF } from "../types";
 
-export const reduceArrayPatches =
-	<S extends AnyPatchSchema, T, Output>(
-		inArraySchema: PatchSchemaArray<S, T>,
-		outSchema: PatchSchema<Output>,
-		evaluate: (xs: T[]) => Output,
-		reduce: (
-			input: T[],
-			entry: PatchSchemaArrayEntry<T>,
+export const forwardWithArraySchema =
+	<
+		S extends AnyPatchSchema,
+		Output,
+		Elem = InferApplyType<S>,
+		OutputChange = Patches<Output>,
+	>(
+		inputSchema: PatchSchemaArray<S, Elem>,
+		outputSchema: PatchSchema<Output, OutputChange>,
+		evaluate: (a: Elem[]) => Output,
+		forwardElem: (
+			input: Elem[],
+			entry: PatchSchemaArrayEntry<Elem>,
 			output: Output,
-		) => CannotReduce | Patches<Output>,
+		) => OutputChange | CannotReduce,
 	) =>
-	(input: T[], patches: Patches<T[]>, output: Output): Patches<Output> => {
-		const res = inArraySchema.analyze(patches);
+	(input: Elem[], patches: Patches<Elem[]>, output: Output): OutputChange => {
+		const res = inputSchema.analyze(patches);
 		if (res === null) {
-			return outSchema.empty;
+			return outputSchema.empty;
 		}
 		if (isReplaceOnly(res)) {
-			return outSchema.fromReplace(evaluate(getReplaceOnly(res)));
+			return outputSchema.fromReplace(evaluate(getReplaceOnly(res)));
 		}
 
-		let input1 = input;
-		let output1 = output;
-		const builder = outSchema.builder();
+		let _in: Elem[] = input;
+		let _out: Output = output;
+		let _res = outputSchema.empty;
 		for (const entry of res) {
-			const dys = reduce(input1, entry, output1);
-			if (dys === CannotReduce) {
-				return outSchema.fromReplace(
-					evaluate(inArraySchema.apply(input, patches)),
+			const dOut = forwardElem(_in, entry, _out);
+			if (dOut === CannotReduce) {
+				return outputSchema.fromReplace(
+					evaluate(inputSchema.apply(input, patches)),
 				);
 			}
 
-			input1 = inArraySchema.apply(input1, inArraySchema.fromEntries([entry]));
-			output1 = outSchema.apply(output1, dys);
-			builder.append(dys);
+			_in = inputSchema.apply(_in, inputSchema.fromEntries([entry]));
+			_out = outputSchema.apply(_out, dOut);
+			_res = outputSchema.combine(_res, dOut);
 		}
-		return builder.build();
+		return _res;
 	};
 
 export const forwardMapPatches = <X, Y>(
@@ -61,10 +68,11 @@ export const forwardMapPatches = <X, Y>(
 	{ evaluate: f, forward: df }: IF<X, Y, Patches<X>, Patches<Y>>,
 ) => {
 	const inSchema = ps.atomic<X>();
+	const inArraySchema = ps.array(inSchema);
 	const outSchema = ps.atomic<Y>();
 	const outArraySchema = ps.array(outSchema);
-	return reduceArrayPatches(
-		ps.array(inSchema),
+	return forwardWithArraySchema(
+		inArraySchema,
 		outArraySchema,
 		evaluateMap,
 		(xs: X[], entry: PatchSchemaArrayEntry<X>, ys: Y[]): Patches<Y[]> => {
@@ -117,7 +125,7 @@ export const forwardScanPatches =
 			}
 
 			const index = patches[0].path[0];
-			if (index === "-") {
+			if (index === IndexEnd) {
 				return null;
 			}
 			if (typeof index !== "number") {
@@ -141,7 +149,7 @@ export const forwardScanPatches =
 		const reducedPatches: Patches<T[]> = [];
 		for (const patch of patches) {
 			const { path } = patch;
-			if (path[0] === "-") {
+			if (path[0] === IndexEnd) {
 				return null;
 			}
 			if (typeof path[0] !== "number") {

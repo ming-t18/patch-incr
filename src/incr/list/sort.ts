@@ -2,7 +2,7 @@ import * as ps from "../../patchSchema";
 import type { PatchSchemaArrayEntry } from "../../patchSchema/types";
 import { CannotReduce, PatchOp, type Patches } from "../patch";
 import type { IF } from "../types";
-import { reduceArrayPatches } from "./forwardList";
+import { forwardWithArraySchema } from "./forwardList";
 
 /**
  * Binary search a sorted array where the strictly greater elements are on the right.
@@ -103,7 +103,7 @@ export const sort = <T>(compareFn?: (a: T, b: T) => number): IF<T[], T[]> => {
 		return outputSchema.fromEntries([add, remove]);
 	};
 
-	const forwardSort = reduceArrayPatches(
+	const forwardSort = forwardWithArraySchema(
 		inputSchema,
 		outputSchema,
 		evaluateSort,
