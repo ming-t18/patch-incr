@@ -16,10 +16,10 @@ export interface ApplyCombineLift<T, Patch> extends ApplyCombine<T, Patch> {
 	liftArrayIndex: (index: number, patch: Patch) => Patch;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: intentional
 export type AnyApply = Apply<any, any>;
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: intentional
 export type AnyApplyCombine = ApplyCombine<any, any>;
 
 export type evaluate<Input, Output> = (input: Input) => Output;

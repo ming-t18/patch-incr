@@ -210,7 +210,7 @@ describe("array", () => {
 
 	it("no negative indexes", () => {
 		fc.assert(
-			fc.property(gp.array(gp.integer()).arb(), ({ value, patches }) => {
+			fc.property(gp.array(gp.integer()).arb(), ({ patches }) => {
 				return patches.every(({ path }) =>
 					path.length > 0 && typeof path[0] === "number"
 						? (path[0] as number) >= 0

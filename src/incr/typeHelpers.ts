@@ -80,13 +80,13 @@ export type AccessPath<O, P extends Path> = P extends []
 
 type TestObj = { a: { b: { c: string }[] }; tup: [number, bigint] };
 // { c: string }[]
-type TestAccessObj = AccessPath<TestObj, ["a", "b"]>;
+type _TestAccessObj = AccessPath<TestObj, ["a", "b"]>;
 // bigint
-type TestAccessTuple = AccessPath<TestObj, ["tup", 1]>;
+type _TestAccessTuple = AccessPath<TestObj, ["tup", 1]>;
 // { c: string }
-type TestAccessArray1 = AccessPath<TestObj, ["a", "b", number]>;
+type _TestAccessArray1 = AccessPath<TestObj, ["a", "b", number]>;
 // { c: string }
-type TestAccessArraySpecific = AccessPath<TestObj, ["a", "b", 5]>;
+type _TestAccessArraySpecific = AccessPath<TestObj, ["a", "b", 5]>;
 
 // [string, number]
 type _Test1 = AccessTypesTuple<

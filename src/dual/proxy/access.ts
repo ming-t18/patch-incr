@@ -51,7 +51,7 @@ const accessHandler: ProxyHandler<{
 				writable: false,
 				configurable: false,
 				enumerable: false,
-				// biome-ignore lint/style/noNonNullAssertion: <explanation>
+				// biome-ignore lint/style/noNonNullAssertion: always succeeds
 				value: this.get!(obj, Finish, undefined),
 			};
 		}

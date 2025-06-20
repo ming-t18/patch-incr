@@ -18,14 +18,14 @@ export interface PatchRemove<P extends Path = Path> {
 	path: P;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: intentional
 export interface PatchAdd<P extends Path = Path, V = any> {
 	op: PatchOp.Add;
 	path: P;
 	value: V;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: intentional
 export interface PatchReplace<P extends Path = Path, V = any> {
 	op: PatchOp.Replace;
 	path: P;
@@ -34,7 +34,7 @@ export interface PatchReplace<P extends Path = Path, V = any> {
 
 export type Targeted<T> = HasTypes<"patchTarget", T>;
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: intentional
 export type PatchEntry<Target = any, P extends Path = Path> = (
 	| PatchRemove<P>
 	| PatchAdd<P>
@@ -42,14 +42,14 @@ export type PatchEntry<Target = any, P extends Path = Path> = (
 ) &
 	Targeted<Target>;
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: intentional
 export type Patches<V = any> = PatchEntry<V>[] & Targeted<V>;
 
 export const isEmptyPatches = (entry: Patches) => {
 	return entry.length === 0;
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: intentional
 export const removePatch = <V = any>(path = [] as Path): Patches<V> => [
 	{
 		op: PatchOp.Remove,
@@ -57,7 +57,7 @@ export const removePatch = <V = any>(path = [] as Path): Patches<V> => [
 	},
 ];
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: intentional
 export const addPatch = <V = any>(value: V, path = [] as Path): Patches<V> => [
 	{
 		op: PatchOp.Add,
@@ -66,7 +66,7 @@ export const addPatch = <V = any>(value: V, path = [] as Path): Patches<V> => [
 	},
 ];
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: intentional
 export const replacePatch = <V = any>(
 	value: V,
 	path = [] as Path,
@@ -119,7 +119,7 @@ export const unliftPatch = <Out>(
 
 export const combinePatches = (a: Patches, b: Patches): Patches => [...a, ...b];
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: intentional
 export class PatchBuilder<Target = any> {
 	private readonly patches: Patches;
 

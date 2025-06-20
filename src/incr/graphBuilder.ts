@@ -3,7 +3,7 @@ import type { IF } from "./types";
 
 export type DepsList = number[];
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: for type checking
 export type IFGraphEdges = [DepsList, IF<any[], any>][];
 
 export type IFGraphNodeDef<_Deps extends DepsList = [], Output = unknown> = {
@@ -59,7 +59,7 @@ export type InferArgs<
 	Deps extends DepsList,
 > = Deps extends []
 	? []
-	: // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	: // biome-ignore lint/suspicious/noExplicitAny: for type checking
 		[number, ...any[]] extends Deps
 		? [
 				{

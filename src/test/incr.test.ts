@@ -283,7 +283,7 @@ describe("compose", () => {
 				gp.valuePatches(),
 				arbAtomic(),
 				arbAtomic(),
-				({ value, patches }, f1, f2) => {
+				({ value }, f1, f2) => {
 					const y = f2.evaluate(f1.evaluate(value));
 					const composed = compose(f1, f2);
 					expect(y).toStrictEqual(composed.evaluate(value)[0]);
