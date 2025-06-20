@@ -1,6 +1,6 @@
 import { getReplaceOnly, isReplaceOnly } from "../algebra/replaceOnly";
 import * as ps from "../patchSchema";
-import { type Patches, applyPatches, replacePatch } from "./patch";
+import { applyPatches, type Patches, replacePatch } from "./patch";
 import type { IF, NoForwardOutput } from "./types";
 
 export const memoInterm = <Input extends WeakKey, Output, Interm>(

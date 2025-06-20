@@ -8,9 +8,9 @@ export const zip = <A, B>(): IF<[A[], B[]], [A, B][]> => {
 	const rightSchema = ps.atomic<B>();
 	const leftsSchema = ps.array(leftSchema);
 	const rightsSchema = ps.array(rightSchema);
-	const inputSchema = ps.tuple(leftsSchema, rightsSchema);
+	const _inputSchema = ps.tuple(leftsSchema, rightsSchema);
 	const tupleSchema = ps.tuple(leftSchema, rightSchema);
-	const outputSchema = ps.array(tupleSchema);
+	const _outputSchema = ps.array(tupleSchema);
 	const evaluateZip = ([xs, ys]: [A[], B[]]) => {
 		const zs: [A, B][] = [];
 		const n = xs.length < ys.length ? xs.length : ys.length;

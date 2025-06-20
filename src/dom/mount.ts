@@ -1,13 +1,13 @@
-import { Observable, Subject, type TeardownLogic, map } from "rxjs";
-import { type Patches, applyPatches } from "../incr/patch";
+import { map, Observable, Subject, type TeardownLogic } from "rxjs";
+import { applyPatches, type Patches } from "../incr/patch";
 import type { IF, NoForwardOutput } from "../incr/types";
 import * as gp from "../patchSchema";
 import { type ForwardPatchEntry, forwardPatch } from "../rxjs";
 import {
-	type RenderIF,
-	type StateDispatch,
 	hydrate,
+	type RenderIF,
 	renderToString,
+	type StateDispatch,
 } from "./render";
 import type { DOMConstruction, ElementConstruction } from "./types";
 

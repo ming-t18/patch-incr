@@ -1,4 +1,4 @@
-import { PatchBuilder, type Patches, liftPatch } from "./patch";
+import { liftPatch, PatchBuilder, type Patches } from "./patch";
 import type { IF } from "./types";
 
 export type DepsList = number[];
@@ -6,7 +6,7 @@ export type DepsList = number[];
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export type IFGraphEdges = [DepsList, IF<any[], any>][];
 
-export type IFGraphNodeDef<Deps extends DepsList = [], Output = unknown> = {
+export type IFGraphNodeDef<_Deps extends DepsList = [], Output = unknown> = {
 	deps: DepsList;
 	output: Output;
 };

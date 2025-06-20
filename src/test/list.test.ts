@@ -13,7 +13,7 @@ import {
 } from "../incr/list";
 import { getMinUpdatedIndex } from "../incr/list/forwardList";
 import { bisectEquals, bisectLeft, bisectRight, sort } from "../incr/list/sort";
-import { PatchOp, type Patches, applyPatches, liftPatch } from "../incr/patch";
+import { applyPatches, liftPatch, type Patches, PatchOp } from "../incr/patch";
 import { access, record } from "../incr/struct";
 import type { IF, InferIFOutput } from "../incr/types";
 import * as gp from "./helpers/genPatched.test";
@@ -389,7 +389,7 @@ describe("map", () => {
 			b: atomicFunc((x: number) => `${x % 5}`),
 		});
 		type Out = InferIFOutput<typeof mapping1>;
-		const mapping2 = record({
+		const _mapping2 = record({
 			p: access<number, "a", Out>("a"),
 			q: IFGraphBuilder.empty<Out>().add([] as const, access(0)),
 		});

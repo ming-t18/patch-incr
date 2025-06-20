@@ -10,7 +10,7 @@ const server = Bun.serve({
 	// - Rebuild on request
 	development: true,
 	// Handle API requests
-	async fetch(req) {
+	async fetch(_req) {
 		// Return 404 for unmatched routes
 		return new Response("Not Found", { status: 404 });
 	},

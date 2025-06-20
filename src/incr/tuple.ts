@@ -1,13 +1,12 @@
 import {
-	CannotReduce,
 	InvalidPatchEntry,
-	type PatchEntry,
-	PatchOp,
-	type Patches,
 	isReplaceRootEntry,
 	makeReplaceRootEntry,
+	type PatchEntry,
+	type Patches,
+	PatchOp,
 } from "./patch";
-import type { IF, IFInv } from "./types";
+import type { IFInv } from "./types";
 
 const evaluateComm = <A, B>([a, b]: [A, B]): [B, A] => [b, a];
 

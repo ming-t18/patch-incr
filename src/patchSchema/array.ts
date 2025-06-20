@@ -2,8 +2,8 @@ import type { DRO, InferApplyType } from "../algebra";
 import { makeReplaceOnly } from "../algebra/replaceOnly";
 import {
 	type PatchEntry,
-	PatchOp,
 	type Patches,
+	PatchOp,
 	reduceReplaceRoot,
 } from "../incr/patch";
 import { BasePatchSchema } from "./base";

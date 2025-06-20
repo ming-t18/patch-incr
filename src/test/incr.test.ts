@@ -3,19 +3,16 @@ import { atomicFunc, constant, identity } from "../incr/builder";
 import { compose } from "../incr/compose";
 import { IFGraphBuilder } from "../incr/graphBuilder";
 import {
-	PatchBuilder,
-	type Path,
 	applyPatches,
 	isAtomicValue,
+	PatchBuilder,
+	type Path,
 	replacePatch,
 } from "../incr/patch";
 import { access, record } from "../incr/struct";
 import type { IF } from "../incr/types";
 import * as gp from "./helpers/genPatched.test";
-import {
-	ensurePatchCoherent,
-	ensurePatchSplitProperty,
-} from "./helpers/props.test";
+import { ensurePatchCoherent } from "./helpers/props.test";
 
 const arbAtomic = <T = unknown>(arbReturn?: fc.Arbitrary<T>) =>
 	fc
@@ -70,7 +67,7 @@ const arbIF = (inputPaths: Path[], depth = 5): fc.Arbitrary<ArbIF> => {
 	if (validAccessKeys.length > 0) {
 		accessCase = fc.constantFrom(...validAccessKeys).map((key) => ({
 			paths: inputPaths.filter(
-				({ length, [0]: key0 }) => length > 0 && key0 === key,
+				({ length, 0: key0 }) => length > 0 && key0 === key,
 			),
 			func: access(key) as IF<unknown, unknown>,
 		}));
@@ -376,7 +373,7 @@ describe("access", () => {
 						access(key as never).evaluate(
 							applyPatches(value, patches) as never,
 						);
-					} catch (e) {
+					} catch (_e) {
 						fc.pre(false);
 					}
 					// @ts-expect-error doesn't work
@@ -413,10 +410,10 @@ describe("GraphBuilder", () => {
 	type F3Args = [number, string, number[], number];
 	type F3Out = { input: number; str: string; arr: number[]; mod: number };
 	const f3: IF<F3Args, F3Out> = record({
-		input: atomicFunc<F3Args, number>(([input, str, arr, mod]) => input),
-		str: atomicFunc<F3Args, string>(([input, str, arr, mod]) => str),
-		arr: atomicFunc<F3Args, number[]>(([input, str, arr, mod]) => arr),
-		mod: atomicFunc<F3Args, number>(([input, str, arr, mod]) => mod),
+		input: atomicFunc<F3Args, number>(([input, _str, _arr, _mod]) => input),
+		str: atomicFunc<F3Args, string>(([_input, str, _arr, _mod]) => str),
+		arr: atomicFunc<F3Args, number[]>(([_input, _str, arr, _mod]) => arr),
+		mod: atomicFunc<F3Args, number>(([_input, _str, _arr, mod]) => mod),
 	});
 
 	const testCompose = IFGraphBuilder.empty<number>()
@@ -445,7 +442,7 @@ describe("GraphBuilder", () => {
 
 	it("example", () => {
 		const input = 5;
-		const res = testCompose.evaluate(input);
+		const _res = testCompose.evaluate(input);
 		// console.log(res);
 		ensurePatchCoherent(input, replacePatch(15), testCompose);
 	});

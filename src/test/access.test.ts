@@ -6,7 +6,7 @@ import {
 	truncatePath,
 } from "../dual/access";
 import { Finish, makeAccessProxy } from "../dual/proxy/access";
-import { type Path, applyPatches } from "../incr/patch";
+import { applyPatches, type Path } from "../incr/patch";
 import { accessRecord } from "../incr/struct/access";
 import * as ps from "../patchSchema";
 import * as gp from "./helpers/genPatched.test";

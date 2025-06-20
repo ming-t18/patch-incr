@@ -1,10 +1,4 @@
-import {
-	getReplaceOnly,
-	isReplaceOnly,
-	makeReplaceOnly,
-} from "../../algebra/replaceOnly";
-import { doAccess, filterAccessPatches } from "../../dual/access";
-import * as ps from "../../patchSchema";
+import { getReplaceOnly, isReplaceOnly } from "../../algebra/replaceOnly";
 import type {
 	InferTypeFromRecordConstruction,
 	InferTypeFromTupleConstruction,
@@ -15,13 +9,10 @@ import type {
 } from "../../patchSchema/types";
 import { composeMemoL } from "../compose/memo";
 import {
-	CannotReduce,
+	applyPatches,
 	type PatchEntry,
-	PatchOp,
 	type Patches,
 	type Path,
-	applyPatches,
-	reducePatches,
 	replacePatch,
 } from "../patch";
 import type { IF, NoForwardOutput } from "../types";

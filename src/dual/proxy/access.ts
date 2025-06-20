@@ -3,7 +3,7 @@ import { doAccess } from "../access";
 
 export const Finish = Symbol("Finish");
 
-const keysAccess = (target: unknown, path: Path) => {
+const _keysAccess = (target: unknown, path: Path) => {
 	const y = doAccess(target, path);
 	if (y === null || typeof y !== "object") {
 		return [];

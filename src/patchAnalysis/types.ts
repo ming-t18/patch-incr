@@ -1,20 +1,12 @@
-import type {
-	PatchAdd,
-	PatchRemove,
-	PatchReplace,
-	Patches,
-	Path,
-	Targeted,
-} from "../incr/patch";
-import { PatchOp } from "../incr/patch";
+import type { Patches, Path } from "../incr/patch";
 
 export type {
-	Path,
 	PatchAdd,
+	Patches,
 	PatchRemove,
 	PatchReplace,
+	Path,
 	Targeted,
-	Patches,
 } from "../incr/patch";
 
 export { PatchOp } from "../incr/patch";

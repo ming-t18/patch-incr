@@ -1,6 +1,6 @@
 import * as ps from "../../patchSchema";
 import { IndexEnd } from "../../patchSchema/types";
-import { PatchOp, type Patches } from "../patch";
+import { type Patches, PatchOp } from "../patch";
 import type { IF } from "../types";
 
 const genSeq = (start: number, step: number, length: number): number[] => {
@@ -35,7 +35,7 @@ export const seq = (start = 0, step = 1): IF<number, number[]> => {
 		}
 
 		return outSchema.fromPatchEntries(
-			genSeq(start + n * step, step, len - len1).map((value, j) => ({
+			genSeq(start + n * step, step, len - len1).map((_value, j) => ({
 				op: PatchOp.Remove,
 				path: [n - j - 1],
 			})),

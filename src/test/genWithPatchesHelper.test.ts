@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { applyPatches, canApplyPatches } from "../incr/patch";
-import * as gp from "./helpers/genPatched.test";
 import type { GenWithPatches } from "./helpers/genPatched.test";
+import * as gp from "./helpers/genPatched.test";
 
 fc.configureGlobal({ numRuns: 1000 });
 

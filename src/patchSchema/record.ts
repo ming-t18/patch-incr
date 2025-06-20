@@ -1,4 +1,4 @@
-import type { DRO, InferApplyType } from "../algebra";
+import type { DRO } from "../algebra";
 import { makeReplaceOnly } from "../algebra/replaceOnly";
 import {
 	type PatchEntry,
@@ -7,7 +7,6 @@ import {
 } from "../incr/patch";
 import { BasePatchSchema } from "./base";
 import type {
-	AnyPatchSchema,
 	AnyRecord,
 	InferTypeFromRecordConstruction,
 	InnerPatches,

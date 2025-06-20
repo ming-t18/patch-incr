@@ -11,10 +11,10 @@ import type {
 import {
 	CannotReduce,
 	type PatchAdd,
+	type Patches,
 	PatchOp,
 	type PatchRemove,
 	type PatchReplace,
-	type Patches,
 	type Path,
 	type Targeted,
 } from "../patch";

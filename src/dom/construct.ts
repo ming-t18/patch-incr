@@ -1,7 +1,7 @@
 import { fromAttrValue } from "./render";
 import type {
-	AttrValue,
 	Attrs,
+	AttrValue,
 	ChildConstruction,
 	ElementConstruction,
 	Events,

@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { LinkedList, create } from "../incr/collections/linkedList/linkedList";
+import { create } from "../incr/collections/linkedList/linkedList";
 import { applyPatches } from "../incr/patch";
 import * as gp from "./helpers/genPatched.test";
 

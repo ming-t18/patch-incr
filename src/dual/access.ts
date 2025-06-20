@@ -1,9 +1,9 @@
 import {
-	type PatchEntry,
-	PatchOp,
-	type Patches,
-	type Path,
 	applyPatches,
+	type PatchEntry,
+	type Patches,
+	PatchOp,
+	type Path,
 } from "../incr/patch";
 import { type DP, dp } from "./types";
 

@@ -9,7 +9,7 @@ import { type TodoAction, TodoActionType, type TodoState } from "../todo_state";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 
-const arbAction = (state: TodoState): fc.Arbitrary<TodoAction> => {
+const _arbAction = (state: TodoState): fc.Arbitrary<TodoAction> => {
 	const arbClear = fc.constant({ type: TodoActionType.Clear as const });
 	const arbAdd = fc.record({
 		type: fc.constant(TodoActionType.Add as const),

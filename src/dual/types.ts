@@ -1,6 +1,5 @@
 import type { Patches } from "../incr/patch";
-import { access, doAccess } from "./access";
-import { type InferAccessProxy, makeAccessProxy } from "./proxy/access";
+import { access } from "./access";
 
 export const IsDP = Symbol("IsDP");
 

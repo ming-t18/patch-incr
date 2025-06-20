@@ -1,12 +1,12 @@
 import fc from "fast-check";
 import {
+	applyPatches,
 	type PatchEntry,
+	type Patches,
 	PatchOp,
 	type PatchReplace,
-	type Patches,
 	type Path,
 	type Targeted,
-	applyPatches,
 } from "../../incr/patch";
 import { IndexEnd } from "../../patchSchema/types";
 export type WithPatches<T> = { value: T; patches: Patches<T> };

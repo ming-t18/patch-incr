@@ -1,12 +1,10 @@
 import type {
-	AnyRecord,
 	InferTypeFromRecordConstruction,
 	PatchSchemaRecord,
 	RecordConstruction,
 } from "../../patchSchema/types";
-import { type StructuralChangeBuilder, patchesBuilder } from "../builder";
+import { patchesBuilder, type StructuralChangeBuilder } from "../builder";
 import type { Patches } from "../patch";
-import type { TypesKey } from "../typeHelpers";
 import { type IF, isIF } from "../types";
 import type {
 	InferRecordInput,

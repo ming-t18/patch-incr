@@ -4,7 +4,7 @@ import { atomicFunc } from "../incr/builder";
 import { compose } from "../incr/compose";
 import { filter, flatMap } from "../incr/list";
 import { memoInterm, memoIntermR } from "../incr/memoPair";
-import { PatchOp, type Patches } from "../incr/patch";
+import { type Patches, PatchOp } from "../incr/patch";
 import { access, record } from "../incr/struct";
 import type { InferIFOutput } from "../incr/types";
 import * as ps from "../patchSchema";

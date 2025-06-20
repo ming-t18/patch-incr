@@ -2,19 +2,19 @@ import type { IF } from "../incr/types";
 import type { DF, DP } from "./types";
 import { dp } from "./types";
 
-export { dp, isDP } from "./types";
-export type { DualFunc, DP, DF } from "./types";
 export { record } from "../dual/record";
 export { struct } from "../dual/struct";
 export { tuple } from "../dual/tuple";
 export { patchesBuilder } from "../incr/builder";
+export type { DF, DP, DualFunc } from "./types";
+export { dp, isDP } from "./types";
 
 export const apply =
 	<X, Y, DF, DX, DY>(
 		applyChange: (f: (x: X) => Y, df: DF) => (x: X) => Y,
 		makeReplace: (y: Y) => DY,
 	) =>
-	([f, df]: DP<(x: X) => Y, DF>, [x, dx]: DP<X, DX>): DP<Y, DY> =>
+	([f, df]: DP<(x: X) => Y, DF>, [x, _dx]: DP<X, DX>): DP<Y, DY> =>
 		dp(f(x), makeReplace(applyChange(f, df)(x)));
 
 export const atomicReplace =

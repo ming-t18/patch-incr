@@ -1,27 +1,23 @@
 import type { DRO, InferApplyType } from "../../../algebra";
 import { getReplaceOnly, isReplaceOnly } from "../../../algebra/replaceOnly";
-import { apply } from "../../../dual";
 import * as ps from "../../../patchSchema";
 import type {
 	AnyPatchSchema,
 	IndexEnd,
 	PatchSchema,
-	PatchSchemaArrayEntry,
 } from "../../../patchSchema/types";
 import {
 	CannotReduce,
 	type PatchAdd,
 	type PatchEntry,
+	type Patches,
 	PatchOp,
 	type PatchRemove,
 	type PatchReplace,
-	type Patches,
-	type Path,
 	type Targeted,
-	reducePatches,
 } from "../../patch";
 import type { IF } from "../../types";
-import type { ListSplit, ListView } from "./types";
+import type { ListView } from "./types";
 
 export type PatchSchemaListViewEntry<N, Elem> =
 	| { path: [number]; inner: PatchEntry<Elem> }
@@ -187,10 +183,10 @@ export const listReduce = <N extends WeakKey | null, Elem, Output>(
 		return rec(input);
 	};
 
-	const forwardReduceEntry = (
+	const _forwardReduceEntry = (
 		input: N,
-		entry: PatchSchemaListView<typeof elemSchema, N, Elem>,
-		output: Output,
+		_entry: PatchSchemaListView<typeof elemSchema, N, Elem>,
+		_output: Output,
 	): Patches<Output> => {
 		const m = view.analyze(input);
 		if (m === null) {
@@ -220,9 +216,9 @@ export const listReduce = <N extends WeakKey | null, Elem, Output>(
 	};
 
 	const forwardReduce = (
-		input: N,
+		_input: N,
 		change: Patches<N>,
-		output: Output,
+		_output: Output,
 	): Patches<Output> => {
 		const res = inputSchema.analyze(change);
 		if (res === null) {

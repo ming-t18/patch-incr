@@ -1,4 +1,4 @@
-import { type PatchEntry, PatchOp, type Path } from "../incr/patch";
+import { type PatchEntry, PatchOp } from "../incr/patch";
 import { constructDOM, fromAttrValue } from "./render";
 
 export const tryAccessElement = (

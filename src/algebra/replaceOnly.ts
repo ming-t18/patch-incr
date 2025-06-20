@@ -1,7 +1,7 @@
-import { type ApplyCombine, type DRO, ReplaceOnly } from ".";
 import type { IF } from "../incr/types";
+import { type ApplyCombine, type DRO, ReplaceOnly } from ".";
 
-export type { DRO, ApplyCombine, ReplaceOnly } from ".";
+export type { ApplyCombine, DRO, ReplaceOnly } from ".";
 
 /**
  * Incremental function that accepts only replace-only or no-change on both sides

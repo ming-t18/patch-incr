@@ -7,8 +7,9 @@ import {
 	isReplaceOnly,
 	makeReplaceOnly,
 } from "../algebra/replaceOnly";
-import type { PatchBuilder, Patches } from "./patch";
+import type { Patches } from "./patch";
 import type { IF, NoForwardOutput } from "./types";
+
 enablePatches();
 
 export const fromReducerOnDraft = <State, Action>(

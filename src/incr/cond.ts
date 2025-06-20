@@ -1,4 +1,4 @@
-import { type Patches, applyPatches, liftPatch, replacePatch } from "./patch";
+import { applyPatches, liftPatch, type Patches, replacePatch } from "./patch";
 import type { IF } from "./types";
 
 export type CondOutput<A, B> = [true, A] | [false, B];

@@ -7,9 +7,9 @@ import type {
 import type {
 	PatchAdd,
 	PatchEntry,
+	Patches,
 	PatchRemove,
 	PatchReplace,
-	Patches,
 	Targeted,
 } from "../incr/patch";
 

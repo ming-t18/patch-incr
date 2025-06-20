@@ -1,11 +1,9 @@
 import { encode } from "he";
-import type { DP } from "../dual";
-import type { Patches } from "../incr/patch";
 import type { IF } from "../incr/types";
 import type { Dispatch } from "./mount";
 import type {
-	AttrValue,
 	Attrs,
+	AttrValue,
 	ChildConstruction,
 	DOMConstruction,
 	ElementConstruction,

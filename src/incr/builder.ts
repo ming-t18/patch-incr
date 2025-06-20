@@ -1,13 +1,13 @@
 import {
-	type PatchEntry,
-	PatchOp,
-	type Patches,
-	type Targeted,
 	applyPatches,
 	liftPatch,
+	type PatchEntry,
+	type Patches,
+	PatchOp,
 	replacePatch,
+	type Targeted,
 } from "./patch";
-import type { IF, IFInv, NoForwardOutput, evaluate } from "./types";
+import type { evaluate, IF, IFInv, NoForwardOutput } from "./types";
 
 const _identity = <T>(x: T) => x;
 

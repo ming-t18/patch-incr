@@ -1,5 +1,5 @@
 import { type Observable, type OperatorFunction, scan } from "rxjs";
-import { PatchOp, type Patches, applyPatches } from "../incr/patch";
+import { applyPatches, type Patches } from "../incr/patch";
 import type { IF } from "../incr/types";
 
 export const scanPatch = <State, Action>(

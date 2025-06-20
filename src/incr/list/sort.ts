@@ -1,6 +1,6 @@
 import * as ps from "../../patchSchema";
 import type { PatchSchemaArrayEntry } from "../../patchSchema/types";
-import { CannotReduce, PatchOp, type Patches } from "../patch";
+import { CannotReduce, type Patches, PatchOp } from "../patch";
 import type { IF } from "../types";
 import { forwardWithArraySchema } from "./forwardList";
 

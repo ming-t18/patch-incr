@@ -1,5 +1,5 @@
 import { elem, elem0, elem0Events, elemEvents } from "../src/dom/construct";
-import { DOMRoot, type Dispatch } from "../src/dom/mount";
+import { type Dispatch, DOMRoot } from "../src/dom/mount";
 import type { RenderIF, StateDispatch } from "../src/dom/render";
 import type { ElementConstruction } from "../src/dom/types";
 import { bind } from "../src/incr/bind";
@@ -8,11 +8,11 @@ import { composeMemoL } from "../src/incr/compose/memo";
 import { map } from "../src/incr/list";
 import { access, accessPath, record, template } from "../src/incr/struct";
 import {
+	findById,
 	type TodoAction,
 	TodoActionType,
 	type TodoItem,
 	type TodoState,
-	findById,
 	todoReducer,
 } from "../src/todo_state";
 

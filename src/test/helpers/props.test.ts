@@ -1,10 +1,8 @@
-import { expect, jest } from "bun:test";
+import { expect } from "bun:test";
 import fc from "fast-check";
-import type { Dispatch } from "../../dom/mount";
-import type { ElementConstruction } from "../../dom/types";
 import {
-	type Patches,
 	applyPatches,
+	type Patches,
 	reduceReplaceRoot,
 } from "../../incr/patch";
 import type { IF } from "../../incr/types";
@@ -33,8 +31,8 @@ export const ensurePatchCoherent = <X, Y, DX = Patches<X>>(
 	//
 	let fail = false;
 	const xNext = apply(x, dx);
-	let y: Y | undefined = undefined;
-	let dy: Patches<Y> | undefined = undefined;
+	let y: Y | undefined;
+	let dy: Patches<Y> | undefined;
 	try {
 		y = f.evaluate(x);
 		dy = f.forward(x, dx, y);

@@ -1,7 +1,8 @@
 import { applyPatches as applyPatchesImmer, enablePatches } from "immer";
 import { IndexEnd } from "../patchSchema/types";
 import type { HasTypes } from "./typeHelpers";
-import type { Forward, evaluate } from "./types";
+import type { evaluate, Forward } from "./types";
+
 enablePatches();
 
 export type Path = (number | string)[];

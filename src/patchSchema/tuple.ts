@@ -1,4 +1,4 @@
-import type { DRO, InferApplyType } from "../algebra";
+import type { DRO } from "../algebra";
 import { makeReplaceOnly } from "../algebra/replaceOnly";
 import {
 	type PatchEntry,

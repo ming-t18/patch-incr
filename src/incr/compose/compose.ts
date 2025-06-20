@@ -1,6 +1,6 @@
 import { isReplaceOnly } from "../../algebra/replaceOnly";
 import * as ps from "../../patchSchema";
-import { type Patches, applyPatches, replacePatch } from "../patch";
+import { applyPatches, type Patches, replacePatch } from "../patch";
 import type { IF } from "../types";
 
 /**

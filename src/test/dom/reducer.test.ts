@@ -1,7 +1,7 @@
 import fc, { type ArrayConstraints } from "fast-check";
 import { elem, elem0 } from "../../dom/construct";
 import { tryAccessElement } from "../../dom/reducer";
-import { constructDOM, renderToString } from "../../dom/render";
+import { constructDOM } from "../../dom/render";
 import type {
 	Attrs,
 	ChildConstruction,
@@ -10,6 +10,7 @@ import type {
 	TextConstruction,
 } from "../../dom/types";
 import { PatchOp, type Path } from "../../incr/patch";
+
 const arbPathOnValue = (_value: unknown): fc.Arbitrary<Path> => {
 	throw new Error("TODO");
 };
@@ -24,7 +25,7 @@ const arbText = (): fc.Arbitrary<TextConstruction> =>
 
 const arbAttrName = () => fc.stringMatching(/^[a-zA-Z]{1,10}$/);
 
-const tags = ["a", "div", "span", "form", "h1", "h2", "h3", "h4", "h5", "h6"];
+const _tags = ["a", "div", "span", "form", "h1", "h2", "h3", "h4", "h5", "h6"];
 // const arbTagName = () => fc.constantFrom(...tags);
 const arbTagName = () => fc.stringMatching(/^[a-zA-Z]{1,10}$/);
 

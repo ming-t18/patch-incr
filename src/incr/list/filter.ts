@@ -8,8 +8,8 @@ import {
 import {
 	type CannotReduce,
 	type PatchEntry,
-	PatchOp,
 	type Patches,
+	PatchOp,
 } from "../patch";
 import type { IF } from "../types";
 import { forwardWithArraySchema } from "./forwardList";
