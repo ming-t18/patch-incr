@@ -1,26 +1,33 @@
 import type { ChangeBuilder } from "../../algebra";
+import { getReplaceOnly, isReplaceOnly } from "../../algebra/replaceOnly";
 import * as ps from "../../patchSchema";
-import { IndexEnd } from "../../patchSchema/types";
+import {
+	IndexEnd,
+	type PatchSchema,
+	type PatchSchemaArrayEntry,
+} from "../../patchSchema/types";
 import {
 	CannotReduce,
 	type PatchEntry,
-	PatchOp,
 	type Patches,
-	type Path,
-	liftPatch,
-	reducePatches,
+	PatchOp,
 	reduceReplaceRoot,
 	replacePatch,
 } from "../patch";
 import type { IF } from "../types";
 import { splice } from "./arrayPatchHelpers";
+import { forwardWithArraySchema } from "./forwardList";
 import { scan } from "./scan";
 
 export const concat = <T>(): IF<T[][], [T[], number[]]> => {
 	const elemSchema = ps.atomic<T>();
+	const inArraySchema = ps.array(elemSchema);
+	const inputSchema = ps.array(inArraySchema) satisfies PatchSchema<T[][]>;
 	const csumSchema = ps.array(ps.atomic<number>());
 	const concatSchema = ps.array(elemSchema);
-	const outSchema = ps.tuple(concatSchema, csumSchema);
+	const outSchema = ps.tuple(concatSchema, csumSchema) satisfies PatchSchema<
+		[T[], number[]]
+	>;
 
 	const csum = scan((acc: number, { length }: T[]) => acc + length, 0);
 	const evaluateCombine = (xs: T[][]): T[] => {
@@ -40,50 +47,72 @@ export const concat = <T>(): IF<T[][], [T[], number[]]> => {
 		csum.evaluate(xss),
 	];
 
-	const forwardConcat = reducePatches(
+	const forwardConcat = forwardWithArraySchema(
+		inputSchema,
+		outSchema,
 		evaluateConcat,
 		(
 			xs1: T[][],
-			entry0: PatchEntry<T[][]>,
+			entryOuter: PatchSchemaArrayEntry<T[]>,
 			[_ys, cys]: [T[], number[]],
 		): Patches<[T[], number[]]> | CannotReduce => {
 			if (xs1.length === 0) {
 				return CannotReduce;
 			}
 
-			const entry = entry0;
-			if (entry === null) {
-				return CannotReduce;
-			}
-			const path = entry.path;
-			if (path.length === 0) {
-				return CannotReduce;
-			}
-
+			const path = entryOuter.path;
 			const index = path[0] === IndexEnd ? xs1.length : (path[0] as number);
 			const indexMapped = index === 0 ? 0 : cys[index - 1];
 			let listPatches: Patches<T[]> | null = null;
-			if (entry.path.length > 1) {
-				const off = path[1];
-				if (typeof off !== "number") {
-					return CannotReduce;
+			if ("inner" in entryOuter) {
+				const entryOnInArray: PatchEntry<T[]> = entryOuter.inner;
+				const resInArray = inArraySchema.analyze(
+					inArraySchema.fromPatchEntries([entryOnInArray]),
+				);
+				if (resInArray === null) {
+					return outSchema.empty;
 				}
-				const tail = path.slice(2);
-				listPatches = [
-					{
-						...entry,
-						path: [indexMapped + off, ...tail],
-					},
-				] as Patches<T[]>;
+				if (isReplaceOnly(resInArray)) {
+					const builder: ChangeBuilder<Patches<T[]>> = concatSchema.builder();
+					const toRemove = (xs1[indexMapped] as T[]).length;
+					const toAdd: T[] = getReplaceOnly(resInArray);
+					builder.append(splice(indexMapped, toRemove, toAdd));
+					listPatches = builder.build();
+				} else if (resInArray.length !== 1) {
+					throw new Error("not possible");
+				} else {
+					const entryElem = resInArray[0];
+					if ("inner" in entryElem) {
+						const off = entryElem.path[0];
+						listPatches = concatSchema.liftIndex(
+							indexMapped + off,
+							elemSchema.fromPatchEntries([entryElem.inner]),
+						);
+					} else {
+						const off =
+							entryElem.path[0] === IndexEnd
+								? xs1[index].length
+								: entryElem.path[0];
+						listPatches = concatSchema.fromPatchEntries([
+							{ ...entryElem, path: [indexMapped + off] },
+						]);
+					}
+				}
 			} else {
 				const builder: ChangeBuilder<Patches<T[]>> = concatSchema.builder();
 				let toRemove = 0;
-				if (entry.op === PatchOp.Remove || entry.op === PatchOp.Replace) {
+				if (
+					entryOuter.op === PatchOp.Remove ||
+					entryOuter.op === PatchOp.Replace
+				) {
 					toRemove = (xs1[index] as T[]).length;
 				}
 				let toAdd: T[] = [];
-				if (entry.op === PatchOp.Add || entry.op === PatchOp.Replace) {
-					toAdd = entry.value;
+				if (
+					entryOuter.op === PatchOp.Add ||
+					entryOuter.op === PatchOp.Replace
+				) {
+					toAdd = entryOuter.value;
 				}
 				builder.append(splice(indexMapped, toRemove, toAdd));
 				listPatches = builder.build();
@@ -92,7 +121,11 @@ export const concat = <T>(): IF<T[][], [T[], number[]]> => {
 			if (listPatches === null) {
 				return CannotReduce;
 			}
-			const csumPatches = csum.forward(xs1, [entry0], cys);
+			const csumPatches = csum.forward(
+				xs1,
+				inputSchema.fromEntries([entryOuter]),
+				cys,
+			);
 			return outSchema.combine(
 				outSchema.liftIndex(0, listPatches),
 				outSchema.liftIndex(1, csumPatches),
