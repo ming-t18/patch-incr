@@ -1,5 +1,5 @@
 import type { IF } from "../types";
-import { forwardMapPatches } from "./forwardArray";
+import { forwardMapPatches } from "./helpers/forwardArray";
 
 export const map = <Input, Output>(
 	f: IF<Input, Output>,

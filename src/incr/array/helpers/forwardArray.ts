@@ -1,13 +1,13 @@
-import type { InferApplyType } from "../../algebra";
-import { getReplaceOnly, isReplaceOnly } from "../../algebra/replaceOnly";
-import * as ps from "../../patchSchema";
+import type { InferApplyType } from "../../../algebra";
+import { getReplaceOnly, isReplaceOnly } from "../../../algebra/replaceOnly";
+import * as ps from "../../../patchSchema";
 import type {
 	AnyPatchSchema,
 	IndexEnd,
 	PatchSchema,
 	PatchSchemaArray,
 	PatchSchemaArrayEntry,
-} from "../../patchSchema/types";
+} from "../../../patchSchema/types";
 import {
 	CannotReduce,
 	type PatchAdd,
@@ -17,8 +17,8 @@ import {
 	type PatchReplace,
 	type Path,
 	type Targeted,
-} from "../patch";
-import type { IF } from "../types";
+} from "../../patch";
+import type { IF } from "../../types";
 
 export const forwardWithArraySchema =
 	<

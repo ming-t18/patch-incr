@@ -3,8 +3,8 @@ import * as ps from "../../patchSchema";
 import { IndexEnd } from "../../patchSchema/types";
 import { type PatchEntry, type Patches, PatchOp } from "../patch";
 import type { IF } from "../types";
-import { splice } from "./arrayPatchHelpers";
-import { getMinUpdatedIndex } from "./forwardArray";
+import { splice } from "./helpers/arrayPatch";
+import { getMinUpdatedIndex } from "./helpers/forwardArray";
 
 export const zip = <A, B>(): IF<[A[], B[]], [A, B][]> => {
 	const leftSchema = ps.atomic<A>();

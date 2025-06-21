@@ -9,7 +9,7 @@ import {
 	slice,
 	zip,
 } from "../incr/array";
-import { getMinUpdatedIndex } from "../incr/array/forwardArray";
+import { getMinUpdatedIndex } from "../incr/array/helpers/forwardArray";
 import {
 	bisectEquals,
 	bisectLeft,

@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { splice, swap } from "../incr/array/arrayPatchHelpers";
+import { splice, swap } from "../incr/array/helpers/arrayPatch";
 import { applyPatches } from "../incr/patch";
 
 describe("arrayPathHelper", () => {
