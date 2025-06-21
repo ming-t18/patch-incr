@@ -3,7 +3,7 @@ import * as ps from "../../patchSchema";
 import type { Patches } from "../patch";
 import type { IF } from "../types";
 import { splice } from "./arrayPatchHelpers";
-import { getMinUpdatedIndex } from "./forwardList";
+import { getMinUpdatedIndex } from "./forwardArray";
 
 export const scan = <T, Acc>(
 	func: (acc: Acc, value: T) => Acc,

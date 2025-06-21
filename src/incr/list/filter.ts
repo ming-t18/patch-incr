@@ -12,7 +12,7 @@ import {
 	PatchOp,
 } from "../patch";
 import type { IF } from "../types";
-import { forwardWithArraySchema } from "./forwardList";
+import { forwardWithArraySchema } from "./forwardArray";
 import { scan } from "./scan";
 
 const forwardFilterInternal = <T, S extends PatchSchema<T>>(

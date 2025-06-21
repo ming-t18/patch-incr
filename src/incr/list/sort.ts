@@ -2,7 +2,7 @@ import * as ps from "../../patchSchema";
 import type { PatchSchemaArrayEntry } from "../../patchSchema/types";
 import { CannotReduce, type Patches, PatchOp } from "../patch";
 import type { IF } from "../types";
-import { forwardWithArraySchema } from "./forwardList";
+import { forwardWithArraySchema } from "./forwardArray";
 
 /**
  * Binary search a sorted array where the strictly greater elements are on the right.

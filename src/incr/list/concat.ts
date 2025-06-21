@@ -16,7 +16,7 @@ import {
 } from "../patch";
 import type { IF } from "../types";
 import { splice } from "./arrayPatchHelpers";
-import { forwardWithArraySchema } from "./forwardList";
+import { forwardWithArraySchema } from "./forwardArray";
 import { scan } from "./scan";
 
 export const concat = <T>(): IF<T[][], [T[], number[]]> => {

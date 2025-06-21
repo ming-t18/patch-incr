@@ -11,7 +11,7 @@ import {
 	slice,
 	zip,
 } from "../incr/list";
-import { getMinUpdatedIndex } from "../incr/list/forwardList";
+import { getMinUpdatedIndex } from "../incr/list/forwardArray";
 import { bisectEquals, bisectLeft, bisectRight, sort } from "../incr/list/sort";
 import { applyPatches, liftPatch, type Patches, PatchOp } from "../incr/patch";
 import { access, record } from "../incr/struct";
