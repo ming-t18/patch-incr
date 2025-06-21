@@ -2,10 +2,10 @@ import { elem, elem0, elem0Events, elemEvents } from "../src/dom/construct";
 import { type Dispatch, DOMRoot } from "../src/dom/mount";
 import type { RenderIF, StateDispatch } from "../src/dom/render";
 import type { ElementConstruction } from "../src/dom/types";
+import { map } from "../src/incr/array";
 import { bind } from "../src/incr/bind";
 import { atomicFunc, constant } from "../src/incr/builder";
 import { composeMemoL } from "../src/incr/compose/memo";
-import { map } from "../src/incr/list";
 import { access, accessPath, record, template } from "../src/incr/struct";
 import {
 	findById,

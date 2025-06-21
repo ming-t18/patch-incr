@@ -1,8 +1,8 @@
 import fc from "fast-check";
 import { isReplaceOnly } from "../algebra/replaceOnly";
+import { filter } from "../incr/array";
 import { bind } from "../incr/bind";
 import { compose, composeNoInterm } from "../incr/compose";
-import { filter } from "../incr/list";
 import { access } from "../incr/struct";
 import { assocRight } from "../incr/tuple";
 import * as ps from "../patchSchema";

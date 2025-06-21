@@ -1,6 +1,4 @@
 import fc from "fast-check";
-import { atomicFunc, identity } from "../incr/builder";
-import { IFGraphBuilder } from "../incr/graphBuilder";
 import {
 	concat,
 	filter,
@@ -10,9 +8,16 @@ import {
 	seq,
 	slice,
 	zip,
-} from "../incr/list";
-import { getMinUpdatedIndex } from "../incr/list/forwardArray";
-import { bisectEquals, bisectLeft, bisectRight, sort } from "../incr/list/sort";
+} from "../incr/array";
+import { getMinUpdatedIndex } from "../incr/array/forwardArray";
+import {
+	bisectEquals,
+	bisectLeft,
+	bisectRight,
+	sort,
+} from "../incr/array/sort";
+import { atomicFunc, identity } from "../incr/builder";
+import { IFGraphBuilder } from "../incr/graphBuilder";
 import { applyPatches, liftPatch, type Patches, PatchOp } from "../incr/patch";
 import { access, record } from "../incr/struct";
 import type { IF, InferIFOutput } from "../incr/types";
