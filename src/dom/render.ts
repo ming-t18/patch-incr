@@ -1,13 +1,15 @@
 import { encode } from "he";
 import type { IF } from "../incr/types";
+import { setAttributeFromConstruction } from "./construct";
+import { setEventHandlers } from "./events/eventManager";
 import type { Dispatch } from "./mount";
-import type {
-	Attrs,
-	AttrValue,
-	ChildConstruction,
-	DOMConstruction,
-	ElementConstruction,
-	Events,
+import {
+	type Attrs,
+	type AttrValue,
+	type ChildConstruction,
+	type DOMConstruction,
+	type ElementConstruction,
+	isElementConstruction,
 } from "./types";
 
 export interface StateDispatch<State, Action> {
@@ -26,33 +28,37 @@ export type RenderIF<State, Action> = IF<
 >;
 
 export const fromAttrValue = (x: AttrValue): string =>
-	typeof x === "string" ? x : `${x}`;
+	x === null || typeof x === "undefined"
+		? ""
+		: typeof x === "string"
+			? x
+			: `${x}`;
 
 export const constructChild = (
 	child: ChildConstruction,
 	doc = document,
 	addEvents = true,
-): Element | string | null => {
+): Element | Text | null => {
 	if (typeof child === "undefined" || child === false || child === null) {
 		return null;
 	}
 	if (typeof child === "object") {
 		return constructDOM(child, doc, addEvents);
 	}
-	return fromAttrValue(child);
+	return doc.createTextNode(String(child));
 };
 
-export const setEventHandlers = (
+export const addChildrenFromConstruction = (
 	el: Element,
-	events: Events | null | undefined,
+	children: ChildConstruction[],
+	doc = document,
+	addEvents = true,
 ) => {
-	if (!events) {
-		return;
-	}
-
-	for (const [name, handler] of Object.entries(events)) {
-		// @ts-expect-error Avoid type checking for specific events/handlers
-		el.addEventListener(name, handler);
+	for (const child of children) {
+		const ch = constructChild(child, doc, addEvents);
+		if (ch) {
+			el.appendChild(typeof ch === "string" ? doc.createTextNode(ch) : ch);
+		}
 	}
 };
 
@@ -60,12 +66,16 @@ export const constructDOM = (
 	c: DOMConstruction,
 	doc = document,
 	addEvents = true,
-): Element => {
+): Element | Text => {
+	if (!isElementConstruction(c)) {
+		return doc.createTextNode(String(c));
+	}
+
 	const el = doc.createElement(c.tag);
 	if (c.attrs) {
 		for (const [attrName, attr] of Object.entries(c.attrs)) {
 			if (attr !== undefined && attr !== null) {
-				el.setAttribute(attrName, fromAttrValue(attr));
+				setAttributeFromConstruction(el, attrName, fromAttrValue(attr));
 			}
 		}
 	}
@@ -75,24 +85,19 @@ export const constructDOM = (
 	}
 
 	if (c.children) {
-		for (const child of c.children) {
-			const ch = constructChild(child, doc, addEvents);
-			if (ch) {
-				el.appendChild(typeof ch === "string" ? doc.createTextNode(ch) : ch);
-			}
-		}
+		const children = c.children;
+		addChildrenFromConstruction(el, children, doc, addEvents);
 	}
 	return el;
 };
-
 function* renderAttrsToString(attrs: Attrs | null | undefined) {
 	if (!attrs) {
 		return;
 	}
 
-	for (const [attrName, attr] of Object.entries(attrs)) {
-		if (attr !== null && attr !== undefined) {
-			yield ` ${attrName}="${encode(fromAttrValue(attr))}"`;
+	for (const [attr, value] of Object.entries(attrs)) {
+		if (!(value === null || typeof value === "undefined" || value === false)) {
+			yield ` ${attr}="${encode(fromAttrValue(value))}"`;
 		}
 	}
 }
@@ -133,15 +138,15 @@ export function* renderToStringGen(
 export const renderToString = (c: DOMConstruction) =>
 	[...renderToStringGen(c)].join("");
 
-export const hydrate = (el: Element, c: DOMConstruction) => {
-	setEventHandlers(el, c.events);
-	const { children } = c;
+export const hydrate = (el: Element, domc: DOMConstruction) => {
+	setEventHandlers(el, domc.events);
+	const { children } = domc;
 	if (!children) {
 		return;
 	}
 
-	if (el.tagName !== c.tag.toUpperCase()) {
-		console.warn("hydrate: mismatch: tag name", el, c);
+	if (el.tagName !== domc.tag.toUpperCase()) {
+		console.warn("hydrate: mismatch: tag name", el, domc);
 	}
 
 	let childElem = el.firstElementChild;
@@ -153,10 +158,14 @@ export const hydrate = (el: Element, c: DOMConstruction) => {
 		const child = children[i];
 		if (!childElem) {
 			if (child !== null && child !== undefined) {
-				console.warn("hydrate: mismatch: children", {
-					existingElem: el,
-					newConstruction: c,
-				});
+				console.warn(
+					"hydrate: mismatch: children: actual children list has fewer children than domc",
+					{
+						existingElem: el,
+						newConstruction: domc,
+						domcIndex: i,
+					},
+				);
 			}
 			break;
 		}
@@ -168,6 +177,9 @@ export const hydrate = (el: Element, c: DOMConstruction) => {
 	}
 
 	if (childElem?.nextElementSibling) {
-		console.warn("hydrate: mismatch: children", { elem: childElem });
+		console.warn(
+			"hydrate: mismatch: children: actual children list has surplus children compared to domc",
+			{ elem: childElem },
+		);
 	}
 };

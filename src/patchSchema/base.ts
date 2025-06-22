@@ -7,7 +7,6 @@ import {
 	reduceReplaceRoot,
 	replacePatch,
 } from "../incr/patch";
-import type { TypesKey } from "../incr/typeHelpers";
 import type { PatchSchema } from "./types";
 
 const EMPTY: readonly never[] = Object.freeze([]);

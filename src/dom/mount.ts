@@ -3,12 +3,8 @@ import { applyPatches, type Patches } from "../incr/patch";
 import type { IF, NoForwardOutput } from "../incr/types";
 import * as gp from "../patchSchema";
 import { type ForwardPatchEntry, forwardPatch } from "../rxjs";
-import {
-	hydrate,
-	type RenderIF,
-	renderToString,
-	type StateDispatch,
-} from "./render";
+import { patchDOM, renderDOM } from "./patch";
+import type { RenderIF, StateDispatch } from "./render";
 import type { DOMConstruction, ElementConstruction } from "./types";
 
 export type Dispatch<Action> = (action: Action) => void;
@@ -102,28 +98,33 @@ export class DOMRoot<State, Action> {
 		const actions$ = this.#actions$;
 
 		const teardowns: TeardownLogic[] = [];
+		let isFirst = true;
 		teardowns.push(
 			this.#domChanges$.subscribe((obj) => {
 				const {
 					input: state,
 					output: domc,
 					dInput: stateChanges,
-					dOutput: domChanges,
+					dOutput: domcChanges,
 				} = obj;
-				const string = renderToString(domc);
-				root.innerHTML = string;
-				console.log("render change", {
-					state,
-					dom: { string, domc },
-					stateChanges,
-					domChanges,
-				});
-				const node = root.firstElementChild;
-				if (!node) {
-					console.warn("DOMRoot.render: is empty");
-					return;
+				if (isFirst) {
+					renderDOM(root, domc);
+					isFirst = false;
+					console.log("First Render ---", {
+						state,
+						domc,
+					});
+				} else {
+					patchDOM(root, domc, domcChanges);
+					console.log("DOM Patches ---", {
+						state,
+						domc,
+						changes: {
+							state: stateChanges,
+							domc: domcChanges,
+						},
+					});
 				}
-				hydrate(node, domc);
 			}),
 		);
 

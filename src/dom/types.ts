@@ -28,3 +28,9 @@ export interface ElementConstruction {
 }
 
 export type DOMConstruction = ElementConstruction;
+
+export const isElementConstruction = (
+	domc: ChildConstruction | null | undefined,
+): domc is ElementConstruction => {
+	return !!domc && typeof domc === "object" && "tag" in domc;
+};

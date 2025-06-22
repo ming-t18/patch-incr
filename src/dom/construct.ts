@@ -68,7 +68,19 @@ export const tryGetEventName = (key: string): string | null => {
 	return null;
 };
 
-export const setProps = (el: HTMLElement, props: Props) => {
+export const setAttributeFromConstruction = (
+	el: Element,
+	attr: string,
+	value: AttrValue,
+) => {
+	if (value === null || value === false || typeof value === "undefined") {
+		el.removeAttribute(attr);
+	} else {
+		el.setAttribute(attr, fromAttrValue(value));
+	}
+};
+
+export const setProps = (el: Element, props: Props) => {
 	for (const [key, value] of Object.entries(props)) {
 		const event = tryGetEventName(key);
 		if (event !== null) {
@@ -87,7 +99,7 @@ export const setProps = (el: HTMLElement, props: Props) => {
 		}
 
 		if (value !== undefined && value !== null) {
-			el.setAttribute(key, fromAttrValue(value as never));
+			setAttributeFromConstruction(el, key, value as AttrValue);
 		}
 	}
 };
