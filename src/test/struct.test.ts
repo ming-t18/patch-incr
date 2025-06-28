@@ -46,9 +46,11 @@ describe("template", () => {
 		(slots) => ({
 			test: 123,
 			assign1: slots.assign1,
+			assign2: slots.assign1,
 			record1: {
 				xyz: "value",
 				abc: [1, slots.number1],
+				def: slots.number1,
 			},
 		}),
 	);

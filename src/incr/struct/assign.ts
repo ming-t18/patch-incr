@@ -38,41 +38,36 @@ export const assign = <Input, Output>(
 	};
 };
 
-const findPath = (
+function* findPaths(
 	obj: unknown,
 	value: unknown,
 	path: Path = [],
-): Path | null => {
+): Generator<Path, void, void> {
 	if (obj instanceof TemplatePlaceholder) {
-		return Object.is(obj, value) ? path : null;
+		if (Object.is(obj, value)) {
+			yield path;
+		}
+		return;
 	}
 
 	if (Object.is(obj, value)) {
-		return path;
+		yield path;
+		return;
 	}
 
 	if (Array.isArray(obj)) {
 		for (let i = 0; i < obj.length; i++) {
-			const res = findPath(obj[i], value, [...path, i]);
-			if (res !== null) {
-				return res;
-			}
+			yield* findPaths(obj[i], value, [...path, i]);
 		}
-		return null;
+		return;
 	}
 
 	if (obj !== null && typeof obj === "object") {
 		for (const [key, objValue] of Object.entries(obj)) {
-			const res = findPath(objValue, value, [...path, key]);
-			if (res !== null) {
-				return res;
-			}
+			yield* findPaths(objValue, value, [...path, key]);
 		}
-		return null;
 	}
-
-	return null;
-};
+}
 
 type InferTemplateSlots<Evals extends Record<string, IF<unknown, unknown>>> = {
 	[key in keyof Evals]: InferIFOutput<Evals[key]>;
@@ -179,16 +174,18 @@ export const template = <
 	const changes: { path: Path; getValue: IF<Input, unknown> }[] = [];
 	const notTaken = new Set(keys);
 	for (const key of keys) {
-		const path = findPath(template1, inputSlots[key]);
-		if (!path) {
+		const paths = [...findPaths(template1, inputSlots[key])];
+		if (paths.length === 0) {
 			continue;
 		}
 
 		notTaken.delete(key);
-		changes.push({
-			path,
-			getValue: varSlots[key] as never,
-		});
+		for (const path of paths) {
+			changes.push({
+				path,
+				getValue: varSlots[key] as never,
+			});
+		}
 	}
 
 	const { forward } = assign(() => template1, changes);
