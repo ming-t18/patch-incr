@@ -7,6 +7,7 @@ import {
 	reduceReplaceRoot,
 	replacePatch,
 } from "../incr/patch";
+import type { TypesKey } from "../incr/typeHelpers";
 import type { PatchSchema } from "./types";
 
 const EMPTY: readonly never[] = Object.freeze([]);
@@ -69,3 +70,6 @@ export class BasePatchSchema<T> implements PatchSchema<T> {
 
 	declare readonly [TypesKey]: { value: T; change: Patches<T> };
 }
+
+// @ts-ignore TS6169
+type _DontEliminateWorkaround = TypesKey;
