@@ -1,4 +1,5 @@
 import { applyPatches as applyPatchesImmer, enablePatches } from "immer";
+import { get } from "lodash-es";
 import { IndexEnd } from "../patchSchema/types";
 import type { HasTypes } from "./typeHelpers";
 import type { evaluate, Forward } from "./types";
@@ -30,6 +31,24 @@ export interface PatchReplace<P extends Path = Path, V = any> {
 	op: PatchOp.Replace;
 	path: P;
 	value: V;
+}
+
+export interface PatchMove<P extends Path = Path> {
+	op: "move";
+	from: P;
+	path: P;
+}
+
+export interface PatchCopy<P extends Path = Path> {
+	op: "copy";
+	from: P;
+	path: P;
+}
+
+export interface PatchSwap<P extends Path = Path> {
+	op: "swap";
+	from: P;
+	path: P;
 }
 
 export type Targeted<T> = HasTypes<"patchTarget", T>;
@@ -163,47 +182,92 @@ export class PatchBuilder<Target = any> {
 export const isAtomicValue = (value: unknown): boolean =>
 	value === null || typeof value !== "object";
 
-export const applyPatches = <T>(value: T, patches: Patches): T => {
+export class ApplyPatchesError extends Error {}
+
+const applyPatchEntryBase = <T>(value: T, entry: PatchEntry<T, []>): T => {
+	const { op } = entry;
+	if (op === PatchOp.Add) {
+		if (value === undefined) {
+			return entry.value;
+		} else {
+			throw new ApplyPatchesError("add: cannot add to an non-undefined value");
+		}
+	} else if (op === PatchOp.Remove) {
+		return undefined as T;
+	} else if (op === PatchOp.Replace) {
+		return entry.value as T;
+	}
+
+	throw new ApplyPatchesError(`invalid patchOp: ${op}`);
+};
+
+const applyGet = <T, Result>(value: T, path: Path): Result =>
+	get(value, path) as Result;
+
+const applyRemove = <T, Deleted = unknown>(
+	value: T,
+	path: Path,
+): [T, Deleted] => {
+	const deleted = get(value, path) as Deleted;
+	const applied = applyPatchesImmer(value as never, [{ op: "remove", path }]);
+	return [applied, deleted];
+};
+
+const applyAssign = <T, Assign = unknown>(
+	value: T,
+	path: Path,
+	assignment: Assign,
+): T =>
+	applyPatchesImmer(value as never, [
+		{ op: "replace", path, value: assignment },
+	]);
+
+const applyMove = <T>(value: T, entry: PatchMove): T => {
+	const [value1, deleted] = applyRemove(value, entry.from);
+	return applyAssign<T>(value1, entry.path, deleted as never);
+};
+
+const applyCopy = <T>(value: T, entry: PatchCopy): T => {
+	const toCopy = applyGet(value, entry.from);
+	return applyAssign<T>(value, entry.path, toCopy as never);
+};
+
+const applySwap = <T>(value: T, entry: PatchSwap): T => {
+	const a = applyGet(value, entry.from);
+	const b = applyGet(value, entry.path);
+	return applyAssign(applyAssign(value, entry.path, a), entry.from, b);
+};
+
+const applyEntry = <T>(value: T, entry: PatchEntry<T>): T =>
+	applyPatchesImmer(value as never, [entry]) as T;
+
+export const applyPatches = <T>(value: T, patches: Patches<T>): T => {
 	if (patches.length === 0) {
 		return value;
 	}
 
-	for (const patch of patches) {
-		if (patch.path.length === 0 && patch.op === PatchOp.Remove) {
-			// deletes key makes value undefined
-			return undefined as T;
-		}
-	}
-
-	if (value !== null && typeof value === "object") {
-		return applyPatchesImmer(value, patches);
-	}
-
-	let value1: unknown = value;
-	for (let i = 0; i < patches.length; i++) {
-		// const value0 = value;
-		const patch = patches[i];
-		if (patch.path.length > 0) {
-			if (value1 === null || typeof value1 !== "object") {
-				// console.error("applyPatches fail", { patch, value1, value, patches });
-				throw new Error(
-					"applyPatches: cannot apply non-root patch on atomic value.",
-				);
-			}
-			return applyPatches(value1, patches.slice(i)) as T;
+	let value1: T = value;
+	for (const entry of patches) {
+		const { op, path } = entry;
+		if (path.length === 0) {
+			value1 = applyPatchEntryBase(value1, entry as PatchEntry<T, []>);
+			continue;
 		}
 
-		if (patch.op === PatchOp.Add) {
-			throw new Error("applyPatches: cannot add on atomic value.");
-		}
-
-		if (patch.op === PatchOp.Replace) {
-			value1 = patch.value;
+		if (op === PatchOp.Add || op === PatchOp.Remove || op === PatchOp.Replace) {
+			value1 = applyEntry(value1, entry);
+		} else if ((op as string) === "move") {
+			value1 = applyMove(value1, entry);
+		} else if ((op as string) === "copy") {
+			value1 = applyCopy(value1, entry);
+		} else if ((op as string) === "swap") {
+			value1 = applySwap(value1, entry);
 		} else {
-			throw new Error(`applyPatches: unsupported patch: ${patch.op}.`);
+			throw new ApplyPatchesError(`invalid patchOp: ${op}`);
 		}
 	}
-	return value1 as T;
+
+	return value1;
 };
 
 export const canApplyPatches = <T>(value: T, patches: Patches) => {
