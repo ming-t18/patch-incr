@@ -7,7 +7,7 @@ import {
 	replacePatch,
 	type Targeted,
 } from "./patch";
-import type { evaluate, IF, IFInv, NoForwardOutput } from "./types";
+import type { Evaluate, IF, IFInv, NoForwardOutput } from "./types";
 
 const _identity = <T>(x: T) => x;
 
@@ -41,7 +41,7 @@ export const constant = <
 };
 
 export const atomicFunc = <Input, Output>(
-	evaluate: evaluate<Input, Output>,
+	evaluate: Evaluate<Input, Output>,
 ): IF<Input, Output, Patches<Input>, Patches<Output>> => {
 	const forwardAtomicFunc = (
 		input: Input,

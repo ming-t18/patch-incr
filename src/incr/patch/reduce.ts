@@ -1,4 +1,4 @@
-import type { evaluate, Forward } from "../types";
+import type { Evaluate, Forward } from "../types";
 import { applyPatches } from "./apply";
 import { isReplaceRoot } from "./helpers";
 import type { PatchEntry, Patches } from "./types";
@@ -35,7 +35,7 @@ export type ReduceEntry<Input, Output> = (
 
 export const reducePatches =
 	<Input, Output>(
-		evaluate: evaluate<Input, Output>,
+		evaluate: Evaluate<Input, Output>,
 		reduceEntry: ReduceEntry<Input, Output>,
 	): Forward<Input, Output> =>
 	(input: Input, patches: Patches, output: Output) => {

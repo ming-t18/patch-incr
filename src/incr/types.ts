@@ -22,7 +22,7 @@ export type AnyApply = Apply<any, any>;
 // biome-ignore lint/suspicious/noExplicitAny: intentional
 export type AnyApplyCombine = ApplyCombine<any, any>;
 
-export type evaluate<Input, Output> = (input: Input) => Output;
+export type Evaluate<Input, Output> = (input: Input) => Output;
 
 export type NoForwardOutput = false;
 export type HasForwardOutput = true | false;
@@ -44,7 +44,7 @@ export interface IncrementalFunction<
 	OutputChange = Patches<Output>,
 	ForwardOutput extends boolean = HasForwardOutput,
 > {
-	evaluate: evaluate<Input, Output>;
+	evaluate: Evaluate<Input, Output>;
 	forward: Forward<Input, Output, InputChange, OutputChange, ForwardOutput>;
 	[TypesKey]?: {
 		input: Input;
