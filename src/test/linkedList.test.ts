@@ -89,7 +89,7 @@ describe("LinkedList", () => {
 			fc.assert(
 				fc.property(gp.array(gp.integer()).arb(), ({ value, patches }) => {
 					const list = create(value);
-					const list1 = applyPatches(list, patches);
+					const list1 = applyPatches(list, patches as never);
 					const arr1 = applyPatches(value, patches);
 					expect([...list1]).toStrictEqual(arr1);
 				}),

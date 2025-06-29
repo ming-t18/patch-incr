@@ -9,7 +9,10 @@ export const assign = <Input, Output>(
 	const evaluateAssign = (input: Input) => {
 		let value: Output = getInitial();
 		for (const { path, getValue } of changes) {
-			value = applyPatches(value, replacePatch(getValue.evaluate(input), path));
+			value = applyPatches(
+				value,
+				replacePatch(getValue.evaluate(input), path),
+			) as never;
 		}
 		return value;
 	};
