@@ -1,5 +1,10 @@
-import { get } from "lodash-es";
-import { applyPatches, type Patches, type Path, replacePatch } from "../patch";
+import {
+	applyGet,
+	applyPatches,
+	type Patches,
+	type Path,
+	replacePatch,
+} from "../patch";
 import type { AnyIF, IF, InferIFInput, InferIFOutput } from "../types";
 
 export const assign = <Input, Output>(
@@ -24,7 +29,7 @@ export const assign = <Input, Output>(
 	): Patches<Output> => {
 		const dy: Patches<Output> = [];
 		for (const { path, getValue } of changes) {
-			const dy1 = getValue.forward(input, dx, get(output, path));
+			const dy1 = getValue.forward(input, dx, applyGet(output, path));
 			for (const entry of dy1) {
 				dy.push({
 					...entry,

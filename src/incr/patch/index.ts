@@ -1,4 +1,4 @@
-export { applyPatches, canApplyPatches } from "./apply";
+export { applyGet, applyPatches, canApplyPatches } from "./apply";
 export {
 	addPatch,
 	combinePatches,

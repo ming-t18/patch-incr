@@ -1,5 +1,4 @@
 import { applyPatches as applyPatchesImmer, enablePatches } from "immer";
-import get from "lodash-es/get";
 import type {
 	PatchCopy,
 	PatchEntry,
@@ -14,14 +13,21 @@ enablePatches();
 
 export class ApplyPatchesError extends Error {}
 
-const applyGet = <T, Result>(value: T, path: Path): Result =>
-	get(value, path) as Result;
+export const applyGet = <T, Result = unknown>(value: T, path: Path): Result => {
+	let value1: unknown = value;
+	for (let i = 0; i < path.length; i++) {
+		const k = path[i];
+		// @ts-expect-error Can't be checked
+		value1 = value1 instanceof Map ? value1.get(k) : value1[k];
+	}
+	return value1 as never;
+};
 
 const applyRemove = <T, Deleted = unknown>(
 	value: T,
 	path: Path,
 ): [T, Deleted] => {
-	const deleted = get(value, path) as Deleted;
+	const deleted = applyGet(value, path) as Deleted;
 	const applied = applyPatchesImmer(value as never, [{ op: "remove", path }]);
 	return [applied, deleted];
 };
