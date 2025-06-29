@@ -3,11 +3,12 @@ import type {
 	PatchCopy,
 	PatchEntry,
 	Patches,
+	PatchesExtended,
 	PatchMove,
 	PatchSwap,
 	Path,
 } from "./types";
-import { PatchOp } from "./types";
+import { PatchOp, PatchOpExtended } from "./types";
 
 enablePatches();
 
@@ -77,7 +78,7 @@ const applyPatchEntryBase = <T>(value: T, entry: PatchEntry<T, []>): T => {
 	throw new ApplyPatchesError(`invalid patchOp: ${op}`);
 };
 
-export const applyPatches = <T>(value: T, patches: Patches<T>): T => {
+export const applyPatches = <T>(value: T, patches: PatchesExtended<T>): T => {
 	if (patches.length === 0) {
 		return value;
 	}
@@ -92,11 +93,11 @@ export const applyPatches = <T>(value: T, patches: Patches<T>): T => {
 
 		if (op === PatchOp.Add || op === PatchOp.Remove || op === PatchOp.Replace) {
 			value1 = applyEntry(value1, entry);
-		} else if ((op as string) === "move") {
+		} else if (op === PatchOpExtended.Move) {
 			value1 = applyMove(value1, entry);
-		} else if ((op as string) === "copy") {
+		} else if (op === PatchOpExtended.Copy) {
 			value1 = applyCopy(value1, entry);
-		} else if ((op as string) === "swap") {
+		} else if (op === PatchOpExtended.Swap) {
 			value1 = applySwap(value1, entry);
 		} else {
 			throw new ApplyPatchesError(`invalid patchOp: ${op}`);

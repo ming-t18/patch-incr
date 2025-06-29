@@ -8,6 +8,15 @@ export enum PatchOp {
 	Replace = "replace",
 }
 
+export enum PatchOpExtended {
+	Remove = "remove",
+	Add = "add",
+	Replace = "replace",
+	Move = "move",
+	Copy = "copy",
+	Swap = "swap",
+}
+
 export interface PatchRemove<P extends Path = Path> {
 	op: PatchOp.Remove;
 	path: P;
@@ -56,4 +65,18 @@ export type PatchEntry<Target = any, P extends Path = Path> = (
 	Targeted<Target>;
 
 // biome-ignore lint/suspicious/noExplicitAny: intentional
+export type PatchEntryExtended<Target = any, P extends Path = Path> = (
+	| PatchRemove<P>
+	| PatchAdd<P>
+	| PatchReplace<P>
+	| PatchMove<P>
+	| PatchCopy<P>
+	| PatchSwap<P>
+) &
+	Targeted<Target>;
+
+// biome-ignore lint/suspicious/noExplicitAny: intentional
 export type Patches<V = any> = PatchEntry<V>[] & Targeted<V>;
+
+// biome-ignore lint/suspicious/noExplicitAny: intentional
+export type PatchesExtended<V = any> = PatchEntryExtended<V>[] & Targeted<V>;
