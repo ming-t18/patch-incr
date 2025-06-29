@@ -27,21 +27,21 @@ export interface PatchReplace<P extends Path = Path, V = any> {
 	value: V;
 }
 
-export interface PatchMove<P extends Path = Path> {
+export interface PatchMove<P extends Path = Path, From extends Path = Path> {
 	op: "move";
-	from: P;
+	from: From;
 	path: P;
 }
 
-export interface PatchCopy<P extends Path = Path> {
+export interface PatchCopy<P extends Path = Path, From extends Path = Path> {
 	op: "copy";
-	from: P;
+	from: From;
 	path: P;
 }
 
-export interface PatchSwap<P extends Path = Path> {
+export interface PatchSwap<P extends Path = Path, From extends Path = Path> {
 	op: "swap";
-	from: P;
+	from: From;
 	path: P;
 }
 
