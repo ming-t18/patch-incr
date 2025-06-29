@@ -25,37 +25,37 @@ export const applyGet = <T, Result = unknown>(value: T, path: Path): Result => {
 };
 
 const applyRemove = <T, Deleted = unknown>(
-	value: T,
+	base: T,
 	path: Path,
 ): [T, Deleted] => {
-	const deleted = applyGet(value, path) as Deleted;
-	const applied = applyPatchesImmer(value as never, [{ op: "remove", path }]);
+	const deleted = applyGet(base, path) as Deleted;
+	const applied = applyPatchesImmer(base as never, [{ op: "remove", path }]);
 	return [applied, deleted];
 };
 
-const applyAssign = <T, Assign = unknown>(
-	value: T,
+const applyReplace = <T, Assign = unknown>(
+	base: T,
 	path: Path,
-	assignment: Assign,
-): T =>
-	applyPatchesImmer(value as never, [
-		{ op: "replace", path, value: assignment },
-	]);
+	value: Assign,
+): T => applyPatchesImmer(base as never, [{ op: "replace", path, value }]);
 
-const applyMove = <T>(value: T, entry: PatchMove): T => {
-	const [value1, deleted] = applyRemove(value, entry.from);
-	return applyAssign<T>(value1, entry.path, deleted as never);
+const applyAdd = <T, Assign = unknown>(base: T, path: Path, value: Assign): T =>
+	applyPatchesImmer(base as never, [{ op: "add", path, value }]);
+
+const applyMove = <T>(base: T, entry: PatchMove): T => {
+	const [value1, deleted] = applyRemove(base, entry.from);
+	return applyAdd<T>(value1, entry.path, deleted as never);
 };
 
-const applyCopy = <T>(value: T, entry: PatchCopy): T => {
-	const toCopy = applyGet(value, entry.from);
-	return applyAssign<T>(value, entry.path, toCopy as never);
+const applyCopy = <T>(base: T, entry: PatchCopy): T => {
+	const toCopy = applyGet(base, entry.from);
+	return applyAdd<T>(base, entry.path, toCopy as never);
 };
 
-const applySwap = <T>(value: T, entry: PatchSwap): T => {
-	const a = applyGet(value, entry.from);
-	const b = applyGet(value, entry.path);
-	return applyAssign(applyAssign(value, entry.path, a), entry.from, b);
+const applySwap = <T>(base: T, entry: PatchSwap): T => {
+	const a = applyGet(base, entry.from);
+	const b = applyGet(base, entry.path);
+	return applyReplace(applyReplace(base, entry.path, a), entry.from, b);
 };
 
 const applyEntry = <T>(value: T, entry: PatchEntry<T>): T =>
