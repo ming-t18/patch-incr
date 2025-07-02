@@ -75,18 +75,18 @@ export const analyzePatchElement = (
 		}
 
 		if (el.nodeType === Node.TEXT_NODE) {
-			console.error("analyzePatchElement: ", { el, entry });
+			// console.error("analyzePatchElement: ", { el, entry });
 			throw new TypeError("Attempting to patch the children of a Text node.");
 		}
 
 		const child = getNthChild(el as Element, index);
 		if (child === null) {
-			console.error("analyzePatchElement indexing failure", {
-				index,
-				el,
-				child,
-				entry,
-			});
+			// console.error("analyzePatchElement indexing failure", {
+			// 	index,
+			// 	el,
+			// 	child,
+			// 	entry,
+			// });
 			throw new TypeError("Expecting an Element but got a Text instead.");
 		}
 
@@ -121,14 +121,21 @@ export const onNodeTeardown = (node: Element | Text | null | undefined) => {
 	}
 };
 
-export const renderDOM = (root: Element, domc: ElementConstruction) => {
+export const renderDOM = (
+	root: Element,
+	domc: ElementConstruction,
+	addEvents = true,
+) => {
 	root.innerHTML = renderToString(domc);
 	const node = root.firstElementChild;
 	if (!node) {
-		console.warn("renderDOM: is empty");
+		// console.warn("renderDOM: is empty");
 		return;
 	}
-	hydrate(node, domc);
+
+	if (addEvents) {
+		hydrate(node, domc);
+	}
 };
 
 function ensureElement(
@@ -200,13 +207,13 @@ export const patchDOMEntry = (res: {
 					if (ref === null) {
 						el.appendChild(newNode);
 					} else {
-						console.log("insert", {
-							index,
-							parent: el,
-							toInsertBefore: ref,
-							newNode,
-							entry,
-						});
+						// console.log("insert", {
+						// 	index,
+						// 	parent: el,
+						// 	toInsertBefore: ref,
+						// 	newNode,
+						// 	entry,
+						// });
 						// el.insertBefore(newNode, ref);
 					}
 				}
@@ -254,27 +261,23 @@ export const patchDOM = (
 	hydrate(node, domc);
 
 	for (const entry of domcChanges) {
-		try {
-			const res = analyzePatchElement(root.firstElementChild, domc, entry);
-			if (!patchDOMEntry(res)) {
-				const targetNode = res.el;
-				const domcBefore = res.domc;
-				const domcUpdated = applyPatches(domcBefore, [res.entry]);
-				onNodeTeardown(targetNode);
-				const replacement = constructDOM(domcUpdated, document, true);
-				targetNode?.replaceWith(replacement);
-				console.warn("patchDOMEntry: need to replace entire", {
-					parent: res.el,
-					entry: res.entry,
-					replacement,
-					domcBefore,
-					domcUpdated,
-				});
-			} else {
-				console.log("DOM patch applied", { parent: res.el, entry: res.entry });
-			}
-		} catch (e) {
-			console.error(entry, e);
+		const res = analyzePatchElement(root.firstElementChild, domc, entry);
+		if (patchDOMEntry(res)) {
+			return;
 		}
+
+		const targetNode = res.el;
+		const domcBefore = res.domc;
+		const domcUpdated = applyPatches(domcBefore, [res.entry]);
+		onNodeTeardown(targetNode);
+		const replacement = constructDOM(domcUpdated, document, true);
+		targetNode?.replaceWith(replacement);
+		console.warn("patchDOMEntry: need to replace entire", {
+			// parent: res.el,
+			// entry: res.entry,
+			// replacement,
+			domcBefore,
+			domcUpdated,
+		});
 	}
 };

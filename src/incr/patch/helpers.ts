@@ -5,16 +5,17 @@ export const isEmptyPatches = (entry: Patches) => {
 	return entry.length === 0;
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: intentional
-export const removePatch = <V = any>(path = [] as Path): Patches<V> => [
+export const removePatch = <Target>(path = [] as Path): Patches<Target> => [
 	{
 		op: PatchOp.Remove,
 		path,
 	},
 ];
 
-// biome-ignore lint/suspicious/noExplicitAny: intentional
-export const addPatch = <V = any>(value: V, path = [] as Path): Patches<V> => [
+export const addPatch = <Value, Target>(
+	value: Value,
+	path = [] as Path,
+): Patches<Target> => [
 	{
 		op: PatchOp.Add,
 		path,
@@ -22,11 +23,10 @@ export const addPatch = <V = any>(value: V, path = [] as Path): Patches<V> => [
 	},
 ];
 
-// biome-ignore lint/suspicious/noExplicitAny: intentional
-export const replacePatch = <V = any>(
-	value: V,
+export const replacePatch = <Value, Target>(
+	value: Value,
 	path = [] as Path,
-): Patches<V> => [
+): Patches<Target> => [
 	{
 		op: PatchOp.Replace,
 		path,
