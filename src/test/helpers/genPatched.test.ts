@@ -1,9 +1,12 @@
 import fc from "fast-check";
 import {
 	applyPatches,
+	canApplyPatches,
+	isReplaceRoot,
 	type PatchEntry,
 	type Patches,
 	PatchOp,
+	type PatchRemove,
 	type PatchReplace,
 	type Path,
 	type Targeted,
@@ -37,7 +40,7 @@ export type InferArbValue<S extends { "~types"?: { value: any } }> = S extends {
 	? T
 	: never;
 
-const makeArbHelper = <T>(
+export const makeArbHelper = <T>(
 	opts: Omit<GenWithPatches<T>, "arb"> & {
 		arbValue: fc.Arbitrary<T>;
 		arrayConstraints?: fc.ArrayConstraints;
@@ -59,19 +62,15 @@ const makeArbHelper = <T>(
 					for (const entry of entries) {
 						if (opts.isValidPatchEntry(base, entry)) {
 							out.push(entry);
-							try {
-								base = applyPatches(base, [entry]);
-							} catch (e) {
-								console.error("failed to apply valid patch", e);
-								console.trace({ base, entry });
-								throw e;
-							}
+							base = applyPatches(base, [entry]);
+							// console.error("failed to apply valid patch", e);
+							// console.trace({ base, entry });
 							continue;
 						}
 
 						const adjusted = opts.adjustPatchEntry(base, entry);
 						if (adjusted === null) {
-							return null;
+							return out;
 						}
 
 						out.push(adjusted);
@@ -232,6 +231,7 @@ export const tuple = <Ts extends unknown[]>(
 
 export const record = <Ts extends Record<string, unknown>>(
 	gens: { [k in keyof Ts]: GenWithPatches<Ts[k]> },
+	allowRemove?: (keyof Ts)[],
 ): GenWithPatches<Ts> => {
 	const keys: (keyof Ts)[] = Object.keys(gens).filter(
 		(k) => !(k === "__proto__" || k === "prototype" || k === "constructor"),
@@ -278,6 +278,19 @@ export const record = <Ts extends Record<string, unknown>>(
 				weight: deepWeightMultiplier * keys.length,
 				arbitrary: arbKey.chain((key) => liftEntry(gens, key, opts)),
 			},
+			...(allowRemove && allowRemove.length > 0
+				? [
+						{
+							weight: 1,
+							arbitrary: fc.constantFrom(...allowRemove).map(
+								(key): PatchRemove => ({
+									op: PatchOp.Remove,
+									path: [key as never],
+								}),
+							),
+						},
+					]
+				: []),
 		);
 
 	const adjustPatchEntry = (_value: Ts, _entry: PatchEntry<Ts>) => null;
@@ -478,6 +491,73 @@ export const array = <T>(
 			arbValue?: fc.Arbitrary<T[]>,
 			arrayConstraints?: fc.ArrayConstraints,
 		) =>
+			makeArbHelper({
+				isValidPatchEntry,
+				arbPatchEntry,
+				adjustPatchEntry,
+				arrayConstraints,
+				arbValue: arbValue ?? arb0,
+			}),
+	};
+};
+
+export const oneof = <T>(
+	args: { weight: number; arbitrary: GenWithPatches<T> }[],
+	getCase: (value: T) => number,
+): GenWithPatches<T> => {
+	const isValidPatchEntry = (value: T, entry: PatchEntry<T>) => {
+		if (isReplaceRoot(entry)) {
+			return true;
+		}
+
+		if (
+			args[getCase(value)].arbitrary.isValidPatchEntry(value, entry) &&
+			canApplyPatches(value, [entry])
+		) {
+			return true;
+		}
+		return false;
+	};
+
+	const arb0: fc.Arbitrary<T> = fc.oneof(
+		...args.map((arg) => ({
+			weight: arg.weight,
+			arbitrary: arg.arbitrary.arb().map((x) => x.value),
+		})),
+	);
+
+	const arbReplaceRoot = arb0.map((value) => ({
+		op: PatchOp.Replace,
+		path: [],
+		value,
+	}));
+	const arbPatchEntry0 = fc.oneof(
+		arbReplaceRoot,
+		fc.oneof(
+			...args.map((arg) => ({
+				weight: arg.weight,
+				arbitrary: arg.arbitrary.arbPatchEntry(),
+			})),
+		),
+	);
+	const arbPatchEntry = (
+		opts?: ArbPatchEntryOpts<T>,
+	): fc.Arbitrary<PatchEntry<T>> => {
+		if (opts) {
+			const i = getCase(opts.value);
+			return fc.oneof(arbReplaceRoot, args[i].arbitrary.arbPatchEntry(opts));
+		}
+		return arbPatchEntry0;
+	};
+
+	const adjustPatchEntry = (value: T, entry: PatchEntry<T>) =>
+		args[getCase(value)].arbitrary.adjustPatchEntry(value, entry);
+
+	return {
+		isValidPatchEntry,
+		arbPatchEntry,
+		adjustPatchEntry,
+		arb: (arbValue?: fc.Arbitrary<T>, arrayConstraints?: fc.ArrayConstraints) =>
 			makeArbHelper({
 				isValidPatchEntry,
 				arbPatchEntry,
