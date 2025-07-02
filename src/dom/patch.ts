@@ -187,6 +187,9 @@ export const patchDOMEntry = (res: {
 			} else if (field === "attrs") {
 				clearAttrs(el);
 			} else if (field === "tag") {
+				if (op === PatchOp.Remove) {
+					throw new Error("Cannot delete tag name");
+				}
 				// tagName can't be changed in a fine-grained way
 				return false;
 			} else {
@@ -197,11 +200,6 @@ export const patchDOMEntry = (res: {
 		if (op === PatchOp.Add || op === PatchOp.Replace) {
 			el.innerHTML = "";
 			if (field === "children") {
-				const index = entry.path[1] as number;
-				const child = getNthChild(el, index);
-				if (!child) {
-					throw new Error("Unable to insert into children");
-				}
 				addChildrenFromConstruction(el, entry.value, document, true);
 			} else if (field === "events") {
 				setEventHandlers(el, entry.value);
