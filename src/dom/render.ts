@@ -90,6 +90,7 @@ export const constructDOM = (
 	}
 	return el;
 };
+
 function* renderAttrsToString(attrs: Attrs | null | undefined) {
 	if (!attrs) {
 		return;

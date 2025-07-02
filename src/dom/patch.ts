@@ -11,6 +11,7 @@ import {
 	clearEventHandlers,
 	getEventManager,
 	removeEventHandler,
+	setEventHandlers,
 } from "./events/eventManager";
 import {
 	addChildrenFromConstruction,
@@ -18,7 +19,11 @@ import {
 	hydrate,
 	renderToString,
 } from "./render";
-import { type ElementConstruction, isElementConstruction } from "./types";
+import {
+	type Attrs,
+	type ElementConstruction,
+	isElementConstruction,
+} from "./types";
 
 const skipComments = (el: ChildNode | null): ChildNode | null => {
 	let node: ChildNode | null = el;
@@ -146,6 +151,24 @@ function ensureElement(
 	}
 }
 
+const clearAttrs = (el: Element) => {
+	for (let i = el.attributes.length - 1; i >= 0; i--) {
+		const node = el.attributes.item(i);
+		if (node === null) {
+			break;
+		}
+		el.removeAttributeNode(node);
+	}
+};
+
+const setAttrs = (el: Element, attrs: Attrs) => {
+	for (const [key, value] of Object.entries(attrs)) {
+		if (typeof value !== "undefined" && value !== null) {
+			setAttributeFromConstruction(el, key, value);
+		}
+	}
+};
+
 export const patchDOMEntry = (res: {
 	el: Element | Text | null;
 	domc: ElementConstruction;
@@ -156,16 +179,22 @@ export const patchDOMEntry = (res: {
 	if (path.length === 1) {
 		ensureElement(el);
 		const field = entry.path[0] as keyof ElementConstruction;
-		if (op === PatchOp.Remove) {
+		if (op === PatchOp.Remove || op === PatchOp.Replace) {
 			if (field === "children") {
 				el.innerHTML = "";
 			} else if (field === "events") {
 				clearEventHandlers(el);
+			} else if (field === "attrs") {
+				clearAttrs(el);
+			} else if (field === "tag") {
+				// tagName can't be changed in a fine-grained way
+				return false;
 			} else {
 				return false;
 			}
-			return true;
-		} else if (op === PatchOp.Add) {
+		}
+
+		if (op === PatchOp.Add || op === PatchOp.Replace) {
 			el.innerHTML = "";
 			if (field === "children") {
 				const index = entry.path[1] as number;
@@ -174,8 +203,19 @@ export const patchDOMEntry = (res: {
 					throw new Error("Unable to insert into children");
 				}
 				addChildrenFromConstruction(el, entry.value, document, true);
+			} else if (field === "events") {
+				setEventHandlers(el, entry.value);
+			} else if (field === "attrs") {
+				setAttrs(el, entry.value);
+			} else if (field === "tag") {
+				// tagName can't be changed in a fine-grained way
+				return false;
+			} else {
+				return false;
 			}
 		}
+
+		return true;
 	} else if (path.length === 2) {
 		ensureElement(el);
 		const field = entry.path[0] as keyof ElementConstruction;
