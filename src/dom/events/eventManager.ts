@@ -1,16 +1,13 @@
 import type { Events } from "../types";
 
 export type EventName = keyof ElementEventMap;
-export type EventHandler<K extends EventName, E extends Element = Element> = (
-	this: E,
-	event: ElementEventMap[K],
-) => void;
+export type EventHandler<
+	K extends EventName = EventName,
+	E extends Element = Element,
+> = (this: E, event: ElementEventMap[K]) => void;
 
 export class EventManager<E extends Element = Element> {
-	readonly #map = new Map<
-		string,
-		(this: E, e: ElementEventMap[EventName]) => void
-	>();
+	readonly #map = new Map<string, EventHandler<EventName, E>>();
 
 	public constructor(private readonly el: E) {}
 
@@ -20,7 +17,7 @@ export class EventManager<E extends Element = Element> {
 	) {
 		this.deleteEvent(type);
 		this.el.addEventListener(type, handler);
-		this.#map.set(type, handler);
+		this.#map.set(type, handler as never);
 	}
 
 	public deleteEvent<K extends keyof ElementEventMap>(type: K): boolean {
@@ -44,6 +41,10 @@ export class EventManager<E extends Element = Element> {
 		this.#map.clear();
 		// @ts-expect-error Clears reference to element
 		this.el = null;
+	}
+
+	public entries(): MapIterator<[string, EventHandler<EventName, E>]> {
+		return this.#map.entries();
 	}
 }
 
