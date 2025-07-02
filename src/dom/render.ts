@@ -124,7 +124,7 @@ export function* renderToStringGen(
 			}
 			lastText = true;
 			if (child !== null && child !== undefined) {
-				yield encode(fromAttrValue(child));
+				yield child === "" ? "" : encode(String(child));
 			}
 		} else {
 			yield* renderToStringGen(child);
@@ -157,24 +157,23 @@ export const hydrate = (el: Element, domc: DOMConstruction) => {
 
 	for (let i = 0; i < children.length; i++) {
 		const child = children[i];
+		if (!isElementConstruction(child)) {
+			continue;
+		}
 		if (!childElem) {
-			if (child !== null && child !== undefined) {
-				console.warn(
-					"hydrate: mismatch: children: actual children list has fewer children than domc",
-					{
-						// existingElem: el,
-						newConstruction: domc,
-						domcIndex: i,
-					},
-				);
-			}
+			console.warn(
+				"hydrate: mismatch: children: actual children list has fewer children than domc",
+				{
+					// existingElem: el,
+					newConstruction: domc,
+					domcIndex: i,
+				},
+			);
 			break;
 		}
 
-		if (child !== null && typeof child === "object") {
-			hydrate(childElem, child);
-			childElem = childElem?.nextElementSibling;
-		}
+		hydrate(childElem, child);
+		childElem = childElem?.nextElementSibling;
 	}
 
 	if (childElem?.nextElementSibling) {
