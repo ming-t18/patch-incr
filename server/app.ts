@@ -56,6 +56,12 @@ export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 							(id) => () => dispatch({ type: TodoActionType.StartEditing, id }),
 						),
 					),
+					dispatchRemove: composeMemoL(
+						accessItemId,
+						atomicFunc(
+							(id) => () => dispatch({ type: TodoActionType.Remove, id }),
+						),
+					),
 					dispatchSetDone: composeMemoL(
 						accessItemId,
 						atomicFunc((id) => (e: { target: { checked: boolean } }) => {
@@ -67,7 +73,13 @@ export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 						}),
 					),
 				},
-				({ checked, text, dispatchSetDone, dispatchStartEditing }) =>
+				({
+					checked,
+					text,
+					dispatchSetDone,
+					dispatchStartEditing,
+					dispatchRemove,
+				}) =>
 					elem0("li", [
 						elem0("label", [
 							elemEvents(
@@ -84,6 +96,13 @@ export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 									click: dispatchStartEditing,
 								},
 								["Edit"],
+							),
+							elem0Events(
+								"button",
+								{
+									click: dispatchRemove,
+								},
+								["Remove"],
 							),
 						]),
 					]),
@@ -214,7 +233,6 @@ const initState: TodoState = {
 const load = () => {
 	const root = document.getElementById("root");
 	if (!root) {
-		console.error("root not found");
 		return;
 	}
 

@@ -5,7 +5,7 @@ import {
 	PatchOp,
 } from "../incr/patch";
 import { IndexEnd } from "../patchSchema/types";
-import { setAttributeFromConstruction } from "./construct";
+import { clearAttrs, setAttributeFromConstruction, setAttrs } from "./attr";
 import {
 	addOrReplaceEventHandler,
 	clearEventHandlers,
@@ -19,11 +19,7 @@ import {
 	hydrate,
 	renderToString,
 } from "./render";
-import {
-	type Attrs,
-	type ElementConstruction,
-	isElementConstruction,
-} from "./types";
+import { type ElementConstruction, isElementConstruction } from "./types";
 
 const skipComments = (el: ChildNode | null): ChildNode | null => {
 	let node: ChildNode | null = el;
@@ -150,24 +146,6 @@ function ensureElement(
 		throw new Error("Expecting an Element.");
 	}
 }
-
-const clearAttrs = (el: Element) => {
-	for (let i = el.attributes.length - 1; i >= 0; i--) {
-		const node = el.attributes.item(i);
-		if (node === null) {
-			break;
-		}
-		el.removeAttributeNode(node);
-	}
-};
-
-const setAttrs = (el: Element, attrs: Attrs) => {
-	for (const [key, value] of Object.entries(attrs)) {
-		if (typeof value !== "undefined" && value !== null) {
-			setAttributeFromConstruction(el, key, value);
-		}
-	}
-};
 
 export const patchDOMEntry = (res: {
 	el: Element | Text | null;

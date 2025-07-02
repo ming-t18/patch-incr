@@ -1,11 +1,10 @@
 import { encode } from "he";
 import type { IF } from "../incr/types";
-import { setAttributeFromConstruction } from "./construct";
+import { fromAttrValue, setAttributeFromConstruction } from "./attr";
 import { setEventHandlers } from "./events/eventManager";
 import type { Dispatch } from "./mount";
 import {
 	type Attrs,
-	type AttrValue,
 	type ChildConstruction,
 	type DOMConstruction,
 	type ElementConstruction,
@@ -26,13 +25,6 @@ export type RenderIF<State, Action> = IF<
 	StateDispatch<State, Action>,
 	ElementConstruction
 >;
-
-export const fromAttrValue = (x: AttrValue): string =>
-	x === null || typeof x === "undefined"
-		? ""
-		: typeof x === "string"
-			? x
-			: `${x}`;
 
 export const constructChild = (
 	child: ChildConstruction,
