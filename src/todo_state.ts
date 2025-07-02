@@ -3,6 +3,8 @@ import { fromReducerOnDraft } from "./incr/reducer";
 
 export enum TodoActionType {
 	Clear = "Clear",
+	ClearCompleted = "ClearCompleted",
+	ToggleAll = "ToggleAll",
 	Add = "Add",
 	SetDone = "SetDone",
 	Remove = "Remove",
@@ -13,6 +15,14 @@ export enum TodoActionType {
 
 export interface TodoActionClear {
 	type: TodoActionType.Clear;
+}
+
+export interface TodoActionClearCompleted {
+	type: TodoActionType.ClearCompleted;
+}
+
+export interface TodoActionToggleAll {
+	type: TodoActionType.ToggleAll;
 }
 
 export interface TodoActionAdd {
@@ -47,6 +57,8 @@ export interface TodoActionEditText {
 
 export type TodoAction =
 	| TodoActionClear
+	| TodoActionClearCompleted
+	| TodoActionToggleAll
 	| TodoActionAdd
 	| TodoActionSetDone
 	| TodoActionRemove
@@ -57,6 +69,7 @@ export type TodoAction =
 export interface TodoItem {
 	id: string;
 	done: boolean;
+	editing: boolean;
 	text: string;
 }
 
@@ -84,11 +97,29 @@ export const todoStateReducerOnDraft = (
 			draft.items = [];
 			return;
 		}
+		case TodoActionType.ClearCompleted: {
+			draft.editingId = null;
+			for (let i = draft.items.length - 1; i >= 0; i--) {
+				if (draft.items[i].done) {
+					draft.items.splice(i, 1);
+				}
+			}
+
+			return;
+		}
+		case TodoActionType.ToggleAll: {
+			const target = !draft.items.every((i) => i.done);
+			for (let i = 0; i < draft.items.length; i++) {
+				draft.items[i].done = target;
+			}
+			return;
+		}
 		case TodoActionType.Add: {
 			draft.items.push({
 				done: false,
 				text: action.value,
 				id: genId(draft.counter),
+				editing: false,
 			});
 			draft.counter += 1;
 			return;
@@ -116,10 +147,18 @@ export const todoStateReducerOnDraft = (
 			return;
 		}
 		case TodoActionType.StartEditing: {
-			draft.editingId = action.id;
+			const { id } = action;
+			draft.editingId = id;
+			for (const item of draft.items) {
+				item.editing = item.id === id;
+			}
 			return;
 		}
 		case TodoActionType.StopEditing: {
+			draft.editingId = null;
+			for (const item of draft.items) {
+				item.editing = false;
+			}
 			return;
 		}
 		case TodoActionType.EditText: {

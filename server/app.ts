@@ -4,11 +4,11 @@ import type { RenderIF, StateDispatch } from "../src/dom/render";
 import type { ElementConstruction } from "../src/dom/types";
 import { map } from "../src/incr/array";
 import { bind } from "../src/incr/bind";
-import { atomicFunc, constant } from "../src/incr/builder";
+import { atomicFunc } from "../src/incr/builder";
 import { composeMemoL } from "../src/incr/compose/memo";
 import { access, accessPath, record, template } from "../src/incr/struct";
+import type { IF } from "../src/incr/types";
 import {
-	findById,
 	type TodoAction,
 	TodoActionType,
 	type TodoItem,
@@ -20,15 +20,17 @@ const accessItems = accessPath<
 	TodoState["items"],
 	StateDispatch<TodoState, TodoAction>
 >(["state", "items"]);
-const accessNumberOfItems = composeMemoL(
+const accessNumberOfItemsLeft = composeMemoL(
 	accessPath<TodoState["items"], StateDispatch<TodoState, TodoAction>>([
 		"state",
 		"items",
 	]),
-	atomicFunc((x) => x.length),
+	atomicFunc(
+		(x) => x.length - x.reduce((s: number, { done }) => (done ? s + 1 : s), 0),
+	),
 );
 const accessItemId = access<string, "id", TodoItem>("id");
-const accessEditingId = accessPath<
+const _accessEditingId = accessPath<
 	TodoState["editingId"],
 	StateDispatch<TodoState, TodoAction>
 >(["state", "editingId"]);
@@ -37,19 +39,81 @@ const accessDispatch = accessPath<
 	StateDispatch<TodoState, TodoAction>
 >(["dispatch"]);
 
+const accessItemText = access<string, "text", TodoItem>("text");
 const accessItemDone = access<boolean, "done", TodoItem>("done");
+const accessItemEditing = access<boolean, "editing", TodoItem>("editing");
 
 export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 	accessDispatch,
 	(dispatch) => {
-		const mapTodoItems = map(
+		const renderEditor: IF<TodoItem, ElementConstruction> = template(
+			{
+				value: accessItemText,
+				events: composeMemoL(
+					accessItemId,
+					atomicFunc((id: string) => {
+						const handleSubmit = (value: string) => {
+							if (!value) {
+								dispatch({
+									type: TodoActionType.Remove,
+									id,
+								});
+							} else {
+								dispatch({
+									type: TodoActionType.EditText,
+									value,
+								});
+								requestAnimationFrame(() => {
+									dispatch({ type: TodoActionType.StopEditing });
+								});
+							}
+						};
+						return {
+							keydown: (e: KeyboardEvent) => {
+								if (e.key === "Escape") {
+									dispatch({ type: TodoActionType.StopEditing });
+								} else if (e.key === "Enter") {
+									handleSubmit((e.target as HTMLInputElement).value);
+								}
+							},
+							blur: (e: KeyboardEvent) =>
+								handleSubmit((e.target as HTMLInputElement).value),
+						};
+					}),
+				),
+			},
+			({ value, events }) =>
+				elem("div", { class: "input-container" }, [
+					elemEvents(
+						"input",
+						{ class: "edit", id: "edit-todo-input", value },
+						events,
+					),
+					elem("label", { class: "visually-hidden", for: "edit-todo-input" }, [
+						"Edit Todo Input ",
+					]),
+				]),
+		);
+
+		const mapTodoItems: IF<TodoItem[], ElementConstruction[]> = map<
+			TodoItem,
+			ElementConstruction
+		>(
 			template(
 				{
+					liClass: composeMemoL(
+						record([accessItemEditing, accessItemDone]),
+						atomicFunc(([editing, completed]) =>
+							!editing && !completed
+								? ""
+								: `${editing ? "editing" : ""} ${completed ? "completed" : ""}`,
+						),
+					),
 					checked: composeMemoL(
 						accessItemDone,
 						atomicFunc((x: boolean) => x || undefined),
 					),
-					text: access("text"),
+					text: accessItemText,
 					dispatchStartEditing: composeMemoL(
 						accessItemId,
 						atomicFunc(
@@ -64,47 +128,45 @@ export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 					),
 					dispatchSetDone: composeMemoL(
 						accessItemId,
-						atomicFunc((id) => (e: { target: { checked: boolean } }) => {
+						atomicFunc((id) => (e: KeyboardEvent) => {
 							dispatch({
 								type: TodoActionType.SetDone,
 								id,
-								done: e.target.checked,
+								done: (e.target as HTMLInputElement).checked,
 							});
+							e.preventDefault();
 						}),
 					),
+					editorPart: renderEditor,
 				},
 				({
+					liClass,
 					checked,
 					text,
+					editorPart,
 					dispatchSetDone,
 					dispatchStartEditing,
 					dispatchRemove,
 				}) =>
-					elem0("li", [
-						elem0("label", [
+					elem("li", { class: liClass }, [
+						elem("div", { class: "view" }, [
 							elemEvents(
 								"input",
-								{ type: "checkbox", checked },
+								{ class: "toggle", type: "checkbox", checked },
 								{
 									change: dispatchSetDone,
 								},
 							),
-							elem0("span", [text]),
-							elem0Events(
+							elem0Events("label", { dblclick: dispatchStartEditing }, [text]),
+							elemEvents(
 								"button",
-								{
-									click: dispatchStartEditing,
-								},
-								["Edit"],
-							),
-							elem0Events(
-								"button",
+								{ class: "destroy" },
 								{
 									click: dispatchRemove,
 								},
-								["Remove"],
 							),
 						]),
+						editorPart,
 					]),
 			),
 		);
@@ -113,64 +175,9 @@ export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 			{
 				list: composeMemoL(accessItems, mapTodoItems),
 			},
-			({ list }) => elem0("ul", list),
+			({ list }) => elem("ul", { class: "todo-list" }, list),
 		);
 	},
-);
-
-export const renderEditor: RenderIF<TodoState, TodoAction> = bind(
-	accessDispatch,
-	(dispatch) =>
-		bind(
-			atomicFunc(
-				({ state }: StateDispatch<TodoState, TodoAction>): boolean =>
-					typeof state.editingId === "string",
-			),
-			(hasEditingIndex) => {
-				if (!hasEditingIndex) {
-					return constant<
-						ElementConstruction,
-						StateDispatch<TodoState, TodoAction>
-					>(elem0("div"));
-				}
-
-				return template(
-					{
-						editingText: composeMemoL(
-							record({
-								items: accessItems,
-								editingId: accessEditingId,
-							}),
-							atomicFunc(({ items, editingId }) => {
-								if (typeof editingId !== "string") {
-									return "";
-								}
-
-								const index = findById(items, editingId);
-								return index !== -1 ? items[index].text : "";
-							}),
-						),
-					},
-					({ editingText }): ElementConstruction => {
-						return elemEvents(
-							"input",
-							{
-								type: "text",
-								value: editingText,
-							},
-							{
-								change: (e: Event) => {
-									dispatch({
-										type: TodoActionType.EditText,
-										value: (e.target as HTMLInputElement | null)?.value ?? "",
-									});
-								},
-							},
-						);
-					},
-				);
-			},
-		),
 );
 
 export const renderTodoApp: RenderIF<TodoState, TodoAction> = bind(
@@ -179,41 +186,76 @@ export const renderTodoApp: RenderIF<TodoState, TodoAction> = bind(
 		template(
 			{
 				todoItems: renderTodoItems,
-				editor: renderEditor,
-				dispatchAddItem: composeMemoL(
-					accessNumberOfItems,
-					atomicFunc(
-						(n) => () =>
-							dispatch({
-								type: TodoActionType.Add,
-								value: `item ${n}`,
-							}),
-					),
-				),
-				dispatchClear: constant(() => dispatch({ type: TodoActionType.Clear })),
-				numberOfItems: accessNumberOfItems,
+				numberOfItemsLeft: accessNumberOfItemsLeft,
 			},
-			({
-				todoItems,
-				editor,
-				dispatchAddItem,
-				dispatchClear,
-				numberOfItems,
-			}): ElementConstruction => {
+			({ todoItems, numberOfItemsLeft }): ElementConstruction => {
 				return elem("div", { id: "todo-app" }, [
-					elem0("h1", ["Todo App ", "(", numberOfItems, ")"]),
-					elem0("div", [
-						todoItems,
-						elem0Events(
-							"button",
+					elem("header", { class: "header" }, [
+						elem0("h1", ["todos"]),
+						elemEvents(
+							"input",
 							{
-								click: dispatchAddItem,
+								type: "text",
+								class: "new-todo",
+								placeholder: "What needs to be done?",
+								autofocus: true,
 							},
-							["Add"],
+							{
+								keypress: (e: KeyboardEvent) => {
+									if (e.key !== "Enter") {
+										return;
+									}
+
+									const input = e.target as HTMLInputElement;
+									if (input.value.trim()) {
+										dispatch({
+											type: TodoActionType.Add,
+											value: input.value,
+										});
+										e.preventDefault();
+									}
+								},
+							},
 						),
-						elem0Events("button", { click: dispatchClear }, ["Clear"]),
-						elem0("hr"),
-						editor,
+					]),
+					elem("main", { class: "main" }, [
+						elem("div", { class: "toggle-all-container" }, [
+							elemEvents(
+								"input",
+								{ class: "toggle-all", type: "checkbox" },
+								{
+									change: () => dispatch({ type: TodoActionType.ToggleAll }),
+								},
+							),
+							elem("label", { class: "toggle-all-label", for: "toggle-all" }, [
+								"Toggle All Input",
+							]),
+						]),
+						todoItems,
+						elem("footer", { class: "footer" }, [
+							elem("span", { class: "todo-count" }, [
+								numberOfItemsLeft,
+								" items left!",
+							]),
+							elem("ul", { class: "filters" }, [
+								elem0("li", [
+									elem("a", { href: "#/", class: "selected" }, ["All"]),
+								]),
+								elem0("li", [elem("a", { href: "#/active" }, ["Active"])]),
+								elem0("li", [
+									elem("a", { href: "#/completed" }, ["Completed"]),
+								]),
+							]),
+							elemEvents(
+								"button",
+								{ class: "clear-completed" },
+								{
+									click: () =>
+										dispatch({ type: TodoActionType.ClearCompleted }),
+								},
+								["Clear completed"],
+							),
+						]),
 					]),
 				]);
 			},
@@ -223,9 +265,9 @@ export const renderTodoApp: RenderIF<TodoState, TodoAction> = bind(
 const initState: TodoState = {
 	counter: 3,
 	items: [
-		{ done: true, text: "Hello, world!", id: "id0" },
-		{ done: false, text: "Update app", id: "id1" },
-		{ done: false, text: "Add event handlers", id: "id2" },
+		{ done: true, editing: false, text: "Hello, world!", id: "id0" },
+		{ done: false, editing: false, text: "Update app", id: "id1" },
+		{ done: false, editing: false, text: "Add event handlers", id: "id2" },
 	],
 	editingId: null,
 };

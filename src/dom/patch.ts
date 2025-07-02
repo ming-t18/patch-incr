@@ -151,9 +151,13 @@ export const patchDOMEntry = (res: {
 	el: Element | Text | null;
 	domc: ElementConstruction;
 	entry: PatchEntry<ElementConstruction>;
+	doc?: Document | null;
 }) => {
-	const { el, entry } = res;
+	const { el, entry, doc: doc0 } = res;
+	const doc = doc0 ?? document;
 	const { op, path } = entry;
+	const shouldRefocus = doc.activeElement === el;
+	console.log({ el, aE: document.activeElement, shouldRefocus });
 	if (path.length === 1) {
 		ensureElement(el);
 		const field = entry.path[0] as keyof ElementConstruction;
@@ -166,7 +170,7 @@ export const patchDOMEntry = (res: {
 				clearAttrs(el);
 			} else if (field === "tag") {
 				if (op === PatchOp.Remove) {
-					throw new Error("Cannot delete tag name");
+					throw new Error("patchDOMEntry: tag: cannot delete tag name");
 				}
 				// tagName can't be changed in a fine-grained way
 				return false;
@@ -187,11 +191,9 @@ export const patchDOMEntry = (res: {
 				// tagName can't be changed in a fine-grained way
 				return false;
 			} else {
-				return false;
+				throw new Error(`patchDOMEntry: invalid field: ${field}`);
 			}
 		}
-
-		return true;
 	} else if (path.length === 2) {
 		ensureElement(el);
 		const field = entry.path[0] as keyof ElementConstruction;
@@ -202,7 +204,6 @@ export const patchDOMEntry = (res: {
 			} else if (op === PatchOp.Add || op === PatchOp.Replace) {
 				setAttributeFromConstruction(el, attr, entry.value);
 			}
-			return true;
 		} else if (field === "events") {
 			const attr = entry.path[1] as string;
 			if (op === PatchOp.Remove) {
@@ -210,56 +211,49 @@ export const patchDOMEntry = (res: {
 			} else if (op === PatchOp.Add || op === PatchOp.Replace) {
 				addOrReplaceEventHandler(el, attr, entry.value);
 			}
-			return true;
 		} else if (field === "children") {
 			const index = entry.path[1] as number | IndexEnd;
 			if (op === PatchOp.Add) {
 				const newNode = constructDOM(entry.value, document, true);
 				if (index === IndexEnd) {
 					el.appendChild(newNode);
-					return true;
 				} else {
 					const ref = getNthChild(el, index);
 					if (ref === null) {
 						el.appendChild(newNode);
-					} else {
-						// console.log("insert", {
-						// 	index,
-						// 	parent: el,
-						// 	toInsertBefore: ref,
-						// 	newNode,
-						// 	entry,
-						// });
-						// el.insertBefore(newNode, ref);
 					}
 				}
-				return true;
-			}
+			} else {
+				if (index === IndexEnd) {
+					throw new TypeError("patchDOMEntry: child: index must be a number");
+				}
 
-			if (index === IndexEnd) {
-				throw new TypeError("index must be a number");
-			}
+				const ref = getNthChild(el, index);
+				if (ref === null) {
+					throw new Error("patchDOMEntry: child: index out of a range");
+				}
 
-			const ref = getNthChild(el, index);
-			if (ref === null) {
-				throw new Error("patch specific child: index out of a range");
+				if (op === PatchOp.Remove) {
+					onNodeTeardown(ref as Element | Text);
+					ref.remove();
+				} else if (op === PatchOp.Replace) {
+					const newNode = constructDOM(entry.value, document, true);
+					onNodeTeardown(ref as Element | Text);
+					ref.replaceWith(newNode);
+				}
 			}
-
-			if (op === PatchOp.Remove) {
-				onNodeTeardown(ref as Element | Text);
-				ref.remove();
-				return true;
-			}
-
-			if (op === PatchOp.Replace) {
-				const newNode = constructDOM(entry.value, document, true);
-				onNodeTeardown(ref as Element | Text);
-				ref.replaceWith(newNode);
-				return true;
-			}
+		} else {
+			throw new Error(`patchDOMEntry: invalid field: ${field}`);
 		}
+	} else {
+		throw new Error(`patchDOMEntry: path is too long`);
 	}
-	return false;
+
+	if (shouldRefocus) {
+		console.log("refocus", el);
+		(el as HTMLElement).focus();
+	}
+	return true;
 };
 
 export const patchDOM = (
