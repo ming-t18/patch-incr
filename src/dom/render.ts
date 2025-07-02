@@ -164,7 +164,6 @@ export const hydrate = (el: Element, domc: DOMConstruction) => {
 			console.warn(
 				"hydrate: mismatch: children: actual children list has fewer children than domc",
 				{
-					// existingElem: el,
 					newConstruction: domc,
 					domcIndex: i,
 				},
