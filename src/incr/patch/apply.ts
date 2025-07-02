@@ -116,14 +116,15 @@ export const canApplyPatches = <T>(value: T, patches: Patches) => {
 			throw e;
 		}
 		const message = (e as Error).toString();
-		// console.error('e', message);
 		if (
 			message.indexOf("Immer") !== -1 ||
-			message.indexOf("applyPatches: ") !== -1
+			message.indexOf("applyPatches: ") !== -1 ||
+			message.indexOf("Attempted to assign to readonly property")
 		) {
 			return false;
 		}
-		console.error("$here", { message });
+
+		console.error(value, patches, e);
 		throw e;
 	}
 };
