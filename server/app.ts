@@ -2,7 +2,7 @@ import { elem, elem0, elem0Events, elemEvents } from "../src/dom/construct";
 import { type Dispatch, DOMRoot } from "../src/dom/mount";
 import type { RenderIF, StateDispatch } from "../src/dom/render";
 import type { ElementConstruction } from "../src/dom/types";
-import { map } from "../src/incr/array";
+import { filter, map } from "../src/incr/array";
 import { bind } from "../src/incr/bind";
 import { atomicFunc } from "../src/incr/builder";
 import { composeMemoL } from "../src/incr/compose/memo";
@@ -14,21 +14,17 @@ import {
 	type TodoItem,
 	type TodoState,
 	todoReducer,
+	ViewFilter,
 } from "../src/todo_state";
 
+const accessViewFilter = accessPath<
+	ViewFilter,
+	StateDispatch<TodoState, TodoAction>
+>(["state", "viewFilter"]);
 const accessItems = accessPath<
-	TodoState["items"],
+	TodoItem[],
 	StateDispatch<TodoState, TodoAction>
 >(["state", "items"]);
-const accessNumberOfItemsLeft = composeMemoL(
-	accessPath<TodoState["items"], StateDispatch<TodoState, TodoAction>>([
-		"state",
-		"items",
-	]),
-	atomicFunc(
-		(x) => x.length - x.reduce((s: number, { done }) => (done ? s + 1 : s), 0),
-	),
-);
 const accessItemId = access<string, "id", TodoItem>("id");
 const _accessEditingId = accessPath<
 	TodoState["editingId"],
@@ -42,6 +38,21 @@ const accessDispatch = accessPath<
 const accessItemText = access<string, "text", TodoItem>("text");
 const accessItemDone = access<boolean, "done", TodoItem>("done");
 const accessItemEditing = access<boolean, "editing", TodoItem>("editing");
+
+const getFilteredItems: IF<
+	StateDispatch<TodoState, TodoAction>,
+	TodoItem[]
+> = bind(accessViewFilter, (viewFilter: ViewFilter) => {
+	if (viewFilter === ViewFilter.All) {
+		return accessItems;
+	}
+
+	const pred =
+		viewFilter === ViewFilter.Active
+			? ({ done }: TodoItem) => !done
+			: ({ done }: TodoItem) => done;
+	return composeMemoL(composeMemoL(accessItems, filter(pred)), access(0));
+});
 
 export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 	accessDispatch,
@@ -173,23 +184,99 @@ export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 
 		return template(
 			{
-				list: composeMemoL(accessItems, mapTodoItems),
+				list: composeMemoL(getFilteredItems, mapTodoItems),
 			},
 			({ list }) => elem("ul", { class: "todo-list" }, list),
 		);
 	},
 );
 
+export const renderFiltersMenu = bind(accessDispatch, (dispatch) =>
+	template(
+		{
+			allClass: composeMemoL(
+				accessViewFilter,
+				atomicFunc((x) => (x === ViewFilter.All ? "selected" : "")),
+			),
+			activeClass: composeMemoL(
+				accessViewFilter,
+				atomicFunc((x) => (x === ViewFilter.Active ? "selected" : "")),
+			),
+			completedClass: composeMemoL(
+				accessViewFilter,
+				atomicFunc((x) => (x === ViewFilter.Completed ? "selected" : "")),
+			),
+		},
+		({ allClass, activeClass, completedClass }): ElementConstruction =>
+			elem("ul", { class: "filters" }, [
+				elem0("li", [
+					elemEvents(
+						"a",
+						{ href: "#/", class: allClass },
+						{
+							click: () =>
+								dispatch({
+									type: TodoActionType.SetViewFilter,
+									viewFilter: ViewFilter.All,
+								}),
+						},
+						["All"],
+					),
+				]),
+				elem0("li", [
+					elemEvents(
+						"a",
+						{ href: "#/active", class: activeClass },
+						{
+							click: () =>
+								dispatch({
+									type: TodoActionType.SetViewFilter,
+									viewFilter: ViewFilter.Active,
+								}),
+						},
+						["Active"],
+					),
+				]),
+				elem0("li", [
+					elemEvents(
+						"a",
+						{ href: "#/completed", class: completedClass },
+						{
+							click: () =>
+								dispatch({
+									type: TodoActionType.SetViewFilter,
+									viewFilter: ViewFilter.Completed,
+								}),
+						},
+						["Completed"],
+					),
+				]),
+			]),
+	),
+);
+
+const getTodoCountText = composeMemoL(
+	accessPath<TodoState["items"], StateDispatch<TodoState, TodoAction>>([
+		"state",
+		"items",
+	]),
+	atomicFunc((x) => {
+		const count =
+			x.length - x.reduce((s: number, { done }) => (done ? s + 1 : s), 0);
+		return `${count} item${count !== 1 ? "s" : ""} left!`;
+	}),
+);
 export const renderTodoApp: RenderIF<TodoState, TodoAction> = bind(
 	accessDispatch,
 	(dispatch) =>
 		template(
 			{
 				todoItems: renderTodoItems,
-				numberOfItemsLeft: accessNumberOfItemsLeft,
+				todoCountText: getTodoCountText,
+				filtersMenu: renderFiltersMenu,
 			},
-			({ todoItems, numberOfItemsLeft }): ElementConstruction => {
-				return elem("div", { id: "todo-app" }, [
+			({ todoItems, todoCountText, filtersMenu }): ElementConstruction =>
+				elem("div", { id: "todo-app" }, [
 					elem("header", { class: "header" }, [
 						elem0("h1", ["todos"]),
 						elemEvents(
@@ -233,19 +320,8 @@ export const renderTodoApp: RenderIF<TodoState, TodoAction> = bind(
 						]),
 						todoItems,
 						elem("footer", { class: "footer" }, [
-							elem("span", { class: "todo-count" }, [
-								numberOfItemsLeft,
-								" items left!",
-							]),
-							elem("ul", { class: "filters" }, [
-								elem0("li", [
-									elem("a", { href: "#/", class: "selected" }, ["All"]),
-								]),
-								elem0("li", [elem("a", { href: "#/active" }, ["Active"])]),
-								elem0("li", [
-									elem("a", { href: "#/completed" }, ["Completed"]),
-								]),
-							]),
+							elem("span", { class: "todo-count" }, [todoCountText]),
+							filtersMenu,
 							elemEvents(
 								"button",
 								{ class: "clear-completed" },
@@ -257,8 +333,7 @@ export const renderTodoApp: RenderIF<TodoState, TodoAction> = bind(
 							),
 						]),
 					]),
-				]);
-			},
+				]),
 		),
 );
 
@@ -269,8 +344,18 @@ const initState: TodoState = {
 		{ done: false, editing: false, text: "Update app", id: "id1" },
 		{ done: false, editing: false, text: "Add event handlers", id: "id2" },
 	],
+	viewFilter: ViewFilter.All,
 	editingId: null,
 };
+
+// for (let i = 0; i < 10000; i++) {
+// 	initState.items.push({
+// 		done: i % 5 === 0,
+// 		editing: false,
+// 		text: `Todo Item ${i}`,
+// 		id: `added-${i}`,
+// 	});
+// }
 
 const load = () => {
 	const root = document.getElementById("root");

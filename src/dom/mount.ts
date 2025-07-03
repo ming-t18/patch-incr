@@ -75,7 +75,7 @@ export class DOMRoot<State, Action> {
 			),
 		);
 		const dispatch = (a: Action) => {
-			console.log("dispatch()", a);
+			console.log("dispatch() ---", a);
 			return this.#actions$.next([a]);
 		};
 		this.#dispatch = dispatch;

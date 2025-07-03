@@ -1,6 +1,12 @@
 import { type Draft, produce } from "immer";
 import { fromReducerOnDraft } from "./incr/reducer";
 
+export enum ViewFilter {
+	All = "All",
+	Active = "Active",
+	Completed = "Completed",
+}
+
 export enum TodoActionType {
 	Clear = "Clear",
 	ClearCompleted = "ClearCompleted",
@@ -11,6 +17,7 @@ export enum TodoActionType {
 	StartEditing = "StartEditing",
 	StopEditing = "StopEditing",
 	EditText = "EditText",
+	SetViewFilter = "SetViewFilter",
 }
 
 export interface TodoActionClear {
@@ -55,6 +62,11 @@ export interface TodoActionEditText {
 	value: string;
 }
 
+export interface TodoActionSetViewFilter {
+	type: TodoActionType.SetViewFilter;
+	viewFilter: ViewFilter;
+}
+
 export type TodoAction =
 	| TodoActionClear
 	| TodoActionClearCompleted
@@ -64,7 +76,8 @@ export type TodoAction =
 	| TodoActionRemove
 	| TodoActionStartEditing
 	| TodoActionStopEditing
-	| TodoActionEditText;
+	| TodoActionEditText
+	| TodoActionSetViewFilter;
 
 export interface TodoItem {
 	id: string;
@@ -77,6 +90,7 @@ export interface TodoState {
 	counter: number;
 	items: TodoItem[];
 	editingId?: string | null;
+	viewFilter: ViewFilter;
 }
 
 const genId = (counter: number) => `id-${counter}`;
@@ -172,6 +186,10 @@ export const todoStateReducerOnDraft = (
 			}
 
 			draft.items[index].text = action.value;
+			return;
+		}
+		case TodoActionType.SetViewFilter: {
+			draft.viewFilter = action.viewFilter;
 			return;
 		}
 		default: {
