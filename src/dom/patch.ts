@@ -153,13 +153,9 @@ export const patchDOMEntry = (res: {
 	entry: PatchEntry<ElementConstruction>;
 	doc?: Document | null;
 }) => {
-	const { el, entry, doc: doc0 } = res;
-	const doc = doc0 ?? document;
+	const { el, entry, doc: _doc0 } = res;
 	const { op, path } = entry;
-	const shouldRefocus = doc.activeElement === el;
 
-	// console.log({ el, domc: res.domc, entry });
-	// console.log({ el, aE: document.activeElement, shouldRefocus });
 	if (path.length === 1) {
 		ensureElement(el);
 		const field = entry.path[0] as keyof ElementConstruction;
@@ -251,10 +247,6 @@ export const patchDOMEntry = (res: {
 		throw new Error(`patchDOMEntry: path is too long`);
 	}
 
-	if (shouldRefocus) {
-		// console.log("refocus", el);
-		(el as HTMLElement).focus();
-	}
 	return true;
 };
 
