@@ -5,7 +5,12 @@ import { renderToString } from "../dom/render";
 import { atomicFunc } from "../incr/builder";
 import { composeMemoL } from "../incr/compose/memo";
 // import { forwardTodo, renderTodo } from "../../server/app";
-import { type TodoAction, TodoActionType, type TodoState } from "../todo_state";
+import {
+	type TodoAction,
+	TodoActionType,
+	type TodoState,
+	ViewFilter,
+} from "../todo_state";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 
@@ -55,6 +60,7 @@ const arbTodoState: gp.GenWithPatches<TodoState> = gp.record({
 			id: gp.atomic(fc.integer({ min: 0 }).map((i) => `id-${i}`)),
 			done: gp.boolean(),
 			text: gp.string(),
+			editing: gp.atomic(fc.constant(false)),
 		}),
 		{ maxLength: 10 },
 	),
@@ -64,6 +70,7 @@ const arbTodoState: gp.GenWithPatches<TodoState> = gp.record({
 			fc.integer({ min: 0 }).map((i) => `id-${i}`),
 		),
 	),
+	viewFilter: gp.atomic(fc.constantFrom(...Object.values(ViewFilter))),
 });
 
 const DISPATCH = (_: TodoAction) => {};
