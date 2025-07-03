@@ -13,12 +13,7 @@ import {
 	removeEventHandler,
 	setEventHandlers,
 } from "./events/eventManager";
-import {
-	addChildrenFromConstruction,
-	constructDOM,
-	hydrate,
-	renderToString,
-} from "./render";
+import { addChildrenFromConstruction, constructDOM, hydrate } from "./render";
 import { type ElementConstruction, isElementConstruction } from "./types";
 
 const skipComments = (el: ChildNode | null): ChildNode | null => {
@@ -126,8 +121,10 @@ export const renderDOM = (
 	root: Element,
 	domc: ElementConstruction,
 	addEvents = true,
+	doc = document,
 ) => {
-	root.innerHTML = renderToString(domc);
+	root.innerHTML = "";
+	root.appendChild(constructDOM(domc, doc, addEvents));
 	const node = root.firstElementChild;
 	if (!node) {
 		// console.warn("renderDOM: is empty");
