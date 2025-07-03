@@ -1,4 +1,6 @@
-import { elem, elem0, elem0Events, elemEvents } from "../src/dom/construct";
+import { elem, elemEvents } from "../src/dom/construct";
+import type { Props } from "../src/dom/construct/typedProps";
+import { tags } from "../src/dom/construct/vanjs";
 import { type Dispatch, DOMRoot } from "../src/dom/mount";
 import type { RenderIF, StateDispatch } from "../src/dom/render";
 import type { ElementConstruction } from "../src/dom/types";
@@ -54,6 +56,21 @@ const getFilteredItems: IF<
 	return composeMemoL(composeMemoL(accessItems, filter(pred)), access(0));
 });
 
+const {
+	div,
+	header,
+	h1,
+	input,
+	main,
+	label,
+	footer,
+	span,
+	button,
+	ul,
+	li,
+	a: _a,
+} = tags;
+
 export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 	accessDispatch,
 	(dispatch) => {
@@ -94,16 +111,18 @@ export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 				),
 			},
 			({ value, events }) =>
-				elem("div", { class: "input-container" }, [
+				div(
+					{ class: "input-container" },
 					elemEvents(
 						"input",
 						{ class: "edit", id: "edit-todo-input", value },
 						events,
 					),
-					elem("label", { class: "visually-hidden", for: "edit-todo-input" }, [
+					label(
+						{ class: "visually-hidden", for: "edit-todo-input" },
 						"Edit Todo Input ",
-					]),
-				]),
+					),
+				),
 		);
 
 		const mapTodoItems: IF<TodoItem[], ElementConstruction[]> = map<
@@ -159,26 +178,24 @@ export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 					dispatchStartEditing,
 					dispatchRemove,
 				}) =>
-					elem("li", { class: liClass }, [
-						elem("div", { class: "view" }, [
-							elemEvents(
-								"input",
-								{ class: "toggle", type: "checkbox", checked },
-								{
-									change: dispatchSetDone,
-								},
-							),
-							elem0Events("label", { dblclick: dispatchStartEditing }, [text]),
-							elemEvents(
-								"button",
-								{ class: "destroy" },
-								{
-									click: dispatchRemove,
-								},
-							),
-						]),
+					li(
+						{ class: liClass },
+						div(
+							{ class: "view" },
+							input({
+								type: "checkbox",
+								class: "toggle",
+								checked,
+								onchange: dispatchSetDone,
+							} as Props),
+							label({ ondblclick: dispatchStartEditing }, text),
+							button({
+								class: "destroy",
+								onclick: dispatchRemove,
+							}),
+						),
 						editorPart,
-					]),
+					),
 			),
 		);
 
@@ -208,50 +225,52 @@ export const renderFiltersMenu = bind(accessDispatch, (dispatch) =>
 			),
 		},
 		({ allClass, activeClass, completedClass }): ElementConstruction =>
-			elem("ul", { class: "filters" }, [
-				elem0("li", [
-					elemEvents(
-						"a",
-						{ href: "#/", class: allClass },
+			ul(
+				{ class: "filters" },
+				li(
+					_a(
 						{
-							click: () =>
+							href: "#/",
+							class: allClass,
+							onclick: () =>
 								dispatch({
 									type: TodoActionType.SetViewFilter,
 									viewFilter: ViewFilter.All,
 								}),
 						},
-						["All"],
+						"All",
 					),
-				]),
-				elem0("li", [
-					elemEvents(
-						"a",
-						{ href: "#/active", class: activeClass },
+				),
+				li(
+					_a(
 						{
-							click: () =>
+							href: "#/active",
+							class: activeClass,
+
+							onclick: () =>
 								dispatch({
 									type: TodoActionType.SetViewFilter,
 									viewFilter: ViewFilter.Active,
 								}),
 						},
-						["Active"],
+						"Active",
 					),
-				]),
-				elem0("li", [
-					elemEvents(
-						"a",
-						{ href: "#/completed", class: completedClass },
+				),
+				li(
+					_a(
 						{
-							click: () =>
+							href: "#/completed",
+							class: completedClass,
+							onclick: () =>
 								dispatch({
 									type: TodoActionType.SetViewFilter,
 									viewFilter: ViewFilter.Completed,
 								}),
 						},
-						["Completed"],
+						"Completed",
 					),
-				]),
-			]),
+				),
+			),
 	),
 );
 
@@ -266,6 +285,7 @@ const getTodoCountText = composeMemoL(
 		return `${count} item${count !== 1 ? "s" : ""} left!`;
 	}),
 );
+
 export const renderTodoApp: RenderIF<TodoState, TodoAction> = bind(
 	accessDispatch,
 	(dispatch) =>
@@ -276,64 +296,62 @@ export const renderTodoApp: RenderIF<TodoState, TodoAction> = bind(
 				filtersMenu: renderFiltersMenu,
 			},
 			({ todoItems, todoCountText, filtersMenu }): ElementConstruction =>
-				elem("div", { id: "todo-app" }, [
-					elem("header", { class: "header" }, [
-						elem0("h1", ["todos"]),
-						elemEvents(
-							"input",
-							{
-								type: "text",
-								class: "new-todo",
-								placeholder: "What needs to be done?",
-								autofocus: true,
-							},
-							{
-								keypress: (e: KeyboardEvent) => {
-									if (e.key !== "Enter") {
-										return;
-									}
+				div(
+					{ id: "todo-app" },
+					header(
+						{ class: "header" },
+						h1("todos"),
+						input({
+							type: "text",
+							class: "new-todo",
+							placeholder: "What needs to be done?",
+							autofocus: true,
+							onkeypress: (e: KeyboardEvent) => {
+								if (e.key !== "Enter") {
+									return;
+								}
 
-									const input = e.target as HTMLInputElement;
-									if (input.value.trim()) {
-										dispatch({
-											type: TodoActionType.Add,
-											value: input.value,
-										});
-										e.preventDefault();
-									}
-								},
+								const input = e.target as HTMLInputElement;
+								if (input.value.trim()) {
+									dispatch({
+										type: TodoActionType.Add,
+										value: input.value,
+									});
+									e.preventDefault();
+								}
 							},
-						),
-					]),
-					elem("main", { class: "main" }, [
-						elem("div", { class: "toggle-all-container" }, [
-							elemEvents(
-								"input",
-								{ class: "toggle-all", type: "checkbox" },
-								{
-									change: () => dispatch({ type: TodoActionType.ToggleAll }),
-								},
-							),
-							elem("label", { class: "toggle-all-label", for: "toggle-all" }, [
+						}),
+					),
+					main(
+						{ class: "main" },
+						div(
+							{ class: "toggle-all-container" },
+							input({
+								class: "toggle-all",
+								type: "checkbox",
+								onchange: () => dispatch({ type: TodoActionType.ToggleAll }),
+							}),
+							label(
+								{ class: "toggle-all-label", for: "toggle-all" },
 								"Toggle All Input",
-							]),
-						]),
+							),
+						),
 						todoItems,
-						elem("footer", { class: "footer" }, [
-							elem("span", { class: "todo-count" }, [todoCountText]),
+						footer(
+							{ class: "footer" },
+							span({ class: "todo-count" }, todoCountText),
 							filtersMenu,
-							elemEvents(
-								"button",
-								{ class: "clear-completed" },
+							button(
 								{
-									click: () =>
+									class: "clear-completed",
+									onclick: () =>
 										dispatch({ type: TodoActionType.ClearCompleted }),
 								},
-								["Clear completed"],
+								"Clear completed",
 							),
-						]),
-					]),
-				]),
+						),
+					),
+				),
 		),
 );
 
@@ -348,14 +366,14 @@ const initState: TodoState = {
 	editingId: null,
 };
 
-// for (let i = 0; i < 10000; i++) {
-// 	initState.items.push({
-// 		done: i % 5 === 0,
-// 		editing: false,
-// 		text: `Todo Item ${i}`,
-// 		id: `added-${i}`,
-// 	});
-// }
+for (let i = 0; i < 10; i++) {
+	initState.items.push({
+		done: i % 5 === 0,
+		editing: false,
+		text: `Todo Item ${i}`,
+		id: `added-${i}`,
+	});
+}
 
 const load = () => {
 	const root = document.getElementById("root");
