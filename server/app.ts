@@ -80,7 +80,8 @@ export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 				events: composeMemoL(
 					accessItemId,
 					atomicFunc((id: string) => {
-						const handleSubmit = (value: string) => {
+						const handleSubmit = (input: HTMLInputElement) => {
+							const value = input.value;
 							if (!value) {
 								dispatch({
 									type: TodoActionType.Remove,
@@ -91,9 +92,7 @@ export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 									type: TodoActionType.EditText,
 									value,
 								});
-								requestAnimationFrame(() => {
-									dispatch({ type: TodoActionType.StopEditing });
-								});
+								dispatch({ type: TodoActionType.StopEditing });
 							}
 						};
 						return {
@@ -101,11 +100,11 @@ export const renderTodoItems: RenderIF<TodoState, TodoAction> = bind(
 								if (e.key === "Escape") {
 									dispatch({ type: TodoActionType.StopEditing });
 								} else if (e.key === "Enter") {
-									handleSubmit((e.target as HTMLInputElement).value);
+									handleSubmit(e.target as HTMLInputElement);
 								}
 							},
 							blur: (e: KeyboardEvent) =>
-								handleSubmit((e.target as HTMLInputElement).value),
+								handleSubmit(e.target as HTMLInputElement),
 						};
 					}),
 				),
@@ -317,6 +316,8 @@ export const renderTodoApp: RenderIF<TodoState, TodoAction> = bind(
 										type: TodoActionType.Add,
 										value: input.value,
 									});
+									// the input is already not controlled
+									input.value = "";
 									e.preventDefault();
 								}
 							},
@@ -366,14 +367,14 @@ const initState: TodoState = {
 	editingId: null,
 };
 
-for (let i = 0; i < 10; i++) {
-	initState.items.push({
-		done: i % 5 === 0,
-		editing: false,
-		text: `Todo Item ${i}`,
-		id: `added-${i}`,
-	});
-}
+// for (let i = 0; i < 100; i++) {
+// 	initState.items.push({
+// 		done: i % 5 === 0,
+// 		editing: false,
+// 		text: `Todo Item ${i}`,
+// 		id: `added-${i}`,
+// 	});
+// }
 
 const load = () => {
 	const root = document.getElementById("root");
