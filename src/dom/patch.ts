@@ -261,14 +261,11 @@ export const patchDOM = (
 	domc: ElementConstruction,
 	domcChanges: Patches<ElementConstruction>,
 ) => {
-	root.innerHTML = renderToString(domc);
 	const node = root.firstElementChild;
 	if (!node) {
-		console.warn("patchDOM: is empty");
+		console.warn("patchDOM: root has no children");
 		return;
 	}
-
-	hydrate(node, domc);
 
 	for (const entry of domcChanges) {
 		const res = analyzePatchElement(root.firstElementChild, domc, entry);
