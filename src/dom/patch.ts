@@ -157,6 +157,8 @@ export const patchDOMEntry = (res: {
 	const doc = doc0 ?? document;
 	const { op, path } = entry;
 	const shouldRefocus = doc.activeElement === el;
+
+	// console.log({ el, domc: res.domc, entry });
 	// console.log({ el, aE: document.activeElement, shouldRefocus });
 	if (path.length === 1) {
 		ensureElement(el);
@@ -258,7 +260,7 @@ export const patchDOMEntry = (res: {
 
 export const patchDOM = (
 	root: Element,
-	domc: ElementConstruction,
+	domc0: ElementConstruction,
 	domcChanges: Patches<ElementConstruction>,
 ) => {
 	const node = root.firstElementChild;
@@ -267,10 +269,12 @@ export const patchDOM = (
 		return;
 	}
 
+	let domc = domc0;
 	for (const entry of domcChanges) {
 		const res = analyzePatchElement(root.firstElementChild, domc, entry);
 		if (patchDOMEntry(res)) {
-			return;
+			domc = applyPatches(domc, [entry]);
+			continue;
 		}
 
 		const targetNode = res.el;
@@ -279,10 +283,10 @@ export const patchDOM = (
 		onNodeTeardown(targetNode);
 		const replacement = constructDOM(domcUpdated, document, true);
 		targetNode?.replaceWith(replacement);
-		console.warn("patchDOMEntry: need to replace entire", {
+		console.warn("patchDOM: unhandled patch entry, need to replace entire", {
 			// parent: res.el,
-			// entry: res.entry,
 			// replacement,
+			entry: res.entry,
 			domcBefore,
 			domcUpdated,
 		});
