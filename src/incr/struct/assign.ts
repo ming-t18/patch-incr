@@ -132,6 +132,9 @@ const makePlaceholder = <T>(label: string) => {
 	}) as T;
 };
 
+export const isTemplatePlaceholder = (x: unknown): x is TemplatePlaceholder =>
+	x instanceof TemplatePlaceholder;
+
 /**
  * Creates an incremental function that is a potentially nested record with
  * specific slots being incremental functions from a single input to the output.
