@@ -17,7 +17,7 @@ import {
 	type TodoState,
 	todoReducer,
 	ViewFilter,
-} from "../src/todo_state";
+} from "./todo_state";
 
 const accessViewFilter = accessPath<
 	ViewFilter,

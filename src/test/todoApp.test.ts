@@ -10,7 +10,7 @@ import {
 	TodoActionType,
 	type TodoState,
 	ViewFilter,
-} from "../todo_state";
+} from "../../server/todo_state";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 

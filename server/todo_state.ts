@@ -1,5 +1,5 @@
 import { type Draft, produce } from "immer";
-import { fromReducerOnDraft } from "./incr/reducer";
+import { fromReducerOnDraft } from "../src/incr/reducer";
 
 export enum ViewFilter {
 	All = "All",
