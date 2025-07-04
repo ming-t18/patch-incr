@@ -1,4 +1,4 @@
-await Bun.build({
-  entrypoints: ['./server/app.ts'],
-  outdir: './build',
-});
+// await Bun.build({
+// 	entrypoints: ["./server/app.ts"],
+// 	outdir: "./build",
+// });

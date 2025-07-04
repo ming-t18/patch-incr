@@ -123,8 +123,12 @@ export const renderDOM = (
 	addEvents = true,
 	doc = document,
 ) => {
-	root.innerHTML = "";
-	root.appendChild(constructDOM(domc, doc, addEvents));
+	if (!root.hasAttribute("data-ssr")) {
+		root.innerHTML = "";
+		root.appendChild(constructDOM(domc, doc, addEvents));
+	} else {
+		console.info("renderDOM: already server-side rendered");
+	}
 	const node = root.firstElementChild;
 	if (!node) {
 		// console.warn("renderDOM: is empty");

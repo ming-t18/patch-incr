@@ -356,7 +356,7 @@ export const renderTodoApp: RenderIF<TodoState, TodoAction> = bind(
 		),
 );
 
-const initState: TodoState = {
+export const initState: TodoState = {
 	counter: 3,
 	items: [
 		{ done: true, editing: false, text: "Hello, world!", id: "id0" },
@@ -367,16 +367,16 @@ const initState: TodoState = {
 	editingId: null,
 };
 
-// for (let i = 0; i < 100; i++) {
-// 	initState.items.push({
-// 		done: i % 5 === 0,
-// 		editing: false,
-// 		text: `Todo Item ${i}`,
-// 		id: `added-${i}`,
-// 	});
-// }
+for (let i = 0; i < 20; i++) {
+	initState.items.push({
+		done: i % 5 === 0,
+		editing: false,
+		text: `Todo Item ${i}`,
+		id: `added-${i}`,
+	});
+}
 
-const load = () => {
+export const load = () => {
 	const root = document.getElementById("root");
 	if (!root) {
 		return;

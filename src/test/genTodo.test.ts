@@ -1,5 +1,9 @@
 import fc from "fast-check";
-import { type TodoAction, TodoActionType, type TodoState } from "../../server/todo_state";
+import {
+	type TodoAction,
+	TodoActionType,
+	type TodoState,
+} from "../../server/todo_state";
 
 const arbText = fc.string({ maxLength: 80 });
 

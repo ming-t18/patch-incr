@@ -1,9 +1,6 @@
 import { describe, it } from "bun:test";
 import fc from "fast-check";
 import { renderTodoApp } from "../../server/app";
-import { renderToString } from "../dom/render";
-import { atomicFunc } from "../incr/builder";
-import { composeMemoL } from "../incr/compose/memo";
 // import { forwardTodo, renderTodo } from "../../server/app";
 import {
 	type TodoAction,
@@ -11,6 +8,9 @@ import {
 	type TodoState,
 	ViewFilter,
 } from "../../server/todo_state";
+import { renderToString } from "../dom/render";
+import { atomicFunc } from "../incr/builder";
+import { composeMemoL } from "../incr/compose/memo";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 
