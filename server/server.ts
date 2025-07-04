@@ -1,7 +1,8 @@
 import homepage from "./index.html";
+import { serve } from "bun";
 
-const server = Bun.serve({
-	static: {
+const server = serve({
+	routes: {
 		"/": homepage,
 	},
 
@@ -12,7 +13,8 @@ const server = Bun.serve({
 	// Handle API requests
 	async fetch(_req) {
 		// Return 404 for unmatched routes
-		return new Response("Not Found", { status: 404 });
+		//return new Response("Not Found", { status: 404 });
+		return new Response("Hello world");
 	},
 });
 
