@@ -47,7 +47,7 @@ export const atomicFunc = <Input, Output>(
 		input: Input,
 		patches: Patches<Input>,
 		output: Output,
-	) => {
+	): Patches<Output> => {
 		if (patches.length === 0) {
 			return [];
 		}

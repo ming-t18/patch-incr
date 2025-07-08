@@ -1,35 +1,19 @@
+/* biome-ignore lint/suspicious/noExplicitAny: used for type constraints */
 import type { Patches } from "../incr/patch";
-import { access } from "./access";
 
-export const IsDP = Symbol("IsDP");
+export type DP0<T> = [T, undefined, false];
+export type DP1<T, DT = Patches<T>> = [T, DT, true];
 
-// export type DP<X = unknown, DX = unknown> = [X, DX] & {
-// 	[IsDP]: true;
-// };
+export type DualPair<T, DT = Patches<T>> = DP1<T, DT> | DP0<T>;
+export type DP<T, DT = Patches<T>> = DualPair<T, DT>;
 
 export type DualFunc<X, Y, DX, DY> = (input: DP<X, DX>) => DP<Y, DY>;
+export type DF<X, Y, DX = Patches<X>, DY = Patches<Y>> = DualFunc<X, Y, DX, DY>;
 
-export type DF<X, Y, DX, DY> = DualFunc<X, Y, DX, DY>;
+export type InferDFInput<F extends DF<any, any>> = F extends (
+	_arg: DP<infer X, any>,
+) => any
+	? X
+	: never;
 
-export class DP<X = unknown, DX = unknown> extends Array {
-	readonly [IsDP] = true;
-	constructor(value: X, change: DX) {
-		super(2);
-		this[0] = value;
-		this[1] = change;
-	}
-
-	access<K extends keyof X>(key: K): DP<X[K], Patches<DX>> {
-		return access(this, [key as never]);
-	}
-}
-
-export const dp = <X, DX>(x: X, dx: DX) => {
-	return new DP<X, DX>(x, dx);
-};
-
-export const isDP = <X = unknown, DX = unknown>(
-	value: unknown,
-): value is DP<X, DX> => {
-	return value instanceof DP;
-};
+export type InferDFReturn<F extends DF<any, any>> = ReturnType<F>[0];
