@@ -1,14 +1,14 @@
 import { liftPatch, type Patches } from "../incr/patch";
 import { dp, dp0 } from "./dp";
-import type { DP } from "./types";
+import type { AnyDP, DP } from "./types";
 
 export type DFTupleReturn<Ys extends DP<unknown>[]> = Ys extends []
 	? []
-	: Ys extends [DP<infer Y0, unknown>, ...infer Rest extends DP<any, any>[]]
+	: Ys extends [DP<infer Y0, unknown>, ...infer Rest extends AnyDP[]]
 		? [Y0, ...DFTupleReturn<Rest>]
 		: never;
 
-export type DFRecordReturn<R extends Record<string, DP<any, any>>> = {
+export type DFRecordReturn<R extends Record<string, AnyDP>> = {
 	[key in keyof R]: R[key][0];
 };
 
