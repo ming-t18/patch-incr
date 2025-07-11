@@ -2,7 +2,9 @@ import fc from "fast-check";
 import {
 	type TodoAction,
 	TodoActionType,
+	type TodoItem,
 	type TodoState,
+	ViewFilter,
 } from "../../server/todo_state";
 
 const arbText = fc.string({ maxLength: 80 });
@@ -44,10 +46,11 @@ export const arbTodoAction = (state: TodoState): fc.Arbitrary<TodoAction> => {
 	) as never;
 };
 
-const arbTodoItem = fc.record({
+const arbTodoItem = fc.record<TodoItem>({
 	done: fc.boolean(),
 	text: arbText,
 	id: fc.string(),
+	editing: fc.constant(false),
 });
 
 export const arbTodoState: fc.Arbitrary<TodoState> = fc
@@ -65,6 +68,7 @@ export const arbTodoState: fc.Arbitrary<TodoState> = fc
 							arbitrary: fc.integer({ min: 0, max: items.length - 1 }),
 						},
 			),
+			viewFilter: fc.constantFrom(...Object.values(ViewFilter)),
 		}),
 	);
 
