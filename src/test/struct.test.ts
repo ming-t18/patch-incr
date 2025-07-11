@@ -1,6 +1,7 @@
 import { atomicFunc, identity } from "../incr/builder";
 import { record, template } from "../incr/struct";
 import { assign } from "../incr/struct/assign";
+import { entries, keys } from "../incr/struct/entries";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 
@@ -56,4 +57,36 @@ describe("template", () => {
 	);
 
 	propsForIF(it, gp.integer(), () => af);
+});
+
+describe("keys", () => {
+	propsForIF(
+		it,
+		gp.record(
+			{
+				a: gp.integer(),
+				b: gp.string(),
+				c: gp.array(gp.string()),
+				d: gp.array(gp.tuple(gp.string())),
+			},
+			["a", "b", "c", "d"],
+		),
+		() => keys(),
+	);
+});
+
+describe("entries", () => {
+	propsForIF(
+		it,
+		gp.record(
+			{
+				a: gp.integer(),
+				b: gp.string(),
+				c: gp.array(gp.string()),
+				d: gp.array(gp.tuple(gp.string())),
+			},
+			["a", "b", "c", "d"],
+		),
+		() => entries(),
+	);
 });

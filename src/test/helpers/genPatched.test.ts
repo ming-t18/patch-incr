@@ -253,6 +253,10 @@ export const record = <Ts extends Record<string, unknown>>(
 			return true;
 		}
 
+		if (path.length > 1 && !canApplyPatches(value, [entry])) {
+			return false;
+		}
+
 		if (path.length === 1) {
 			return keys.find((k1) => k1 === path[0]) !== undefined;
 		}
