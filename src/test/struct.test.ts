@@ -2,6 +2,7 @@ import { atomicFunc, identity } from "../incr/builder";
 import { record, template } from "../incr/struct";
 import { assign } from "../incr/struct/assign";
 import { entries, keys } from "../incr/struct/entries";
+import { merge } from "../incr/struct/merge";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 
@@ -59,34 +60,34 @@ describe("template", () => {
 	propsForIF(it, gp.integer(), () => af);
 });
 
+const arbRec = gp.record(
+	{
+		a: gp.integer(),
+		b: gp.string(),
+		c: gp.array(gp.string()),
+		d: gp.array(gp.tuple(gp.string())),
+	},
+	["a", "b", "c", "d"],
+);
+
+const arbRec1 = gp.record(
+	{
+		c: gp.integer(),
+		d: gp.string(),
+		e: gp.record({ a: gp.string(), b: gp.string() }),
+		f: gp.array(gp.tuple(gp.integer(), gp.string())),
+	},
+	["c", "d", "e", "f"],
+);
+
 describe("keys", () => {
-	propsForIF(
-		it,
-		gp.record(
-			{
-				a: gp.integer(),
-				b: gp.string(),
-				c: gp.array(gp.string()),
-				d: gp.array(gp.tuple(gp.string())),
-			},
-			["a", "b", "c", "d"],
-		),
-		() => keys(),
-	);
+	propsForIF(it, arbRec, () => keys());
 });
 
 describe("entries", () => {
-	propsForIF(
-		it,
-		gp.record(
-			{
-				a: gp.integer(),
-				b: gp.string(),
-				c: gp.array(gp.string()),
-				d: gp.array(gp.tuple(gp.string())),
-			},
-			["a", "b", "c", "d"],
-		),
-		() => entries(),
-	);
+	propsForIF(it, arbRec, () => entries());
+});
+
+describe("merge", () => {
+	propsForIF(it, gp.tuple(arbRec, arbRec1), () => merge());
 });

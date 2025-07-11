@@ -1,0 +1,49 @@
+import { CannotReduce, PatchOp, reducePatches } from "../patch";
+import type { IF } from "../types";
+
+export type Merged<
+	A extends Record<string, unknown>,
+	B extends Record<string, unknown>,
+> = A & B & Pick<B, keyof A & keyof B>;
+
+export const merge = <
+	A extends Record<string, unknown>,
+	B extends Record<string, unknown>,
+>(): IF<[A, B], Merged<A, B>> => {
+	const evaluateMerge = ([left, right]: [A, B]): Merged<A, B> => ({
+		...left,
+		...right,
+	});
+	const forwardMerge = reducePatches(
+		evaluateMerge,
+		([left, right], entry, _merged) => {
+			const { path, op } = entry;
+			if (path.length === 0 || path.length === 1) {
+				return CannotReduce;
+			}
+
+			const side = path[0] as number;
+			const key = path[1] as string;
+			if (side === 0 && key in right) {
+				// overwritten by obj2
+				return [];
+			}
+
+			if (path.length === 2 && side === 1 && key in left) {
+				if (op === PatchOp.Remove) {
+					return [{ op: PatchOp.Replace, path: [key], value: left[key] }];
+				} else if (op === PatchOp.Add || op === PatchOp.Replace) {
+					return [{ ...entry, op: PatchOp.Replace, path: path.slice(1) }];
+				} else {
+					throw new Error("merge: Invalid patch op");
+				}
+			}
+
+			return [{ ...entry, path: path.slice(1) }];
+		},
+	);
+	return {
+		evaluate: evaluateMerge,
+		forward: forwardMerge,
+	};
+};
