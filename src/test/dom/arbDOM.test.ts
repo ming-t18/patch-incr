@@ -157,7 +157,7 @@ export const arbElem = (): GenWithPatches<DOMConstruction> => {
 							}))
 						: arbText
 								.arbPatchEntry({ value: c })
-								.map((e) => ({ ...e, path: [...e.path] })),
+								.map((e) => ({ ...e, path: [...e.path] }) as PatchEntry<never>),
 				},
 			);
 		});

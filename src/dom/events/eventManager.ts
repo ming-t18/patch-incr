@@ -43,6 +43,7 @@ export class EventManager<E extends Element = Element> {
 		this.el = null;
 	}
 
+	// @ts-ignore MapIterator is not defined
 	public entries(): MapIterator<[string, EventHandler<EventName, E>]> {
 		return this.#map.entries();
 	}

@@ -5,14 +5,18 @@ export const isEmptyPatches = (entry: Patches) => {
 	return entry.length === 0;
 };
 
-export const removePatch = <Target>(path = [] as Path): Patches<Target> => [
+// TODO don't use any
+export const removePatch = <Target = any>(
+	path = [] as Path,
+): Patches<Target> => [
 	{
 		op: PatchOp.Remove,
 		path,
 	},
 ];
 
-export const addPatch = <Value, Target>(
+// TODO don't use any
+export const addPatch = <Value, Target = any>(
 	value: Value,
 	path = [] as Path,
 ): Patches<Target> => [
@@ -23,7 +27,8 @@ export const addPatch = <Value, Target>(
 	},
 ];
 
-export const replacePatch = <Value, Target>(
+// TODO don't use any
+export const replacePatch = <Value, Target = any>(
 	value: Value,
 	path = [] as Path,
 ): Patches<Target> => [
