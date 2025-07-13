@@ -1,4 +1,4 @@
-import { applyPatches as applyPatchesImmer, enablePatches } from "immer";
+import { IndexEnd } from "../../patchSchema/types";
 import type {
 	PatchCopy,
 	PatchEntry,
@@ -10,16 +10,56 @@ import type {
 } from "./types";
 import { PatchOp, PatchOpExtended } from "./types";
 
-enablePatches();
-
 export class ApplyPatchesError extends Error {}
+
+export const shallowCopy = <T>(value: T): T => {
+	if (value === null || value === undefined || typeof value !== "object") {
+		return value;
+	}
+
+	if (value instanceof Map) {
+		return new Map(value) as T;
+	}
+	if (value instanceof Set) {
+		return new Set(value) as T;
+	}
+	if (Array.isArray(value)) {
+		return [...value] as never;
+	}
+	return { ...value };
+};
+
+export const applyShallowAssign = <T, Assign = unknown>(
+	base: T,
+	key: string | number,
+	value: Assign,
+): T => {
+	const copied = shallowCopy(base);
+	if (copied instanceof Map) {
+		copied.set(key, value);
+	} else {
+		// @ts-expect-error Can't be checked
+		copied[key] = value;
+	}
+	return copied;
+};
+
+export const applyAccess = <T, Result = unknown>(
+	value: T,
+	key: string | number,
+): Result => {
+	if (value === null || value === undefined || typeof value !== "object") {
+		throw new ApplyPatchesError("Cannot access");
+	}
+
+	// @ts-expect-error can't be checked
+	return value instanceof Map ? value.get(key) : value[key];
+};
 
 export const applyGet = <T, Result = unknown>(value: T, path: Path): Result => {
 	let value1: unknown = value;
 	for (let i = 0; i < path.length; i++) {
-		const k = path[i];
-		// @ts-expect-error Can't be checked
-		value1 = value1 instanceof Map ? value1.get(k) : value1[k];
+		value1 = applyAccess(value1, path[i]);
 	}
 	return value1 as never;
 };
@@ -27,20 +67,121 @@ export const applyGet = <T, Result = unknown>(value: T, path: Path): Result => {
 const applyRemove = <T, Deleted = unknown>(
 	base: T,
 	path: Path,
+	pathIndex = 0,
 ): [T, Deleted] => {
-	const deleted = applyGet(base, path) as Deleted;
-	const applied = applyPatchesImmer(base as never, [{ op: "remove", path }]);
-	return [applied, deleted];
+	if (pathIndex >= path.length) {
+		// @ts-expect-error Assuming T contains undefined
+		return [undefined, base];
+	}
+
+	const key = path[pathIndex];
+	if (pathIndex + 1 < path.length) {
+		const [replacement, deleted] = applyRemove(
+			applyAccess(base, key),
+			path,
+			pathIndex + 1,
+		);
+		return [applyShallowAssign(base, key, replacement), deleted as Deleted];
+	}
+
+	const base1 = shallowCopy(base);
+	let deleted: Deleted;
+	if (base1 instanceof Map) {
+		deleted = base1.get(key);
+		base1.delete(key);
+	} else if (base1 instanceof Set) {
+		throw new ApplyPatchesError("Can't delete from set");
+	} else if (Array.isArray(base1)) {
+		if (key === IndexEnd) {
+			throw new ApplyPatchesError("Can't replace in the end");
+		}
+		const index = key as number;
+		deleted = base1[index];
+		base1.splice(index, 1);
+	} else {
+		// @ts-expect-error Can't be checked
+		deleted = base1[key];
+		// @ts-expect-error Can't be checked
+		delete base1[key];
+	}
+	return [base1, deleted];
 };
 
 const applyReplace = <T, Assign = unknown>(
 	base: T,
 	path: Path,
 	value: Assign,
-): T => applyPatchesImmer(base as never, [{ op: "replace", path, value }]);
+	pathIndex = 0,
+): T => {
+	if (pathIndex >= path.length) {
+		return value as never;
+	}
 
-const applyAdd = <T, Assign = unknown>(base: T, path: Path, value: Assign): T =>
-	applyPatchesImmer(base as never, [{ op: "add", path, value }]);
+	const key = path[pathIndex];
+	if (pathIndex + 1 < path.length) {
+		return applyShallowAssign(
+			base,
+			key,
+			applyReplace(applyAccess(base, key), path, value, pathIndex + 1),
+		);
+	}
+
+	const base1 = shallowCopy(base);
+	if (base1 instanceof Map) {
+		base1.set(key, value);
+	} else if (base1 instanceof Set) {
+		throw new ApplyPatchesError("Can't replace set element");
+	} else if (Array.isArray(base1)) {
+		if (key === IndexEnd) {
+			throw new ApplyPatchesError("Can't replace in the end");
+		}
+		base1[key as number] = value;
+	} else {
+		// @ts-expect-error Can't be checked
+		base1[key] = value;
+	}
+	return base1;
+};
+
+const applyAdd = <T, Assign = unknown>(
+	base: T,
+	path: Path,
+	value: Assign,
+	pathIndex = 0,
+): T => {
+	if (pathIndex >= path.length) {
+		return value as never;
+	}
+
+	const key = path[pathIndex];
+	if (pathIndex + 1 < path.length) {
+		return applyShallowAssign(
+			base,
+			key,
+			applyAdd(applyAccess(base, key), path, value, pathIndex + 1),
+		);
+	}
+
+	if (base === undefined || base === null || typeof base !== "object") {
+		throw new ApplyPatchesError("Invalid type for add target");
+	}
+	const base1 = shallowCopy(base);
+	if (base1 instanceof Map) {
+		base1.set(key, value);
+	} else if (base1 instanceof Set) {
+		base1.add(value);
+	} else if (Array.isArray(base1)) {
+		if (key === IndexEnd) {
+			base1.push(value);
+		} else {
+			base1.splice(key as number, 0, value);
+		}
+	} else {
+		// @ts-expect-error Can't be checked
+		base1[key] = value;
+	}
+	return base1;
+};
 
 const applyMove = <T>(base: T, entry: PatchMove): T => {
 	const [value1, deleted] = applyRemove(base, entry.from);
@@ -58,8 +199,17 @@ const applySwap = <T>(base: T, entry: PatchSwap): T => {
 	return applyReplace(applyReplace(base, entry.path, a), entry.from, b);
 };
 
-const applyEntry = <T>(value: T, entry: PatchEntry<T>): T =>
-	applyPatchesImmer(value as never, [entry]) as T;
+const applyEntry = <T>(value: T, entry: PatchEntry<T>): T => {
+	const { op } = entry;
+	if (op === PatchOp.Add) {
+		return applyAdd(value, entry.path, entry.value);
+	} else if (op === PatchOp.Remove) {
+		return applyRemove(value, entry.path)[0];
+	} else if (op === PatchOp.Replace) {
+		return applyReplace(value, entry.path, entry.value);
+	}
+	throw new ApplyPatchesError("applyEntry: invalid op");
+};
 
 const applyPatchEntryBase = <T>(value: T, entry: PatchEntry<T, []>): T => {
 	const { op } = entry;
