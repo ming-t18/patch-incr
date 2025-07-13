@@ -81,3 +81,55 @@ export const reducePatches =
 			},
 		).patches;
 	};
+
+export type ReduceEntryNoOutput<Input> = (
+	input: Input,
+	entry: PatchEntry,
+) => Patches | typeof CannotReduce;
+
+export const reducePatchesNoOutput =
+	<Input, Output>(
+		evaluate: Evaluate<Input, Output>,
+		reduceEntry: ReduceEntryNoOutput<Input>,
+	): Forward<Input, Output, Patches<Input>, Patches<Output>, false> =>
+	(input: Input, patches: Patches, _ignoredOutput?: Output) => {
+		let patches1 = patches;
+		const res = reduceReplaceRoot(patches);
+		if ("replace" in res) {
+			patches1 = [
+				{
+					op: PatchOp.Replace,
+					path: [],
+					value: res.replace,
+				},
+			] as Patches<Input>;
+		}
+		return patches1.reduce(
+			({ input, patches }, entry: PatchEntry) => {
+				const res = reduceEntry(input, entry);
+				const input1 = applyPatches(input, [entry]);
+				if (res === CannotReduce) {
+					const output1 = evaluate(input1);
+					return {
+						input: input1,
+						patches: [
+							{
+								op: PatchOp.Replace,
+								path: [],
+								value: output1,
+							},
+						],
+						output: output1,
+					};
+				}
+				return {
+					input: input1,
+					patches: [...patches, ...res],
+				};
+			},
+			{
+				input,
+				patches: [] as Patches,
+			},
+		).patches;
+	};

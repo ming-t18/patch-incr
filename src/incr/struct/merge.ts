@@ -1,4 +1,5 @@
-import { CannotReduce, PatchOp, reducePatches } from "../patch";
+import { CannotReduce, PatchOp } from "../patch";
+import { reducePatchesNoOutput } from "../patch/reduce";
 import type { IF } from "../types";
 
 export type Merged<
@@ -14,9 +15,9 @@ export const merge = <
 		...left,
 		...right,
 	});
-	const forwardMerge = reducePatches(
+	const forwardMerge = reducePatchesNoOutput(
 		evaluateMerge,
-		([left, right], entry, _merged) => {
+		([left, right], entry) => {
 			const { path, op } = entry;
 			if (path.length === 0 || path.length === 1) {
 				return CannotReduce;

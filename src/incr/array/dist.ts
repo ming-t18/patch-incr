@@ -12,7 +12,7 @@
  *
  * @module
  */
-import { CannotReduce, PatchOp, reducePatches } from "../patch";
+import { CannotReduce, PatchOp, reducePatchesNoOutput } from "../patch";
 import type { Merged } from "../struct/merge";
 import type { IF } from "../types";
 
@@ -20,56 +20,59 @@ export const distl = <Elem, Dist>(): IF<[Dist, Elem[]], [Dist, Elem][]> => {
 	const evaluateDistl = ([d, xs]: [Dist, Elem[]]): [Dist, Elem][] =>
 		xs.map((x) => [d, x]);
 
-	const forwardDistl = reducePatches(evaluateDistl, ([d, xs], entry, _ys) => {
-		const { path, op } = entry;
-		if (path.length === 0) {
-			return CannotReduce;
-		}
-
-		const [side, ...rest] = path;
-		if (side === 0) {
-			return xs.map((_, i) => ({
-				...entry,
-				path: [i, 0, ...rest],
-			}));
-		}
-
-		if (side !== 1) {
-			throw new Error("distl: invalid tuple index");
-		}
-
-		if (rest.length === 0) {
-			// entire array replaced
-			return CannotReduce;
-		}
-
-		if (rest.length === 1) {
-			if (op === PatchOp.Replace || op === PatchOp.Add) {
-				return [
-					{
-						...entry,
-						path: rest,
-						value: [d, entry.value as Elem],
-					},
-				];
-			} else if (op === PatchOp.Remove) {
-				return [
-					{
-						...entry,
-						path: rest,
-					},
-				];
+	const forwardDistl = reducePatchesNoOutput(
+		evaluateDistl,
+		([d, xs], entry) => {
+			const { path, op } = entry;
+			if (path.length === 0) {
+				return CannotReduce;
 			}
-			return CannotReduce;
-		}
 
-		return [
-			{
-				...entry,
-				path: [rest[0], 1, ...rest.slice(1)],
-			},
-		];
-	});
+			const [side, ...rest] = path;
+			if (side === 0) {
+				return xs.map((_, i) => ({
+					...entry,
+					path: [i, 0, ...rest],
+				}));
+			}
+
+			if (side !== 1) {
+				throw new Error("distl: invalid tuple index");
+			}
+
+			if (rest.length === 0) {
+				// entire array replaced
+				return CannotReduce;
+			}
+
+			if (rest.length === 1) {
+				if (op === PatchOp.Replace || op === PatchOp.Add) {
+					return [
+						{
+							...entry,
+							path: rest,
+							value: [d, entry.value as Elem],
+						},
+					];
+				} else if (op === PatchOp.Remove) {
+					return [
+						{
+							...entry,
+							path: rest,
+						},
+					];
+				}
+				return CannotReduce;
+			}
+
+			return [
+				{
+					...entry,
+					path: [rest[0], 1, ...rest.slice(1)],
+				},
+			];
+		},
+	);
 	return { evaluate: evaluateDistl, forward: forwardDistl };
 };
 
@@ -77,56 +80,59 @@ export const distr = <Elem, Dist>(): IF<[Elem[], Dist], [Elem, Dist][]> => {
 	const evaluateDistr = ([xs, d]: [Elem[], Dist]): [Elem, Dist][] =>
 		xs.map((x) => [x, d]);
 
-	const forwardDistr = reducePatches(evaluateDistr, ([xs, d], entry, _ys) => {
-		const { path, op } = entry;
-		if (path.length === 0) {
-			return CannotReduce;
-		}
-
-		const [side, ...rest] = path;
-		if (side === 1) {
-			return xs.map((_, i) => ({
-				...entry,
-				path: [i, 1, ...rest],
-			}));
-		}
-
-		if (side !== 0) {
-			throw new Error("distr: invalid tuple index");
-		}
-
-		if (rest.length === 0) {
-			// entire array replaced
-			return CannotReduce;
-		}
-
-		if (rest.length === 1) {
-			if (op === PatchOp.Replace || op === PatchOp.Add) {
-				return [
-					{
-						...entry,
-						path: rest,
-						value: [entry.value as Elem, d],
-					},
-				];
-			} else if (op === PatchOp.Remove) {
-				return [
-					{
-						...entry,
-						path: rest,
-					},
-				];
+	const forwardDistr = reducePatchesNoOutput(
+		evaluateDistr,
+		([xs, d], entry) => {
+			const { path, op } = entry;
+			if (path.length === 0) {
+				return CannotReduce;
 			}
-			return CannotReduce;
-		}
 
-		return [
-			{
-				...entry,
-				path: [rest[0], 0, ...rest.slice(1)],
-			},
-		];
-	});
+			const [side, ...rest] = path;
+			if (side === 1) {
+				return xs.map((_, i) => ({
+					...entry,
+					path: [i, 1, ...rest],
+				}));
+			}
+
+			if (side !== 0) {
+				throw new Error("distr: invalid tuple index");
+			}
+
+			if (rest.length === 0) {
+				// entire array replaced
+				return CannotReduce;
+			}
+
+			if (rest.length === 1) {
+				if (op === PatchOp.Replace || op === PatchOp.Add) {
+					return [
+						{
+							...entry,
+							path: rest,
+							value: [entry.value as Elem, d],
+						},
+					];
+				} else if (op === PatchOp.Remove) {
+					return [
+						{
+							...entry,
+							path: rest,
+						},
+					];
+				}
+				return CannotReduce;
+			}
+
+			return [
+				{
+					...entry,
+					path: [rest[0], 0, ...rest.slice(1)],
+				},
+			];
+		},
+	);
 	return { evaluate: evaluateDistr, forward: forwardDistr };
 };
 
@@ -141,9 +147,9 @@ export const distAssign = <
 		Elem,
 		Record<Key, Dist>
 	>[] => xs.map((x) => ({ ...x, [key]: d }));
-	const forwardDistAssign = reducePatches(
+	const forwardDistAssign = reducePatchesNoOutput(
 		evaluateDistAssign,
-		([xs, d], entry, _ys) => {
+		([xs, d], entry) => {
 			const { path, op } = entry;
 			if (path.length === 0) {
 				return CannotReduce;

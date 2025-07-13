@@ -64,7 +64,12 @@ export {
 	unliftPatchEntry,
 } from "./helpers";
 export type { ReduceEntry } from "./reduce";
-export { CannotReduce, reducePatches, reduceReplaceRoot } from "./reduce";
+export {
+	CannotReduce,
+	reducePatches,
+	reducePatchesNoOutput,
+	reduceReplaceRoot,
+} from "./reduce";
 export type {
 	PatchAdd,
 	PatchCopy,
