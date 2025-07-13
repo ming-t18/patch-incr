@@ -135,19 +135,94 @@ This is a quick overview of how incremental computation functions and combinator
 
 ## Creating structures: Tuples and records
 
+In point-free programming, a tuple/record function takes multiple
+sub-functions from an `Input` to each output type, and returns a
+structure based on the sub-functions.
+
+In the forward functions, patches are forwarded by pre-pending the new keys.
+
+```typescript
+tuple: <Input, ...>(
+    f1: IF<Input, Out1>, f2: IF<Input, Out2>, ...
+): IF<Input, [Out1, Out2, ...]>
+
+record: <Input, ...>({
+    [key1]: f1: IF<Input, Out1>,
+    [key2]: f2: IF<Input, Out2>,
+    ...
+}): IF<
+    Input,
+    { [key1]: Out1, [key2]: Out2, ...}
+>
+```
+
 ## Array operations
 
-### Map
+### `map`
 
-### Filter
+In the map operation, patches can be converted one-by-one with:
+ - `remove` element: as-is
+ - `add/replace` element: the mapping applied on added or replaced element
+ - patch on inner element: call the forward on the mapping function
+
+### `filter`
+
+In the filter operation, a cumulative sum array is kept track of the positions to insert.
+
+```typescript
+filter: <T>(pred: (value: T) => boolean): IF<T[], [T[], number[]]>
+```
+
+### `concat`
+
+Similar to filter, we need to use a cumulative sum array.
+
+
+```typescript
+concat: <T>(): IF<T[][], [T[], number[]]>
+```
+
+### `sort`
+
+To update the sorted list when the input list changes, we can binary search for the position
+of insertion (or other changes) on the sorted list.
 
 ## Function composition
 
 ### `compose`
 
+To compose two functions `f(g(x))`, the intermediate value `g(x)` must be kept track of
+and is returned as part of the output.
+
+```typescript
+compose : <A, B, C>(g: IF<A, B>, f: IF<B, C>): IF<A, [C, B]>
+```
+
+If the first function `g` have trivial evaluation (such as indexing an array), we can avoid
+returning the intermediate value and instead re-compute it every time.
+
+```typescript
+compose1 : <A, B, C>(g: IF<A, B>, f: IF<B, C>): IF<A, C>
+```
+
 ### Memoing the intermediate value: `composeMemoL`, `composeMemoR`
 
+Another way to avoid returning the intermediate value is to memoize the first function `g`.
+
+If the input is a reference type (arrays or objects), we can use the `WeakMap` to memoize
+the function `g`.
+
+Using a `WeakMap` is similar to generating a unique key and adding the memoized value
+to the object by mutating it.
+
+```typescript
+composeMemo : <A extends WeakKey, B, C>(g: IF<A, B>, f: IF<B, C>): IF<A, C>
+```
+
 ## Escape hatches
+
+The "escape hatches" allows us to escape the framework of point-free programming or incrementality.
+
 ### The "let" statement: `bind`
 
-### Avoiding incrementality: `atomicFunc`
+### Integrating non-incremental function: `atomicFunc`
