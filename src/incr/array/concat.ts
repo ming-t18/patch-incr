@@ -138,7 +138,7 @@ export const concat = <T>(): IF<T[][], [T[], number[]]> => {
 		forward: (xs: T[][], dxs: Patches<T[][]>, p: [T[], number[]]) => {
 			const res = reduceReplaceRoot(dxs);
 			if ("replace" in res) {
-				return replacePatch(evaluateConcat(res.replace));
+				return replacePatch<[T[], number[]]>(evaluateConcat(res.replace));
 			}
 
 			return forwardConcat(xs, dxs, p);

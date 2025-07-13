@@ -53,7 +53,7 @@ export class BasePatchSchema<T> implements PatchSchema<T> {
 	}
 
 	fromReplace(value: T) {
-		return replacePatch(value, EMPTY as never);
+		return replacePatch<T, never>(value, EMPTY as never);
 	}
 
 	isEmpty(patches: Patches<T>) {

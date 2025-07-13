@@ -5,18 +5,20 @@ export const isEmptyPatches = (entry: Patches) => {
 	return entry.length === 0;
 };
 
-// TODO don't use any
-export const removePatch = <Target = any>(
-	path = [] as Path,
-): Patches<Target> => [
+export const removePatch = <Target>(path = [] as Path): Patches<Target> => [
 	{
 		op: PatchOp.Remove,
 		path,
 	},
 ];
 
-// TODO don't use any
-export const addPatch = <Value, Target = any>(
+export interface AddPatchFunc {
+	<Value>(value: Value): Patches<Value>;
+	<Value>(value: Value, path: []): Patches<Value>;
+	<Value, Target>(value: Value, path: Path): Patches<Target>;
+}
+
+export const addPatch: AddPatchFunc = <Value, Target>(
 	value: Value,
 	path = [] as Path,
 ): Patches<Target> => [
@@ -27,8 +29,7 @@ export const addPatch = <Value, Target = any>(
 	},
 ];
 
-// TODO don't use any
-export const replacePatch = <Value, Target = any>(
+export const replacePatch: AddPatchFunc = <Value, Target>(
 	value: Value,
 	path = [] as Path,
 ): Patches<Target> => [

@@ -57,7 +57,7 @@ export const composePair1 = <Input, InputPassed, Interm, Output>(
 		input: [Input, InputPassed],
 		change: Patches<[Input, InputPassed]>,
 		[y, pair]: [Output, [InputPassed, Interm]],
-	) => {
+	): Patches<[Output, [InputPassed, Interm]]> => {
 		const [z0, v] = pair;
 		const [x, z1] = input;
 		if (!Object.is(z0, z1)) {
@@ -109,7 +109,7 @@ export const composePair2 = <Input, Interm, IntermSaved, Output>(
 		input: Input,
 		change: Patches<Input>,
 		[output, pair]: [Output, [Interm, IntermSaved]],
-	) => {
+	): Patches<[Output, [Interm, IntermSaved]]> => {
 		const dPair: Patches<[Interm, IntermSaved]> = f1.forward(
 			input,
 			change,

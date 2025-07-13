@@ -444,6 +444,6 @@ describe("GraphBuilder", () => {
 		const input = 5;
 		const _res = testCompose.evaluate(input);
 		// console.log(res);
-		ensurePatchCoherent(input, replacePatch(15), testCompose);
+		ensurePatchCoherent(input, replacePatch<number>(15), testCompose);
 	});
 });
