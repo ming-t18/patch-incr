@@ -1,5 +1,10 @@
-import { type Draft, produce } from "immer";
-import { fromReducerOnDraft } from "../src/incr/reducer";
+import type { Draft } from "immer";
+import { type Patches, PatchOp, replacePatch } from "../src/incr/patch";
+import {
+	fromReducerReturningPatches,
+	type ReducerIF,
+} from "../src/incr/reducer";
+import { IndexEnd } from "../src/patchSchema/types";
 
 export enum ViewFilter {
 	All = "All",
@@ -199,6 +204,171 @@ export const todoStateReducerOnDraft = (
 	}
 };
 
-export const todoReducer = fromReducerOnDraft(todoStateReducerOnDraft);
+export const getPatchesOnTodoState = (
+	draft: TodoState,
+	action: TodoAction,
+): Patches<TodoState> => {
+	switch (action.type) {
+		case TodoActionType.Clear: {
+			return [
+				{
+					op: PatchOp.Replace,
+					path: ["editingId"],
+					value: null,
+				},
+				{
+					op: PatchOp.Replace,
+					path: ["items"],
+					value: [],
+				},
+			];
+		}
+		case TodoActionType.ClearCompleted: {
+			const patches: Patches<TodoState> = [
+				{
+					op: PatchOp.Replace,
+					path: ["editingId"],
+					value: null,
+				},
+			];
+			for (let i = draft.items.length - 1; i >= 0; i--) {
+				if (draft.items[i].done) {
+					patches.push({
+						op: PatchOp.Remove,
+						path: ["items", i],
+					});
+				}
+			}
+			return patches;
+		}
+		case TodoActionType.ToggleAll: {
+			return draft.items.map(({ done }, i) => ({
+				op: PatchOp.Replace,
+				path: ["items", i],
+				value: !done,
+			}));
+		}
+		case TodoActionType.Add: {
+			const newItem = {
+				done: false,
+				text: action.value,
+				id: genId(draft.counter),
+				editing: false,
+			};
+			return [
+				{
+					op: PatchOp.Replace,
+					path: ["counter"],
+					value: draft.counter + 1,
+				},
+				{
+					op: PatchOp.Add,
+					path: ["items", IndexEnd],
+					value: newItem,
+				},
+			];
+		}
+		case TodoActionType.SetDone: {
+			const index = findById(draft.items, action.id);
+			if (index !== -1) {
+				return [
+					{
+						op: PatchOp.Replace,
+						path: ["items", index, "done"],
+						value: action.done,
+					},
+				];
+			}
+			return [];
+		}
+		case TodoActionType.Remove: {
+			const index = findById(draft.items, action.id);
+			if (index === -1) {
+				return [];
+			}
 
-export const todoReducerFunc = produce(todoStateReducerOnDraft);
+			const patches: Patches<TodoState> = [
+				{
+					op: PatchOp.Remove,
+					path: ["items", index],
+				},
+			];
+			if (
+				typeof draft.editingId === "string" &&
+				draft.editingId === action.id
+			) {
+				patches.push({
+					op: PatchOp.Replace,
+					path: ["editingId"],
+					value: null,
+				});
+			}
+			return patches;
+		}
+		case TodoActionType.StartEditing: {
+			const { id } = action;
+			const patches: Patches<TodoState> = [
+				{
+					op: PatchOp.Replace,
+					path: ["editingId"],
+					value: id,
+				},
+			];
+			for (let i = 0; i < draft.items.length; i++) {
+				patches.push({
+					op: PatchOp.Replace,
+					path: ["items", i, "editing"],
+					value: draft.items[i].id === id,
+				});
+			}
+			return patches;
+		}
+		case TodoActionType.StopEditing: {
+			const patches: Patches<TodoState> = [
+				{
+					op: PatchOp.Replace,
+					path: ["editingId"],
+					value: null,
+				},
+			];
+			for (let i = 0; i < draft.items.length; i++) {
+				patches.push({
+					op: PatchOp.Replace,
+					path: ["items", i, "editing"],
+					value: false,
+				});
+			}
+			return patches;
+		}
+		case TodoActionType.EditText: {
+			if (typeof draft.editingId !== "string") {
+				return [];
+			}
+
+			const index = findById(draft.items, draft.editingId);
+			if (index === -1) {
+				return [];
+			}
+
+			return [
+				{
+					op: PatchOp.Replace,
+					path: ["items", index, "text"],
+					value: action.value,
+				},
+			];
+		}
+		case TodoActionType.SetViewFilter: {
+			return replacePatch(action.viewFilter, ["viewPatch"]);
+		}
+		default: {
+			// @ts-expect-error action should be type never
+			throw new Error(`Unsupported action: ${action.type}`);
+		}
+	}
+};
+
+// enablePatches();
+// export const todoReducer: ReducerIF<TodoState, TodoAction> = fromReducerOnDraft(todoStateReducerOnDraft);
+export const todoReducer: ReducerIF<TodoState, TodoAction> =
+	fromReducerReturningPatches(getPatchesOnTodoState);

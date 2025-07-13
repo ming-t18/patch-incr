@@ -1,4 +1,4 @@
-import { type Draft, enablePatches, produce, produceWithPatches } from "immer";
+import { type Draft, produce, produceWithPatches } from "immer";
 import type { ApplyCombine, DRO } from "../algebra";
 import {
 	maybeCombineDRO as combineDROUnion,
@@ -7,14 +7,20 @@ import {
 	isReplaceOnly,
 	makeReplaceOnly,
 } from "../algebra/replaceOnly";
-import type { Patches } from "./patch";
+import { applyPatches, type Patches } from "./patch";
 import type { IF, NoForwardOutput } from "./types";
 
-enablePatches();
+export type ReducerIF<State, Action> = IF<
+	State,
+	State,
+	Action[],
+	Patches,
+	NoForwardOutput
+>;
 
 export const fromReducerOnDraft = <State, Action>(
 	funcOnDraft: (draft: Draft<State>, action: Action) => void,
-): IF<State, State, Action[], Patches, NoForwardOutput> => {
+): ReducerIF<State, Action> => {
 	return {
 		evaluate: (state: State) => state,
 		forward: (state: State, actions: Action[], _ignored?: State) => {
@@ -60,5 +66,27 @@ export const applyFromReducer = <State, Action>(
 				(s, c) => makeReplaceOnly(apply(s, c)),
 				(a1, b1) => [...a1, ...b1],
 			),
+	};
+};
+
+export const fromReducerReturningPatches = <State, Action>(
+	getPatches: (state: State, action: Action) => Patches<State>,
+): ReducerIF<State, Action> => {
+	return {
+		evaluate: (state: State) => state,
+		forward: (
+			state: State,
+			actions: Action[],
+			_out?: State,
+		): Patches<State> => {
+			const patches = [];
+			let state1 = state;
+			for (const action of actions) {
+				const dState = getPatches(state, action);
+				state1 = applyPatches(state1, dState);
+				patches.push(...dState);
+			}
+			return patches;
+		},
 	};
 };
