@@ -383,7 +383,7 @@ export const load = () => {
 	}
 
 	const dom = new DOMRoot(root, initState, todoReducer, renderTodoApp);
-	const _teardown = dom.connect();
+	dom.connect();
 };
 
 // document.body.addEventListener('load', load);
