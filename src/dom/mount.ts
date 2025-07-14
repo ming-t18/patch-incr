@@ -26,13 +26,19 @@ export class DOMRoot<State, Action> {
 	}
 
 	dispatch(action: Action): void {
+		console.log("dispatch ---", action);
 		if (!this.#domc) {
 			this.#domc = this.connect();
 		}
 
 		const root = this.root;
 		try {
-			const { dState, dDomc } = this.#getPatches([action]);
+			const res = this.#getPatches([action]);
+			if (!res) {
+				return;
+			}
+
+			const { dState, dDomc } = res;
 			patchDOM(root, this.#domc, dDomc);
 			console.log("DOM Patches ---", {
 				state: this.#state,
@@ -52,12 +58,19 @@ export class DOMRoot<State, Action> {
 		}
 	}
 
+	#savedDispatch: Dispatch<Action> | undefined = undefined;
 	#sd(): StateDispatch<State, Action> {
-		return { state: this.#state, dispatch: this.dispatch.bind(this) };
+		if (!this.#savedDispatch) {
+			this.#savedDispatch = this.dispatch.bind(this);
+		}
+		return { state: this.#state, dispatch: this.#savedDispatch };
 	}
 
 	#getPatches(actions: Action[]) {
 		const dState: Patches<State> = this.reducer.forward(this.#state, actions);
+		if (dState.length === 0) {
+			return;
+		}
 		const dSD: Patches<StateDispatch<State, Action>> = liftPatch(
 			"state",
 			dState,
