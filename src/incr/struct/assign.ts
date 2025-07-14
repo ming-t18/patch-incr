@@ -89,48 +89,8 @@ export class TemplatePlaceholder {
 	}
 }
 
-const makePlaceholder = <T>(label: string) => {
-	const prefix = `TemplatePlaceholder(${label}): cannot perform`;
-	const placeholder = new TemplatePlaceholder(label);
-	return new Proxy(placeholder, {
-		apply() {
-			throw new Error(`${prefix} apply`);
-		},
-		construct() {
-			throw new Error(`${prefix} construct`);
-		},
-		defineProperty() {
-			throw new Error(`${prefix} defineProperty`);
-		},
-		deleteProperty() {
-			throw new Error(`${prefix} deleteProperty`);
-		},
-		get(_target, key) {
-			throw new Error(
-				`${prefix} get: ${typeof key === "symbol" ? "[Symbol]" : key}`,
-			);
-		},
-		set(_target, key) {
-			throw new Error(
-				`${prefix} set: ${typeof key === "symbol" ? "[Symbol]" : key}`,
-			);
-		},
-		has(_target, key) {
-			throw new Error(
-				`${prefix} has: ${typeof key === "symbol" ? "[Symbol]" : key}`,
-			);
-		},
-		getOwnPropertyDescriptor() {
-			throw new Error(`${prefix} getOwnPropertyDescriptor`);
-		},
-		isExtensible() {
-			throw new Error(`${prefix} isExtensible`);
-		},
-		ownKeys() {
-			throw new Error(`${prefix} ownKeys`);
-		},
-	}) as T;
-};
+const makePlaceholder = <T>(label: string) =>
+	new TemplatePlaceholder(label) as never as T;
 
 export const isTemplatePlaceholder = (x: unknown): x is TemplatePlaceholder =>
 	x instanceof TemplatePlaceholder;
