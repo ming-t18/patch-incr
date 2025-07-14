@@ -205,7 +205,7 @@ export const todoStateReducerOnDraft = (
 };
 
 export const getPatchesOnTodoState = (
-	draft: TodoState,
+	state: TodoState,
 	action: TodoAction,
 ): Patches<TodoState> => {
 	switch (action.type) {
@@ -231,8 +231,8 @@ export const getPatchesOnTodoState = (
 					value: null,
 				},
 			];
-			for (let i = draft.items.length - 1; i >= 0; i--) {
-				if (draft.items[i].done) {
+			for (let i = state.items.length - 1; i >= 0; i--) {
+				if (state.items[i].done) {
 					patches.push({
 						op: PatchOp.Remove,
 						path: ["items", i],
@@ -242,7 +242,7 @@ export const getPatchesOnTodoState = (
 			return patches;
 		}
 		case TodoActionType.ToggleAll: {
-			return draft.items.map(({ done }, i) => ({
+			return state.items.map(({ done }, i) => ({
 				op: PatchOp.Replace,
 				path: ["items", i],
 				value: !done,
@@ -252,14 +252,14 @@ export const getPatchesOnTodoState = (
 			const newItem = {
 				done: false,
 				text: action.value,
-				id: genId(draft.counter),
+				id: genId(state.counter),
 				editing: false,
 			};
 			return [
 				{
 					op: PatchOp.Replace,
 					path: ["counter"],
-					value: draft.counter + 1,
+					value: state.counter + 1,
 				},
 				{
 					op: PatchOp.Add,
@@ -269,7 +269,7 @@ export const getPatchesOnTodoState = (
 			];
 		}
 		case TodoActionType.SetDone: {
-			const index = findById(draft.items, action.id);
+			const index = findById(state.items, action.id);
 			if (index !== -1) {
 				return [
 					{
@@ -282,7 +282,7 @@ export const getPatchesOnTodoState = (
 			return [];
 		}
 		case TodoActionType.Remove: {
-			const index = findById(draft.items, action.id);
+			const index = findById(state.items, action.id);
 			if (index === -1) {
 				return [];
 			}
@@ -294,8 +294,8 @@ export const getPatchesOnTodoState = (
 				},
 			];
 			if (
-				typeof draft.editingId === "string" &&
-				draft.editingId === action.id
+				typeof state.editingId === "string" &&
+				state.editingId === action.id
 			) {
 				patches.push({
 					op: PatchOp.Replace,
@@ -314,16 +314,23 @@ export const getPatchesOnTodoState = (
 					value: id,
 				},
 			];
-			for (let i = 0; i < draft.items.length; i++) {
-				patches.push({
-					op: PatchOp.Replace,
-					path: ["items", i, "editing"],
-					value: draft.items[i].id === id,
-				});
+			for (let i = 0; i < state.items.length; i++) {
+				const newValue = state.items[i].id === id;
+				if (state.items[i].editing !== newValue) {
+					patches.push({
+						op: PatchOp.Replace,
+						path: ["items", i, "editing"],
+						value: newValue,
+					});
+				}
 			}
 			return patches;
 		}
 		case TodoActionType.StopEditing: {
+			if (state.editingId === null) {
+				return [];
+			}
+
 			const patches: Patches<TodoState> = [
 				{
 					op: PatchOp.Replace,
@@ -331,21 +338,23 @@ export const getPatchesOnTodoState = (
 					value: null,
 				},
 			];
-			for (let i = 0; i < draft.items.length; i++) {
-				patches.push({
-					op: PatchOp.Replace,
-					path: ["items", i, "editing"],
-					value: false,
-				});
+			for (let i = 0; i < state.items.length; i++) {
+				if (state.items[i].editing === true) {
+					patches.push({
+						op: PatchOp.Replace,
+						path: ["items", i, "editing"],
+						value: false,
+					});
+				}
 			}
 			return patches;
 		}
 		case TodoActionType.EditText: {
-			if (typeof draft.editingId !== "string") {
+			if (typeof state.editingId !== "string") {
 				return [];
 			}
 
-			const index = findById(draft.items, draft.editingId);
+			const index = findById(state.items, state.editingId);
 			if (index === -1) {
 				return [];
 			}
