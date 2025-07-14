@@ -33,12 +33,7 @@ export class DOMRoot<State, Action> {
 
 		const root = this.root;
 		try {
-			const res = this.#getPatches([action]);
-			if (!res) {
-				return;
-			}
-
-			const { dState, dDomc } = res;
+			const { dState, dDomc } = this.#getPatches([action]);
 			patchDOM(root, this.#domc, dDomc);
 			console.log("DOM Patches ---", {
 				state: this.#state,
@@ -68,9 +63,6 @@ export class DOMRoot<State, Action> {
 
 	#getPatches(actions: Action[]) {
 		const dState: Patches<State> = this.reducer.forward(this.#state, actions);
-		if (dState.length === 0) {
-			return;
-		}
 		const dSD: Patches<StateDispatch<State, Action>> = liftPatch(
 			"state",
 			dState,
