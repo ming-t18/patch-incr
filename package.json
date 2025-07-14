@@ -14,7 +14,6 @@
 	"dependencies": {
 		"bun": "^1.2.15",
 		"fast-check": "^3.23.2",
-		"he": "^1.2.0",
 		"immer": "^10.1.1",
 		"lodash-es": "^4.17.21",
 		"rxjs": "^7.8.2"

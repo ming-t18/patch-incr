@@ -1,4 +1,4 @@
-import { encode } from "he";
+import { escape as escapeHTML } from "lodash-es";
 import type { IF } from "../incr/types";
 import { fromAttrValue, setAttributeFromConstruction } from "./attr";
 import { setEventHandlers } from "./events/eventManager";
@@ -90,7 +90,7 @@ function* renderAttrsToString(attrs: Attrs | null | undefined) {
 
 	for (const [attr, value] of Object.entries(attrs)) {
 		if (!(value === null || typeof value === "undefined" || value === false)) {
-			yield ` ${attr}="${encode(fromAttrValue(value))}"`;
+			yield ` ${attr}="${escapeHTML(fromAttrValue(value))}"`;
 		}
 	}
 }
@@ -116,7 +116,7 @@ export function* renderToStringGen(
 			}
 			lastText = true;
 			if (child !== null && child !== undefined) {
-				yield child === "" ? "" : encode(String(child));
+				yield child === "" ? "" : escapeHTML(String(child));
 			}
 		} else {
 			yield* renderToStringGen(child);
