@@ -29,6 +29,12 @@ export const shallowCopy = <T>(value: T): T => {
 	return { ...value };
 };
 
+function ensureObject(value: unknown): asserts value is object {
+	if (value === null || value === undefined || typeof value !== "object") {
+		throw new ApplyPatchesError("Must be object/array");
+	}
+}
+
 export const applyShallowAssign = <T, Assign = unknown>(
 	base: T,
 	key: string | number,
@@ -48,9 +54,7 @@ export const applyAccess = <T, Result = unknown>(
 	value: T,
 	key: string | number,
 ): Result => {
-	if (value === null || value === undefined || typeof value !== "object") {
-		throw new ApplyPatchesError("Cannot access");
-	}
+	ensureObject(value);
 
 	// @ts-expect-error can't be checked
 	return value instanceof Map ? value.get(key) : value[key];
@@ -84,6 +88,7 @@ const applyRemove = <T, Deleted = unknown>(
 		return [applyShallowAssign(base, key, replacement), deleted as Deleted];
 	}
 
+	ensureObject(base);
 	const base1 = shallowCopy(base);
 	let deleted: Deleted;
 	if (base1 instanceof Map) {
@@ -126,6 +131,7 @@ const applyReplace = <T, Assign = unknown>(
 		);
 	}
 
+	ensureObject(base);
 	const base1 = shallowCopy(base);
 	if (base1 instanceof Map) {
 		base1.set(key, value);
@@ -262,19 +268,10 @@ export const canApplyPatches = <T>(value: T, patches: Patches) => {
 		applyPatches(value, patches);
 		return true;
 	} catch (e) {
-		if (!e) {
-			throw e;
-		}
-		const message = (e as Error).toString();
-		if (
-			message.indexOf("Immer") !== -1 ||
-			message.indexOf("applyPatches: ") !== -1 ||
-			message.indexOf("Attempted to assign to readonly property")
-		) {
+		if (e instanceof ApplyPatchesError) {
 			return false;
 		}
 
-		console.error(value, patches, e);
 		throw e;
 	}
 };
