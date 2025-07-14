@@ -359,7 +359,7 @@ export const getPatchesOnTodoState = (
 			];
 		}
 		case TodoActionType.SetViewFilter: {
-			return replacePatch(action.viewFilter, ["viewPatch"]);
+			return replacePatch(action.viewFilter, ["viewFilter"]);
 		}
 		default: {
 			// @ts-expect-error action should be type never

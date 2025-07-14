@@ -28,10 +28,10 @@ const accessItems = accessPath<
 	StateDispatch<TodoState, TodoAction>
 >(["state", "items"]);
 const accessItemId = access<string, "id", TodoItem>("id");
-const _accessEditingId = accessPath<
-	TodoState["editingId"],
-	StateDispatch<TodoState, TodoAction>
->(["state", "editingId"]);
+// const _accessEditingId = accessPath<
+// 	TodoState["editingId"],
+// 	StateDispatch<TodoState, TodoAction>
+// >(["state", "editingId"]);
 const accessDispatch = accessPath<
 	Dispatch<TodoAction>,
 	StateDispatch<TodoState, TodoAction>
@@ -386,7 +386,6 @@ export const load = () => {
 	dom.connect();
 };
 
-// document.body.addEventListener('load', load);
 if (globalThis.document) {
 	load();
 }
