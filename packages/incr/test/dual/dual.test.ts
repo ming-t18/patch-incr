@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import type { ApplyCombine } from "../../algebra";
-import { filter, map } from "../../data/array";
-import { access } from "../../data/struct";
+import { filter, map } from "../../builder/array";
+import { access } from "../../builder/struct";
 import {
 	type DF,
 	type DP,

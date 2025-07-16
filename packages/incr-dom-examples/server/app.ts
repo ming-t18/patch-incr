@@ -1,8 +1,8 @@
-import { atomicFunc } from "incr/data";
-import { filter, map } from "incr/data/array";
-import { bind, bindMemo } from "incr/data/bind";
-import { composeMemoL } from "incr/data/compose/memo";
-import { access, accessPath, record, template } from "incr/data/struct";
+import { atomicFunc } from "incr/builder";
+import { filter, map } from "incr/builder/array";
+import { bind, bindMemo } from "incr/builder/bind";
+import { composeMemoL } from "incr/builder/compose/memo";
+import { access, accessPath, record, template } from "incr/builder/struct";
 import type { IF } from "incr/types";
 import { elem, elemEvents } from "incr-dom/construct";
 import type { Props } from "incr-dom/construct/typedProps";

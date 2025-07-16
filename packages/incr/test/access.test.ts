@@ -1,4 +1,4 @@
-import { accessRecord } from "../data/struct/access";
+import { accessRecord } from "../builder/struct/access";
 import * as ps from "../patchSchema";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";

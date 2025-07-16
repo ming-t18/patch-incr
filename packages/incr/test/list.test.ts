@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { atomicFunc, identity } from "../data";
+import { atomicFunc, identity } from "../builder";
 import {
 	concat,
 	filter,
@@ -9,16 +9,16 @@ import {
 	seq,
 	slice,
 	zip,
-} from "../data/array";
-import { getMinUpdatedIndex } from "../data/array/helpers/forwardArray";
+} from "../builder/array";
+import { getMinUpdatedIndex } from "../builder/array/helpers/forwardArray";
 import {
 	bisectEquals,
 	bisectLeft,
 	bisectRight,
 	sort,
-} from "../data/array/sort";
-import { IFGraphBuilder } from "../data/graphBuilder";
-import { access, record } from "../data/struct";
+} from "../builder/array/sort";
+import { IFGraphBuilder } from "../builder/graphBuilder";
+import { access, record } from "../builder/struct";
 import { applyPatches, liftPatch, type Patches, PatchOp } from "..//patch";
 import type { IF, InferIFOutput } from "../types";
 import * as gp from "./helpers/genPatched.test";

@@ -1,4 +1,4 @@
-import { isTemplatePlaceholder } from "incr/data/struct/assign";
+import { isTemplatePlaceholder } from "incr/builder/struct/assign";
 import type { Attrs, AttrValue, Events } from "../types";
 
 export interface HTMLElementMap {

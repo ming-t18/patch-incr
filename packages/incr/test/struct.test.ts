@@ -1,8 +1,8 @@
-import { atomicFunc, identity } from "../data";
-import { record, template } from "../data/struct";
-import { assign } from "../data/struct/assign";
-import { entries, keys } from "../data/struct/entries";
-import { merge } from "../data/struct/merge";
+import { atomicFunc, identity } from "../builder";
+import { record, template } from "../builder/struct";
+import { assign } from "../builder/struct/assign";
+import { entries, keys } from "../builder/struct/entries";
+import { merge } from "../builder/struct/merge";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 

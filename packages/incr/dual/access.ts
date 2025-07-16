@@ -1,4 +1,4 @@
-import { access } from "../data/struct";
+import { access } from "../builder/struct";
 import type { Patches } from "../patchAnalysis/types";
 import { dfFromIFNoMemo } from "./convert";
 import type { DF } from "./types";

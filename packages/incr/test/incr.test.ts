@@ -1,8 +1,8 @@
 import fc, { anything } from "fast-check";
-import { atomicFunc, constant, identity } from "../data";
-import { compose } from "../data/compose";
-import { IFGraphBuilder } from "../data/graphBuilder";
-import { access, record } from "../data/struct";
+import { atomicFunc, constant, identity } from "../builder";
+import { compose } from "../builder/compose";
+import { IFGraphBuilder } from "../builder/graphBuilder";
+import { access, record } from "../builder/struct";
 import {
 	applyPatches,
 	isAtomicValue,

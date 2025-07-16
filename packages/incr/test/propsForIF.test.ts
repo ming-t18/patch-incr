@@ -1,8 +1,8 @@
 import fc from "fast-check";
-import { atomicFunc, constant, identity } from "../data";
-import { concat, map } from "../data/array";
-import { compose, composeNoInterm } from "../data/compose";
-import { comm } from "../data/tuple";
+import { atomicFunc, constant, identity } from "../builder";
+import { concat, map } from "../builder/array";
+import { compose, composeNoInterm } from "../builder/compose";
+import { comm } from "../builder/tuple";
 import type { IF } from "../types";
 import * as gp from "./helpers/genPatched.test";
 import { propIsIdentity, propsForIF } from "./helpers/props.test";

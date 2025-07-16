@@ -1,7 +1,7 @@
 import { describe, it } from "bun:test";
 import fc from "fast-check";
-import { atomicFunc } from "incr/data";
-import { composeMemoL } from "incr/data/compose/memo";
+import { atomicFunc } from "incr/builder";
+import { composeMemoL } from "incr/builder/compose/memo";
 import * as gp from "incr/test/helpers/genPatched.test";
 import { propsForIF } from "incr/test/helpers/props.test";
 import { renderToString } from "incr-dom/render";
