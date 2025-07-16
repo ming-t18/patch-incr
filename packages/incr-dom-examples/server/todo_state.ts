@@ -1,10 +1,10 @@
 import type { Draft } from "immer";
-import { type Patches, PatchOp, replacePatch } from "incr/src/incr/patch";
+import { type Patches, PatchOp, replacePatch } from "incr/data/patch";
 import {
 	fromReducerReturningPatches,
 	type ReducerIF,
-} from "incr/src/incr/reducer";
-import { IndexEnd } from "incr/src/patchSchema/types";
+} from "incr/data/reducer";
+import { IndexEnd } from "incr/patchSchema/types";
 
 export enum ViewFilter {
 	All = "All",

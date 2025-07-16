@@ -1,15 +1,15 @@
-import { elem, elemEvents } from "incr/src/dom/construct";
-import type { Props } from "incr/src/dom/construct/typedProps";
-import { tags } from "incr/src/dom/construct/vanjs";
-import { type Dispatch, DOMRoot as ReducerRenderer } from "incr/src/dom/mount";
-import type { RenderIF, StateDispatch } from "incr/src/dom/render";
-import type { ElementConstruction } from "incr/src/dom/types";
-import { filter, map } from "incr/src/incr/array";
-import { bind, bindMemo } from "incr/src/incr/bind";
-import { atomicFunc } from "incr/src/incr/builder";
-import { composeMemoL } from "incr/src/incr/compose/memo";
-import { access, accessPath, record, template } from "incr/src/incr/struct";
-import type { IF } from "incr/src/incr/types";
+import { elem, elemEvents } from "incr-dom/construct";
+import type { Props } from "incr-dom/construct/typedProps";
+import { tags } from "incr-dom/construct/vanjs";
+import { type Dispatch, DOMRoot as ReducerRenderer } from "incr-dom/mount";
+import type { RenderIF, StateDispatch } from "incr-dom/render";
+import type { ElementConstruction } from "incr-dom/types";
+import { filter, map } from "incr/data/array";
+import { bind, bindMemo } from "incr/data/bind";
+import { atomicFunc } from "incr/data/builder";
+import { composeMemoL } from "incr/data/compose/memo";
+import { access, accessPath, record, template } from "incr/data/struct";
+import type { IF } from "incr/data/types";
 import {
 	type TodoAction,
 	TodoActionType,

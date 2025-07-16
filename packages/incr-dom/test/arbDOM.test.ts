@@ -4,12 +4,12 @@ import {
 	type PatchEntry,
 	PatchOp,
 	type Path,
-} from "incr/src/incr/patch";
-import * as gp from "incr/src/test/helpers/genPatched.test";
+} from "incr/data/patch";
+import * as gp from "incr/test/helpers/genPatched.test";
 import {
 	type GenWithPatches,
 	makeArbHelper,
-} from "incr/src/test/helpers/genPatched.test";
+} from "incr/test/helpers/genPatched.test";
 import {
 	type Attrs,
 	type ChildConstruction,
@@ -17,7 +17,7 @@ import {
 	type ElementConstruction,
 	isElementConstruction,
 	type TextConstruction,
-} from "../src/types";
+} from "../types";
 
 export const arbText = gp.atomic<TextConstruction>(
 	fc.oneof(

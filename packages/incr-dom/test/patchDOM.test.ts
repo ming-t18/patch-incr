@@ -4,11 +4,11 @@ import {
 	type Patches,
 	removePatch,
 	replacePatch,
-} from "incr/src/incr/patch";
-import { IndexEnd } from "incr/src/patchSchema/types";
-import { elem, elem0, elemEvents } from "../src/construct";
-import { patchDOM, renderDOM } from "../src/patch";
-import type { DOMConstruction, ElementConstruction } from "../src/types";
+} from "incr/data/patch";
+import { IndexEnd } from "incr/patchSchema/types";
+import { elem, elem0, elemEvents } from "../construct";
+import { patchDOM, renderDOM } from "../patch";
+import type { DOMConstruction, ElementConstruction } from "../types";
 
 const domPatchCoherent = (
 	domc: DOMConstruction,

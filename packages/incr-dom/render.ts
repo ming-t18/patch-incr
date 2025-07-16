@@ -1,5 +1,5 @@
 import { escape as escapeHTML } from "lodash-es";
-import type { IF } from "../incr/types";
+import type { IF } from "../types";
 import { fromAttrValue, setAttributeFromConstruction } from "./attr";
 import { setEventHandlers } from "./events/eventManager";
 import type { Dispatch } from "./mount";

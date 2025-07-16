@@ -3,8 +3,8 @@ import {
 	type PatchEntry,
 	type Patches,
 	PatchOp,
-} from "incr/src/incr/patch";
-import { IndexEnd } from "incr/src/patchSchema/types";
+} from "incr/data/patch";
+import { IndexEnd } from "incr/patchSchema/types";
 import { clearAttrs, setAttributeFromConstruction, setAttrs } from "./attr";
 import {
 	addOrReplaceEventHandler,

@@ -1,9 +1,9 @@
 import { describe, it } from "bun:test";
 import fc from "fast-check";
-import { atomicFunc } from "incr/src/incr/builder";
-import { composeMemoL } from "incr/src/incr/compose/memo";
-import * as gp from "incr/src/test/helpers/genPatched.test";
-import { propsForIF } from "incr/src/test/helpers/props.test";
+import { atomicFunc } from "incr/data/builder";
+import { composeMemoL } from "incr/data/compose/memo";
+import * as gp from "incr/test/helpers/genPatched.test";
+import { propsForIF } from "incr/test/helpers/props.test";
 import { renderToString } from "incr-dom/render";
 import { renderTodoApp } from "../server/app";
 import {
