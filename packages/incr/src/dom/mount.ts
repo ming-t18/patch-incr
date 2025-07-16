@@ -9,6 +9,7 @@ export type Dispatch<Action> = (action: Action) => void;
 export class DOMRoot<State, Action> {
 	#state: State;
 	#domc?: DOMConstruction = undefined;
+	public debug = false;
 
 	public constructor(
 		readonly root: Element,
@@ -25,24 +26,28 @@ export class DOMRoot<State, Action> {
 		this.#state = initState;
 	}
 
-	dispatch(action: Action): void {
-		console.log("dispatch ---", action);
+	#dispatch(action: Action): void {
+		if (this.debug) {
+			console.log("dispatch ---", action);
+		}
 		if (!this.#domc) {
-			this.#domc = this.connect();
+			this.#domc = this.initialize();
 		}
 
 		const root = this.root;
 		try {
 			const { dState, dDomc } = this.#getPatches([action]);
 			patchDOM(root, this.#domc, dDomc);
-			console.log("DOM Patches ---", {
-				state: this.#state,
-				domc: this.#domc,
-				changes: {
-					state: dState,
-					domc: dDomc,
-				},
-			});
+			if (this.debug) {
+				console.log("DOM Patches ---", {
+					state: this.#state,
+					domc: this.#domc,
+					changes: {
+						state: dState,
+						domc: dDomc,
+					},
+				});
+			}
 
 			this.#state = applyPatches(this.#state, dState);
 			this.#domc = applyPatches(this.#domc, dDomc);
@@ -54,11 +59,16 @@ export class DOMRoot<State, Action> {
 	}
 
 	#savedDispatch: Dispatch<Action> | undefined = undefined;
+
 	#sd(): StateDispatch<State, Action> {
+		return { state: this.#state, dispatch: this.dispatch };
+	}
+
+	get dispatch(): Dispatch<Action> {
 		if (!this.#savedDispatch) {
-			this.#savedDispatch = this.dispatch.bind(this);
+			this.#savedDispatch = this.#dispatch.bind(this);
 		}
-		return { state: this.#state, dispatch: this.#savedDispatch };
+		return this.#savedDispatch;
 	}
 
 	#getPatches(actions: Action[]) {
@@ -78,13 +88,15 @@ export class DOMRoot<State, Action> {
 		return { dState, dDomc };
 	}
 
-	connect() {
+	initialize(): DOMConstruction {
 		const sd: StateDispatch<State, Action> = this.#sd();
 		this.#domc = this.render.evaluate(sd);
-		console.log("First Render ---", {
-			state: this.#state,
-			domc: this.#domc,
-		});
+		if (this.debug) {
+			console.log("First Render ---", {
+				state: this.#state,
+				domc: this.#domc,
+			});
+		}
 		renderDOM(this.root, this.#domc);
 		return this.#domc;
 	}

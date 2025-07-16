@@ -117,13 +117,15 @@ export const onNodeTeardown = (node: Element | Text | null | undefined) => {
 	}
 };
 
+export const SSR_ATTR = "data-ssr";
+
 export const renderDOM = (
 	root: Element,
 	domc: ElementConstruction,
 	addEvents = true,
 	doc = document,
 ) => {
-	if (!root.hasAttribute("data-ssr")) {
+	if (!root.hasAttribute(SSR_ATTR)) {
 		root.innerHTML = "";
 		root.appendChild(constructDOM(domc, doc, addEvents));
 	} else {

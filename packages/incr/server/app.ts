@@ -1,7 +1,7 @@
 import { elem, elemEvents } from "../src/dom/construct";
 import type { Props } from "../src/dom/construct/typedProps";
 import { tags } from "../src/dom/construct/vanjs";
-import { type Dispatch, DOMRoot } from "../src/dom/mount";
+import { type Dispatch, DOMRoot as ReducerRenderer } from "../src/dom/mount";
 import type { RenderIF, StateDispatch } from "../src/dom/render";
 import type { ElementConstruction } from "../src/dom/types";
 import { filter, map } from "../src/incr/array";
@@ -373,8 +373,8 @@ export const load = () => {
 		return;
 	}
 
-	const dom = new DOMRoot(root, initState, todoReducer, renderTodoApp);
-	dom.connect();
+	const render = new ReducerRenderer(root, initState, todoReducer, renderTodoApp);
+	render.initialize();
 };
 
 if (globalThis.document) {
