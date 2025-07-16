@@ -1,18 +1,17 @@
 import { describe, it } from "bun:test";
 import fc from "fast-check";
-import { renderTodoApp } from "../../server/app";
-// import { forwardTodo, renderTodo } from "../../server/app";
+import { atomicFunc } from "incr/src/incr/builder";
+import { composeMemoL } from "incr/src/incr/compose/memo";
+import * as gp from "incr/src/test/helpers/genPatched.test";
+import { propsForIF } from "incr/src/test/helpers/props.test";
+import { renderToString } from "incr-dom/src/render";
+import { renderTodoApp } from "../server/app";
 import {
 	type TodoAction,
 	TodoActionType,
 	type TodoState,
 	ViewFilter,
-} from "../../server/todo_state";
-import { renderToString } from "../dom/render";
-import { atomicFunc } from "../incr/builder";
-import { composeMemoL } from "../incr/compose/memo";
-import * as gp from "./helpers/genPatched.test";
-import { propsForIF } from "./helpers/props.test";
+} from "../server/todo_state";
 
 const _arbAction = (state: TodoState): fc.Arbitrary<TodoAction> => {
 	const arbClear = fc.constant({ type: TodoActionType.Clear as const });

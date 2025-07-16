@@ -1,0 +1,17 @@
+{
+	"name": "incr-dom-examples",
+	"module": "index.ts",
+	"type": "module",
+	"dependencies": {
+		"incr": "*",
+		"incr-dom": "*"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"incr": "workspace:*",
+		"incr-dom": "workspace:*"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	}
+}

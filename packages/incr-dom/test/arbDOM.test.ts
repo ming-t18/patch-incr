@@ -1,20 +1,23 @@
 import fc from "fast-check";
 import {
+	canApplyPatches,
+	type PatchEntry,
+	PatchOp,
+	type Path,
+} from "incr/src/incr/patch";
+import * as gp from "incr/src/test/helpers/genPatched.test";
+import {
+	type GenWithPatches,
+	makeArbHelper,
+} from "incr/src/test/helpers/genPatched.test";
+import {
 	type Attrs,
 	type ChildConstruction,
 	type DOMConstruction,
 	type ElementConstruction,
 	isElementConstruction,
 	type TextConstruction,
-} from "../../dom/types";
-import {
-	canApplyPatches,
-	type PatchEntry,
-	PatchOp,
-	type Path,
-} from "../../incr/patch";
-import * as gp from "../helpers/genPatched.test";
-import { type GenWithPatches, makeArbHelper } from "../helpers/genPatched.test";
+} from "../src/types";
 
 export const arbText = gp.atomic<TextConstruction>(
 	fc.oneof(

@@ -1,15 +1,15 @@
-import { elem, elemEvents } from "../src/dom/construct";
-import type { Props } from "../src/dom/construct/typedProps";
-import { tags } from "../src/dom/construct/vanjs";
-import { type Dispatch, DOMRoot as ReducerRenderer } from "../src/dom/mount";
-import type { RenderIF, StateDispatch } from "../src/dom/render";
-import type { ElementConstruction } from "../src/dom/types";
-import { filter, map } from "../src/incr/array";
-import { bind, bindMemo } from "../src/incr/bind";
-import { atomicFunc } from "../src/incr/builder";
-import { composeMemoL } from "../src/incr/compose/memo";
-import { access, accessPath, record, template } from "../src/incr/struct";
-import type { IF } from "../src/incr/types";
+import { elem, elemEvents } from "incr/src/dom/construct";
+import type { Props } from "incr/src/dom/construct/typedProps";
+import { tags } from "incr/src/dom/construct/vanjs";
+import { type Dispatch, DOMRoot as ReducerRenderer } from "incr/src/dom/mount";
+import type { RenderIF, StateDispatch } from "incr/src/dom/render";
+import type { ElementConstruction } from "incr/src/dom/types";
+import { filter, map } from "incr/src/incr/array";
+import { bind, bindMemo } from "incr/src/incr/bind";
+import { atomicFunc } from "incr/src/incr/builder";
+import { composeMemoL } from "incr/src/incr/compose/memo";
+import { access, accessPath, record, template } from "incr/src/incr/struct";
+import type { IF } from "incr/src/incr/types";
 import {
 	type TodoAction,
 	TodoActionType,
@@ -285,67 +285,72 @@ const getRenderTodoApp = (dispatch: Dispatch<TodoAction>) => {
 			todoCountText: getTodoCountText,
 			filtersMenu: renderFiltersMenu,
 		},
-		({ todoItems, todoCountText, filtersMenu }): ElementConstruction => div(
-			{ id: "todo-app" },
-			header(
-				{ class: "header" },
-				h1("todos"),
-				input({
-					type: "text",
-					class: "new-todo",
-					placeholder: "What needs to be done?",
-					autofocus: true,
-					onkeypress: (e: KeyboardEvent) => {
-						if (e.key !== "Enter") {
-							return;
-						}
-
-						const input = e.target as HTMLInputElement;
-						if (input.value.trim()) {
-							dispatch({
-								type: TodoActionType.Add,
-								value: input.value,
-							});
-							// the input is already not controlled
-							input.value = "";
-							e.preventDefault();
-						}
-					},
-				})
-			),
-			main(
-				{ class: "main" },
-				div(
-					{ class: "toggle-all-container" },
+		({ todoItems, todoCountText, filtersMenu }): ElementConstruction =>
+			div(
+				{ id: "todo-app" },
+				header(
+					{ class: "header" },
+					h1("todos"),
 					input({
-						class: "toggle-all",
-						type: "checkbox",
-						onchange: () => dispatch({ type: TodoActionType.ToggleAll }),
-					}),
-					label(
-						{ class: "toggle-all-label", for: "toggle-all" },
-						"Toggle All Input"
-					)
-				),
-				todoItems,
-				footer(
-					{ class: "footer" },
-					span({ class: "todo-count" }, todoCountText),
-					filtersMenu,
-					button(
-						{
-							class: "clear-completed",
-							onclick: () => dispatch({ type: TodoActionType.ClearCompleted }),
+						type: "text",
+						class: "new-todo",
+						placeholder: "What needs to be done?",
+						autofocus: true,
+						onkeypress: (e: KeyboardEvent) => {
+							if (e.key !== "Enter") {
+								return;
+							}
+
+							const input = e.target as HTMLInputElement;
+							if (input.value.trim()) {
+								dispatch({
+									type: TodoActionType.Add,
+									value: input.value,
+								});
+								// the input is already not controlled
+								input.value = "";
+								e.preventDefault();
+							}
 						},
-						"Clear completed"
-					)
-				)
-			)
-		)
+					}),
+				),
+				main(
+					{ class: "main" },
+					div(
+						{ class: "toggle-all-container" },
+						input({
+							class: "toggle-all",
+							type: "checkbox",
+							onchange: () => dispatch({ type: TodoActionType.ToggleAll }),
+						}),
+						label(
+							{ class: "toggle-all-label", for: "toggle-all" },
+							"Toggle All Input",
+						),
+					),
+					todoItems,
+					footer(
+						{ class: "footer" },
+						span({ class: "todo-count" }, todoCountText),
+						filtersMenu,
+						button(
+							{
+								class: "clear-completed",
+								onclick: () =>
+									dispatch({ type: TodoActionType.ClearCompleted }),
+							},
+							"Clear completed",
+						),
+					),
+				),
+			),
 	);
 };
 
-export const renderTodoApp: RenderIF<TodoState, TodoAction> = bindMemo(accessDispatch, getRenderTodoApp);
+export const renderTodoApp: RenderIF<TodoState, TodoAction> = bindMemo(
+	accessDispatch,
+	getRenderTodoApp,
+);
 
 export const initState: TodoState = {
 	counter: 3,
@@ -373,7 +378,12 @@ export const load = () => {
 		return;
 	}
 
-	const render = new ReducerRenderer(root, initState, todoReducer, renderTodoApp);
+	const render = new ReducerRenderer(
+		root,
+		initState,
+		todoReducer,
+		renderTodoApp,
+	);
 	render.initialize();
 };
 

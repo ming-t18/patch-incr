@@ -3,6 +3,10 @@
   "workspaces": {
     "": {
       "name": "incr",
+      "devDependencies": {
+        "incr": "workspace:*",
+        "incr-dom": "workspace:*",
+      },
     },
     "packages/incr": {
       "name": "incr",
@@ -14,13 +18,40 @@
         "rxjs": "^7.8.2",
       },
       "devDependencies": {
-        "@happy-dom/global-registrator": "^17.5.6",
         "@types/bun": "latest",
-        "@types/he": "^1.2.3",
         "@types/lodash-es": "^4.17.12",
       },
       "peerDependencies": {
         "typescript": "^5.7.3",
+      },
+    },
+    "packages/incr-dom": {
+      "name": "incr-dom",
+      "dependencies": {
+        "incr": "*",
+      },
+      "devDependencies": {
+        "@happy-dom/global-registrator": "^17.5.6",
+        "@types/bun": "latest",
+        "incr": "workspace:*",
+      },
+      "peerDependencies": {
+        "typescript": "^5.7.3",
+      },
+    },
+    "packages/incr-dom-examples": {
+      "name": "incr-dom-examples",
+      "dependencies": {
+        "incr": "*",
+        "incr-dom": "*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "incr": "workspace:*",
+        "incr-dom": "workspace:*",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
       },
     },
   },
@@ -51,8 +82,6 @@
 
     "@types/bun": ["@types/bun@1.2.18", "", { "dependencies": { "bun-types": "1.2.18" } }, "sha512-Xf6RaWVheyemaThV0kUfaAUvCNokFr+bH8Jxp+tTZfx7dAPA8z9ePnP9S9+Vspzuxxx9JRAXhnyccRj3GyCMdQ=="],
 
-    "@types/he": ["@types/he@1.2.3", "", {}, "sha512-q67/qwlxblDzEDvzHhVkwc1gzVWxaNxeyHUBF4xElrvjL11O+Ytze+1fGpBHlr/H9myiBUaUXNnNPmBHxxfAcA=="],
-
     "@types/lodash": ["@types/lodash@4.17.20", "", {}, "sha512-H3MHACvFUEiujabxhaI/ImO6gUrd8oOurg7LQtS7mbwIXA/cUqWrvBsaeJ23aZEPk1TAYkurjfMbSELfoCXlGA=="],
 
     "@types/lodash-es": ["@types/lodash-es@4.17.12", "", { "dependencies": { "@types/lodash": "*" } }, "sha512-0NgftHUcV4v34VhXm8QBSftKVXtbkBG3ViCjs6+eJ5a6y6Mi/jiFGPc1sC7QK+9BFhWrURE3EOggmWaSxL9OzQ=="],
@@ -74,6 +103,10 @@
     "immer": ["immer@10.1.1", "", {}, "sha512-s2MPrmjovJcoMaHtx6K11Ra7oD05NT97w1IC5zpMkT6Atjr7H8LjaDd81iIxUYpMKSRRNMJE703M1Fhr/TctHw=="],
 
     "incr": ["incr@workspace:packages/incr"],
+
+    "incr-dom": ["incr-dom@workspace:packages/incr-dom"],
+
+    "incr-dom-examples": ["incr-dom-examples@workspace:packages/incr-dom-examples"],
 
     "lodash-es": ["lodash-es@4.17.21", "", {}, "sha512-mKnC+QJ9pWVzv+C4/U3rRsHapFfHvQFoFB92e52xeyGMcX6/OlIl78je1u8vePzYZSkkogMPJ2yjxxsb89cxyw=="],
 
