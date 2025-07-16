@@ -10,7 +10,7 @@ import {
 	type PatchReplace,
 	type Path,
 	type Targeted,
-} from "../../data/patch";
+} from "../..//patch";
 import { IndexEnd } from "../../patchSchema/types";
 export type WithPatches<T> = { value: T; patches: Patches<T> };
 

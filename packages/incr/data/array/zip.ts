@@ -1,8 +1,8 @@
 import { getReplaceOnly, isReplaceOnly } from "../../algebra/replaceOnly";
+import { type PatchEntry, type Patches, PatchOp } from "../../patch";
 import * as ps from "../../patchSchema";
 import { IndexEnd } from "../../patchSchema/types";
-import { type PatchEntry, type Patches, PatchOp } from "../patch";
-import type { IF } from "../types";
+import type { IF } from "../../types";
 import { splice } from "./helpers/arrayPatch";
 import { getMinUpdatedIndex } from "./helpers/forwardArray";
 

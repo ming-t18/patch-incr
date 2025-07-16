@@ -5,7 +5,7 @@ import {
 	type Patches,
 	PatchOp,
 	reduceReplaceRoot,
-} from "../data/patch";
+} from "..//patch";
 import { BasePatchSchema } from "./base";
 import {
 	IndexEnd,

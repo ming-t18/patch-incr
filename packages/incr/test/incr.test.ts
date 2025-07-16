@@ -2,14 +2,14 @@ import fc, { anything } from "fast-check";
 import { atomicFunc, constant, identity } from "../data/builder";
 import { compose } from "../data/compose";
 import { IFGraphBuilder } from "../data/graphBuilder";
+import { access, record } from "../data/struct";
 import {
 	applyPatches,
 	isAtomicValue,
 	PatchBuilder,
 	type Path,
 	replacePatch,
-} from "../data/patch";
-import { access, record } from "../data/struct";
+} from "..//patch";
 import type { IF } from "../types";
 import * as gp from "./helpers/genPatched.test";
 import { ensurePatchCoherent } from "./helpers/props.test";

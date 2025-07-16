@@ -5,8 +5,8 @@ import {
 	type PatchEntry,
 	type Patches,
 	PatchOp,
-} from "./patch";
-import type { IFInv } from "./types";
+} from "../patch";
+import type { IFInv } from "../types";
 
 const evaluateComm = <A, B>([a, b]: [A, B]): [B, A] => [b, a];
 

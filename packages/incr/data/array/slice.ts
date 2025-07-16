@@ -1,7 +1,7 @@
+import { CannotReduce, PatchOp } from "../../patch";
 import * as ps from "../../patchSchema";
 import { IndexEnd } from "../../patchSchema/types";
-import { CannotReduce, PatchOp } from "../patch";
-import type { IF } from "../types";
+import type { IF } from "../../types";
 import { forwardWithArraySchema } from "./helpers/forwardArray";
 
 export const slice = <T>(start?: number, end?: number): IF<T[], T[]> => {

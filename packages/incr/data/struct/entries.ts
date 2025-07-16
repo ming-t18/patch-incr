@@ -1,5 +1,5 @@
-import { CannotReduce, PatchOp, reducePatches } from "../patch";
-import type { Forward, IF } from "../types";
+import { CannotReduce, PatchOp, reducePatches } from "../../patch";
+import type { Forward, IF } from "../../types";
 
 /**
  * Incremental version of `Object.entries`.

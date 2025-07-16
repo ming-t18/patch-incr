@@ -1,7 +1,7 @@
+import { CannotReduce, type Patches, PatchOp } from "../../patch";
 import * as ps from "../../patchSchema";
 import type { PatchSchemaArrayEntry } from "../../patchSchema/types";
-import { CannotReduce, type Patches, PatchOp } from "../patch";
-import type { IF } from "../types";
+import type { IF } from "../../types";
 import { forwardWithArraySchema } from "./helpers/forwardArray";
 
 /**

@@ -12,9 +12,9 @@
  *
  * @module
  */
-import { CannotReduce, PatchOp, reducePatchesNoOutput } from "../patch";
+import { CannotReduce, PatchOp, reducePatchesNoOutput } from "../../patch";
+import type { IF } from "../../types";
 import type { Merged } from "../struct/merge";
-import type { IF } from "../types";
 
 export const distl = <Elem, Dist>(): IF<[Dist, Elem[]], [Dist, Elem][]> => {
 	const evaluateDistl = ([d, xs]: [Dist, Elem[]]): [Dist, Elem][] =>

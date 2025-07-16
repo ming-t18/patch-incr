@@ -1,4 +1,4 @@
-import type { HasTypes } from "../typeHelpers";
+import type { HasTypes } from "../data/typeHelpers";
 
 export type Path = (number | string)[];
 

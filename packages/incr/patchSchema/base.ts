@@ -1,13 +1,13 @@
 import type { ChangeBuilder, ReplaceOnly } from "../algebra";
 import { makeReplaceOnly } from "../algebra/replaceOnly";
+import type { TypesKey } from "../data/typeHelpers";
 import {
 	applyPatches,
 	type PatchEntry,
 	type Patches,
 	reduceReplaceRoot,
 	replacePatch,
-} from "../data/patch";
-import type { TypesKey } from "../data/typeHelpers";
+} from "..//patch";
 import type { PatchSchema } from "./types";
 
 const EMPTY: readonly never[] = Object.freeze([]);

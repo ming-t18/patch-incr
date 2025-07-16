@@ -1,10 +1,6 @@
 import { expect } from "bun:test";
 import fc from "fast-check";
-import {
-	applyPatches,
-	type Patches,
-	reduceReplaceRoot,
-} from "../../data/patch";
+import { applyPatches, type Patches, reduceReplaceRoot } from "../..//patch";
 import type { IF } from "../../types";
 import type { GenWithPatches } from "./genPatched.test";
 

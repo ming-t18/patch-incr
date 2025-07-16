@@ -1,7 +1,7 @@
+import { type Patches, PatchOp } from "../../patch";
 import * as ps from "../../patchSchema";
 import { IndexEnd } from "../../patchSchema/types";
-import { type Patches, PatchOp } from "../patch";
-import type { IF } from "../types";
+import type { IF } from "../../types";
 
 const genSeq = (start: number, step: number, length: number): number[] => {
 	let value = start;

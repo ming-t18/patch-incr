@@ -4,7 +4,7 @@ import {
 	type PatchEntry,
 	PatchOp,
 	type Path,
-} from "incr/data/patch";
+} from "incr//patch";
 import * as gp from "incr/test/helpers/genPatched.test";
 import {
 	type GenWithPatches,

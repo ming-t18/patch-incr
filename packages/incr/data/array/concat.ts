@@ -1,11 +1,5 @@
 import type { ChangeBuilder } from "../../algebra";
 import { getReplaceOnly, isReplaceOnly } from "../../algebra/replaceOnly";
-import * as ps from "../../patchSchema";
-import {
-	IndexEnd,
-	type PatchSchema,
-	type PatchSchemaArrayEntry,
-} from "../../patchSchema/types";
 import {
 	CannotReduce,
 	type PatchEntry,
@@ -13,8 +7,14 @@ import {
 	PatchOp,
 	reduceReplaceRoot,
 	replacePatch,
-} from "../patch";
-import type { IF } from "../types";
+} from "../../patch";
+import * as ps from "../../patchSchema";
+import {
+	IndexEnd,
+	type PatchSchema,
+	type PatchSchemaArrayEntry,
+} from "../../patchSchema/types";
+import type { IF } from "../../types";
 import { splice } from "./helpers/arrayPatch";
 import { forwardWithArraySchema } from "./helpers/forwardArray";
 import { scan } from "./scan";

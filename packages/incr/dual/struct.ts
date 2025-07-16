@@ -1,4 +1,4 @@
-import { liftPatch, type Patches } from "../data/patch";
+import { liftPatch, type Patches } from "..//patch";
 import { dp, dp0 } from "./dp";
 import type { AnyDP, DP } from "./types";
 

@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import type { InferApplyType } from "../../algebra";
 import { getReplaceOnly } from "../../algebra/replaceOnly";
-import { type Patches, PatchOp } from "../../data/patch";
+import { type Patches, PatchOp } from "../..//patch";
 import * as ps from "../../patchSchema";
 import * as gp from "./../helpers/genPatched.test";
 

@@ -3,7 +3,7 @@ import {
 	type PatchEntry,
 	type Patches,
 	PatchOp,
-} from "incr/data/patch";
+} from "incr//patch";
 import { IndexEnd } from "incr/patchSchema/types";
 import { clearAttrs, setAttributeFromConstruction, setAttrs } from "./attr";
 import {

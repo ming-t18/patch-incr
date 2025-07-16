@@ -4,7 +4,7 @@ import {
 	type PatchRemove,
 	type PatchReplace,
 	type Targeted,
-} from "../../patch";
+} from "../../../patch";
 
 type ArrayOp<T> =
 	| (PatchAdd<[number], T> & Targeted<T[]>)

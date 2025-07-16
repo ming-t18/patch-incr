@@ -1,4 +1,4 @@
-import { applyPatches, liftPatch, type Patches } from "incr/data/patch";
+import { applyPatches, liftPatch, type Patches } from "incr//patch";
 import type { IF, NoForwardOutput } from "incr/types";
 import { patchDOM, renderDOM } from "./patch";
 import type { RenderIF, StateDispatch } from "./render";

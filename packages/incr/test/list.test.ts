@@ -18,8 +18,8 @@ import {
 } from "../data/array/sort";
 import { atomicFunc, identity } from "../data/builder";
 import { IFGraphBuilder } from "../data/graphBuilder";
-import { applyPatches, liftPatch, type Patches, PatchOp } from "../data/patch";
 import { access, record } from "../data/struct";
+import { applyPatches, liftPatch, type Patches, PatchOp } from "..//patch";
 import type { IF, InferIFOutput } from "../types";
 import * as gp from "./helpers/genPatched.test";
 import {

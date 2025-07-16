@@ -1,4 +1,11 @@
 import { getReplaceOnly, isReplaceOnly } from "../../algebra/replaceOnly";
+import {
+	applyPatches,
+	type PatchEntry,
+	type Patches,
+	type Path,
+	replacePatch,
+} from "../../patch";
 import type {
 	InferTypeFromRecordConstruction,
 	InferTypeFromTupleConstruction,
@@ -7,15 +14,8 @@ import type {
 	RecordConstruction,
 	TupleConstruction,
 } from "../../patchSchema/types";
+import type { IF, NoForwardOutput } from "../../types";
 import { composeMemoL } from "../compose/memo";
-import {
-	applyPatches,
-	type PatchEntry,
-	type Patches,
-	type Path,
-	replacePatch,
-} from "../patch";
-import type { IF, NoForwardOutput } from "../types";
 
 export const accessRecord = <
 	C extends RecordConstruction,
@@ -139,6 +139,5 @@ export const accessPath = <Output, Input extends WeakKey>(
 		return access(path[0]);
 	}
 
-	// @ts-expect-error Can't be checked
 	return composeMemoL(access(path[0]), accessPath(path.slice(1)));
 };

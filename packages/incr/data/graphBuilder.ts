@@ -1,5 +1,5 @@
-import { liftPatch, PatchBuilder, type Patches } from "./patch";
-import type { IF } from "./types";
+import { liftPatch, PatchBuilder, type Patches } from "../patch";
+import type { IF } from "../types";
 
 export type DepsList = number[];
 

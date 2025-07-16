@@ -1,4 +1,4 @@
-import { IndexEnd } from "../../patchSchema/types";
+import { IndexEnd } from "../patchSchema/types";
 import type {
 	PatchCopy,
 	PatchEntry,

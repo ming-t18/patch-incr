@@ -1,12 +1,12 @@
 import { type Draft, produce, produceWithPatches } from "immer";
-import type { ApplyCombine, DRO } from "../algebra";
+import type { ApplyCombine, DRO } from "./algebra";
 import {
 	maybeCombineDRO as combineDROUnion,
 	getDRO,
 	getReplaceOnly,
 	isReplaceOnly,
 	makeReplaceOnly,
-} from "../algebra/replaceOnly";
+} from "./algebra/replaceOnly";
 import { applyPatches, type Patches } from "./patch";
 import type { IF, NoForwardOutput } from "./types";
 

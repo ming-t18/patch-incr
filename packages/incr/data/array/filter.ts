@@ -1,3 +1,9 @@
+import {
+	type CannotReduce,
+	type PatchEntry,
+	type Patches,
+	PatchOp,
+} from "../../patch";
 import * as ps from "../../patchSchema";
 import {
 	IndexEnd,
@@ -5,13 +11,7 @@ import {
 	type PatchSchemaArray,
 	type PatchSchemaArrayEntry,
 } from "../../patchSchema/types";
-import {
-	type CannotReduce,
-	type PatchEntry,
-	type Patches,
-	PatchOp,
-} from "../patch";
-import type { IF } from "../types";
+import type { IF } from "../../types";
 import { forwardWithArraySchema } from "./helpers/forwardArray";
 import { scan } from "./scan";
 
