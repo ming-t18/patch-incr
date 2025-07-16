@@ -1,6 +1,6 @@
-import type { ApplyCombine, ReplaceOnly } from "../algebra";
-import type { Patches } from "./patch";
-import type { AccessTypes, TypesKey } from "./typeHelpers";
+import type { ApplyCombine, ReplaceOnly } from "./algebra";
+import type { Patches } from "./data/patch";
+import type { AccessTypes, TypesKey } from "./data/typeHelpers";
 
 export interface Apply<Value, Change> {
 	apply: (value: Value, change: Change) => Value;

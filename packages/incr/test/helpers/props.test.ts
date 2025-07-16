@@ -5,7 +5,7 @@ import {
 	type Patches,
 	reduceReplaceRoot,
 } from "../../data/patch";
-import type { IF } from "../../data/types";
+import type { IF } from "../../types";
 import type { GenWithPatches } from "./genPatched.test";
 
 export const ensurePatchCoherent = <X, Y, DX = Patches<X>>(

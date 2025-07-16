@@ -9,7 +9,7 @@ import { bind, bindMemo } from "incr/data/bind";
 import { atomicFunc } from "incr/data/builder";
 import { composeMemoL } from "incr/data/compose/memo";
 import { access, accessPath, record, template } from "incr/data/struct";
-import type { IF } from "incr/data/types";
+import type { IF } from "incr/types";
 import {
 	type TodoAction,
 	TodoActionType,

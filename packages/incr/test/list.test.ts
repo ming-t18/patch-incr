@@ -20,7 +20,7 @@ import { atomicFunc, identity } from "../data/builder";
 import { IFGraphBuilder } from "../data/graphBuilder";
 import { applyPatches, liftPatch, type Patches, PatchOp } from "../data/patch";
 import { access, record } from "../data/struct";
-import type { IF, InferIFOutput } from "../data/types";
+import type { IF, InferIFOutput } from "../types";
 import * as gp from "./helpers/genPatched.test";
 import {
 	ensurePatchCoherent,

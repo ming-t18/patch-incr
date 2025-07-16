@@ -3,7 +3,7 @@ import { concat, map } from "../data/array";
 import { atomicFunc, constant, identity } from "../data/builder";
 import { compose, composeNoInterm } from "../data/compose";
 import { comm } from "../data/tuple";
-import type { IF } from "../data/types";
+import type { IF } from "../types";
 import * as gp from "./helpers/genPatched.test";
 import { propIsIdentity, propsForIF } from "./helpers/props.test";
 

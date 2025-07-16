@@ -10,7 +10,7 @@ import {
 	replacePatch,
 } from "../data/patch";
 import { access, record } from "../data/struct";
-import type { IF } from "../data/types";
+import type { IF } from "../types";
 import * as gp from "./helpers/genPatched.test";
 import { ensurePatchCoherent } from "./helpers/props.test";
 

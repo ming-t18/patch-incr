@@ -1,5 +1,5 @@
 import { applyPatches, liftPatch, type Patches } from "incr/data/patch";
-import type { IF, NoForwardOutput } from "incr/data/types";
+import type { IF, NoForwardOutput } from "incr/types";
 import { patchDOM, renderDOM } from "./patch";
 import type { RenderIF, StateDispatch } from "./render";
 import type { DOMConstruction } from "./types";

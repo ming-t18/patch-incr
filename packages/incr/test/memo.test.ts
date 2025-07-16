@@ -6,7 +6,7 @@ import { compose } from "../data/compose";
 import { memoInterm, memoIntermR } from "../data/memoPair";
 import { type Patches, PatchOp } from "../data/patch";
 import { access, record } from "../data/struct";
-import type { InferIFOutput } from "../data/types";
+import type { InferIFOutput } from "../types";
 import * as ps from "../patchSchema";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
