@@ -1,5 +1,5 @@
 import fc, { anything } from "fast-check";
-import { atomicFunc, constant, identity } from "../data/builder";
+import { atomicFunc, constant, identity } from "../data";
 import { compose } from "../data/compose";
 import { IFGraphBuilder } from "../data/graphBuilder";
 import { access, record } from "../data/struct";

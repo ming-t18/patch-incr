@@ -1,6 +1,6 @@
 import { describe, it } from "bun:test";
 import fc from "fast-check";
-import { atomicFunc } from "incr/data/builder";
+import { atomicFunc } from "incr/data";
 import { composeMemoL } from "incr/data/compose/memo";
 import * as gp from "incr/test/helpers/genPatched.test";
 import { propsForIF } from "incr/test/helpers/props.test";

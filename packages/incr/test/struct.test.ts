@@ -1,4 +1,4 @@
-import { atomicFunc, identity } from "../data/builder";
+import { atomicFunc, identity } from "../data";
 import { record, template } from "../data/struct";
 import { assign } from "../data/struct/assign";
 import { entries, keys } from "../data/struct/entries";

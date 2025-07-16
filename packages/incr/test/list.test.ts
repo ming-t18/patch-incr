@@ -1,4 +1,5 @@
 import fc from "fast-check";
+import { atomicFunc, identity } from "../data";
 import {
 	concat,
 	filter,
@@ -16,7 +17,6 @@ import {
 	bisectRight,
 	sort,
 } from "../data/array/sort";
-import { atomicFunc, identity } from "../data/builder";
 import { IFGraphBuilder } from "../data/graphBuilder";
 import { access, record } from "../data/struct";
 import { applyPatches, liftPatch, type Patches, PatchOp } from "..//patch";

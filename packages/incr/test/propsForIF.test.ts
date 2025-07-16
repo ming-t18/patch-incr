@@ -1,6 +1,6 @@
 import fc from "fast-check";
+import { atomicFunc, constant, identity } from "../data";
 import { concat, map } from "../data/array";
-import { atomicFunc, constant, identity } from "../data/builder";
 import { compose, composeNoInterm } from "../data/compose";
 import { comm } from "../data/tuple";
 import type { IF } from "../types";

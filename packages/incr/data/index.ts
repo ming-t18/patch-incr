@@ -6,8 +6,8 @@ import {
 	PatchOp,
 	replacePatch,
 	type Targeted,
-} from "./../patch";
-import type { Evaluate, IF, IFInv, NoForwardOutput } from "./../types";
+} from "../patch";
+import type { Evaluate, IF, IFInv, NoForwardOutput } from "../types";
 
 const _identity = <T>(x: T) => x;
 

@@ -1,7 +1,7 @@
 import { describe, expect, it, spyOn } from "bun:test";
 import type { InferApplyType } from "../algebra";
+import { atomicFunc } from "../data";
 import { filter, flatMap } from "../data/array";
-import { atomicFunc } from "../data/builder";
 import { compose } from "../data/compose";
 import { memoInterm, memoIntermR } from "../data/memoPair";
 import { access, record } from "../data/struct";

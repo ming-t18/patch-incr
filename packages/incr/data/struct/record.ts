@@ -5,7 +5,7 @@ import type {
 	RecordConstruction,
 } from "../../patchSchema/types";
 import { type IF, isIF } from "../../types";
-import { patchesBuilder, type StructuralChangeBuilder } from "../builder";
+import { patchesBuilder, type StructuralChangeBuilder } from "..";
 import type {
 	InferRecordInput,
 	InferRecordOutput,
