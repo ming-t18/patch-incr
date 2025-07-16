@@ -1,5 +1,5 @@
 import { type Server, serve } from "bun";
-import { renderToString } from "incr-dom/src/dom/render";
+import { renderToString } from "incr-dom/render";
 import { initState, renderTodoApp } from "./app";
 import homepage from "./index.html";
 

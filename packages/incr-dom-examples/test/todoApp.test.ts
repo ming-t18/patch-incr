@@ -4,7 +4,7 @@ import { atomicFunc } from "incr/src/incr/builder";
 import { composeMemoL } from "incr/src/incr/compose/memo";
 import * as gp from "incr/src/test/helpers/genPatched.test";
 import { propsForIF } from "incr/src/test/helpers/props.test";
-import { renderToString } from "incr-dom/src/render";
+import { renderToString } from "incr-dom/render";
 import { renderTodoApp } from "../server/app";
 import {
 	type TodoAction,
