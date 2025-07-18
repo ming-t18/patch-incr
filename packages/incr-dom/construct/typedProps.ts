@@ -64,7 +64,12 @@ export interface HTMLElementMap {
 	track: HTMLTrackElement;
 	ul: HTMLUListElement;
 	video: HTMLVideoElement;
+	header: HTMLUnknownElement;
+	main: HTMLUnknownElement;
+	footer: HTMLUnknownElement;
 }
+
+export type TagName = keyof HTMLElementMap;
 
 export type OnPropName = `on${keyof ElementEventMap[keyof ElementEventMap]}`;
 export type UndoOnPropName<OnName extends `on${string}`> =
