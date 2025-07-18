@@ -45,5 +45,7 @@ export {
 	composeMemoL as composeMemoLeft,
 	composeMemoR as composeMemo,
 	MemoComposer,
+	type Pipe,
+	composer,
 } from "./memo";
 export { composeWithInv as composeNoInterm } from "./noInterm";
