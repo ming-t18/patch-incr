@@ -1,13 +1,19 @@
 import { atomicFunc } from "incr/builder";
 import { filter, map } from "incr/builder/array";
 import { bind, bindMemo } from "incr/builder/bind";
-import { composeMemoL } from "incr/builder/compose/memo";
-import { access, accessPath, record, template } from "incr/builder/struct";
+import { composeMemoL, composer } from "incr/builder/compose/memo";
+import {
+	access,
+	accessFor,
+	accessPathFor,
+	template,
+	tupleFor,
+} from "incr/builder/struct";
 import type { IF } from "incr/types";
 import { elem, elemEvents } from "incr-dom/construct";
 import type { Props } from "incr-dom/construct/typedProps";
 import { tags } from "incr-dom/construct/vanjs";
-import { type Dispatch, DOMRoot as ReducerRenderer } from "incr-dom/mount";
+import { type Dispatch, DOMRoot } from "incr-dom/mount";
 import type { RenderIF, StateDispatch } from "incr-dom/render";
 import type { ElementConstruction } from "incr-dom/types";
 import {
@@ -19,32 +25,29 @@ import {
 	ViewFilter,
 } from "./todo_state";
 
-const accessViewFilter = accessPath<
-	ViewFilter,
-	StateDispatch<TodoState, TodoAction>
->(["state", "viewFilter"]);
-const accessItems = accessPath<
-	TodoItem[],
-	StateDispatch<TodoState, TodoAction>
->(["state", "items"]);
-const accessItemId = access<string, "id", TodoItem>("id");
-// const _accessEditingId = accessPath<
-// 	TodoState["editingId"],
-// 	StateDispatch<TodoState, TodoAction>
-// >(["state", "editingId"]);
-const accessDispatch = accessPath<
-	Dispatch<TodoAction>,
-	StateDispatch<TodoState, TodoAction>
->(["dispatch"]);
+const accessPathSD = accessPathFor<StateDispatch<TodoState, TodoAction>>();
+const accessSD = accessFor<StateDispatch<TodoState, TodoAction>>();
+const accessTodoItem = accessFor<TodoItem>();
 
-const accessItemText = access<string, "text", TodoItem>("text");
-const accessItemDone = access<boolean, "done", TodoItem>("done");
-const accessItemEditing = access<boolean, "editing", TodoItem>("editing");
+const accessViewFilter = accessPathSD<["state", "viewFilter"], ViewFilter>([
+	"state",
+	"viewFilter",
+]);
+const accessItems = accessPathSD<["state", "items"], TodoItem[]>([
+	"state",
+	"items",
+]);
+const accessItemId = accessTodoItem("id");
+const accessDispatch = accessSD("dispatch");
+
+const accessItemText = accessTodoItem("text");
+const accessItemDone = accessTodoItem("done");
+const accessItemEditing = accessTodoItem("editing");
 
 const getFilteredItems: IF<
 	StateDispatch<TodoState, TodoAction>,
 	TodoItem[]
-> = bind(accessViewFilter, (viewFilter: ViewFilter) => {
+> = bind(accessViewFilter, (viewFilter: ViewFilter): typeof accessItems => {
 	if (viewFilter === ViewFilter.All) {
 		return accessItems;
 	}
@@ -53,7 +56,9 @@ const getFilteredItems: IF<
 		viewFilter === ViewFilter.Active
 			? ({ done }: TodoItem) => !done
 			: ({ done }: TodoItem) => done;
-	return composeMemoL(composeMemoL(accessItems, filter(pred)), access(0));
+	return composer(accessItems)
+		.pipe(filter(pred), access<TodoItem[], 0, [TodoItem[], number[]]>(0))
+		.build();
 });
 
 const {
@@ -71,53 +76,54 @@ const {
 	a: _a,
 } = tags;
 
-const getTodoCountText = composeMemoL(
-	accessPath<TodoState["items"], StateDispatch<TodoState, TodoAction>>([
-		"state",
-		"items",
-	]),
-	atomicFunc((x) => {
-		const count =
-			x.length - x.reduce((s: number, { done }) => (done ? s + 1 : s), 0);
-		return `${count} item${count !== 1 ? "s" : ""} left!`;
-	}),
-);
+const getTodoCountText = composer(
+	accessPathSD<["state", "items"], TodoState["items"]>(["state", "items"]),
+)
+	.pipe(
+		atomicFunc((x: TodoState["items"]) => {
+			const count =
+				x.length - x.reduce((s: number, { done }) => (done ? s + 1 : s), 0);
+			return `${count} item${count !== 1 ? "s" : ""} left!`;
+		}),
+	)
+	.build();
 
 const getRenderTodoApp = (dispatch: Dispatch<TodoAction>) => {
 	const renderEditor: IF<TodoItem, ElementConstruction> = template(
 		{
 			value: accessItemText,
-			events: composeMemoL(
-				accessItemId,
-				atomicFunc((id: string) => {
-					const handleSubmit = (input: HTMLInputElement) => {
-						const value = input.value;
-						if (!value) {
-							dispatch({
-								type: TodoActionType.Remove,
-								id,
-							});
-						} else {
-							dispatch({
-								type: TodoActionType.EditText,
-								value,
-							});
-							dispatch({ type: TodoActionType.StopEditing });
-						}
-					};
-					return {
-						keydown: (e: KeyboardEvent) => {
-							if (e.key === "Escape") {
+			events: composer(accessItemId)
+				.pipe(
+					atomicFunc((id: string) => {
+						const handleSubmit = (input: HTMLInputElement) => {
+							const value = input.value;
+							if (!value) {
+								dispatch({
+									type: TodoActionType.Remove,
+									id,
+								});
+							} else {
+								dispatch({
+									type: TodoActionType.EditText,
+									value,
+								});
 								dispatch({ type: TodoActionType.StopEditing });
-							} else if (e.key === "Enter") {
-								handleSubmit(e.target as HTMLInputElement);
 							}
-						},
-						blur: (e: KeyboardEvent) =>
-							handleSubmit(e.target as HTMLInputElement),
-					};
-				}),
-			),
+						};
+						return {
+							keydown: (e: KeyboardEvent) => {
+								if (e.key === "Escape") {
+									dispatch({ type: TodoActionType.StopEditing });
+								} else if (e.key === "Enter") {
+									handleSubmit(e.target as HTMLInputElement);
+								}
+							},
+							blur: (e: KeyboardEvent) =>
+								handleSubmit(e.target as HTMLInputElement),
+						};
+					}),
+				)
+				.build(),
 		},
 		({ value, events }) =>
 			div(
@@ -134,20 +140,25 @@ const getRenderTodoApp = (dispatch: Dispatch<TodoAction>) => {
 			),
 	);
 
+	const getPair /*: IF<TodoItem, [boolean, boolean]> */ = tupleFor<TodoItem>()(
+		accessItemEditing,
+		accessItemDone,
+	);
 	const mapTodoItems: IF<TodoItem[], ElementConstruction[]> = map<
 		TodoItem,
 		ElementConstruction
 	>(
 		template(
 			{
-				liClass: composeMemoL(
-					record([accessItemEditing, accessItemDone]),
-					atomicFunc(([editing, completed]) =>
-						!editing && !completed
-							? ""
-							: `${editing ? "editing" : ""} ${completed ? "completed" : ""}`,
-					),
-				),
+				liClass: composer(getPair)
+					.pipe(
+						atomicFunc(([editing, completed]: [boolean, boolean]) =>
+							!editing && !completed
+								? ""
+								: `${editing ? "editing" : ""} ${completed ? "completed" : ""}`,
+						),
+					)
+					.build(),
 				checked: composeMemoL(
 					accessItemDone,
 					atomicFunc((x: boolean) => x || undefined),
@@ -156,18 +167,19 @@ const getRenderTodoApp = (dispatch: Dispatch<TodoAction>) => {
 				dispatchStartEditing: composeMemoL(
 					accessItemId,
 					atomicFunc(
-						(id) => () => dispatch({ type: TodoActionType.StartEditing, id }),
+						(id: string) => () =>
+							dispatch({ type: TodoActionType.StartEditing, id }),
 					),
 				),
 				dispatchRemove: composeMemoL(
 					accessItemId,
 					atomicFunc(
-						(id) => () => dispatch({ type: TodoActionType.Remove, id }),
+						(id: string) => () => dispatch({ type: TodoActionType.Remove, id }),
 					),
 				),
 				dispatchSetDone: composeMemoL(
 					accessItemId,
-					atomicFunc((id) => (e: KeyboardEvent) => {
+					atomicFunc((id: string) => (e: KeyboardEvent) => {
 						dispatch({
 							type: TodoActionType.SetDone,
 							id,
@@ -378,13 +390,8 @@ export const load = () => {
 		return;
 	}
 
-	const render = new ReducerRenderer(
-		root,
-		initState,
-		todoReducer,
-		renderTodoApp,
-	);
-	render.initialize();
+	const domRoot = new DOMRoot(root, initState, todoReducer, renderTodoApp);
+	domRoot.initialize();
 };
 
 if (globalThis.document) {

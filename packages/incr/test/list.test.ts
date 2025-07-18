@@ -18,7 +18,7 @@ import {
 	sort,
 } from "../builder/array/sort";
 import { IFGraphBuilder } from "../builder/graphBuilder";
-import { access, record } from "../builder/struct";
+import { access, accessFor, record } from "../builder/struct";
 import { applyPatches, liftPatch, type Patches, PatchOp } from "..//patch";
 import type { IF, InferIFOutput } from "../types";
 import * as gp from "./helpers/genPatched.test";
@@ -395,7 +395,7 @@ describe("map", () => {
 		});
 		type Out = InferIFOutput<typeof mapping1>;
 		const _mapping2 = record({
-			p: access<number, "a", Out>("a"),
+			p: accessFor<Out>()("a"),
 			q: IFGraphBuilder.empty<Out>().add([] as const, access(0)),
 		});
 		// TODO

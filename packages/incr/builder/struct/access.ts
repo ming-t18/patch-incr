@@ -16,6 +16,7 @@ import type {
 } from "../../patchSchema/types";
 import type { IF, NoForwardOutput } from "../../types";
 import { composeMemoL } from "../compose/memo";
+import type { AccessPath } from "../typeHelpers";
 
 export const accessRecord = <
 	C extends RecordConstruction,
@@ -127,6 +128,14 @@ export const access = <
 	};
 };
 
+export const accessFor = <Input>(): (<
+	Key extends keyof Input & (string | number),
+	Output = AccessPath<Input, [Key]>,
+>(
+	key: Key,
+) => IF<Input, Output, Patches<Input>, Patches<Output>, NoForwardOutput>) =>
+	access as never;
+
 export const accessPath = <Output, Input extends WeakKey>(
 	path: Path,
 ): IF<Input, Output> => {
@@ -139,5 +148,14 @@ export const accessPath = <Output, Input extends WeakKey>(
 		return access(path[0]);
 	}
 
+	// @ts-expect-error Can't be checked
 	return composeMemoL(access(path[0]), accessPath(path.slice(1)));
 };
+
+export const accessPathFor = <Input>(): (<
+	P extends Path,
+	Output = AccessPath<Input, P>,
+>(
+	path: Path,
+) => IF<Input, Output, Patches<Input>, Patches<Output>, NoForwardOutput>) =>
+	accessPath as never;

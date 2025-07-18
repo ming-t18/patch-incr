@@ -1,10 +1,11 @@
 import { describe, it } from "bun:test";
 import fc from "fast-check";
 import { atomicFunc } from "incr/builder";
-import { composeMemoL } from "incr/builder/compose/memo";
+import { composer } from "incr/builder/compose/memo";
 import * as gp from "incr/test/helpers/genPatched.test";
 import { propsForIF } from "incr/test/helpers/props.test";
-import { renderToString } from "incr-dom/render";
+import { renderToString, type StateDispatch } from "incr-dom/render";
+import type { ElementConstruction } from "incr-dom/types";
 import { renderTodoApp } from "../server/app";
 import {
 	type TodoAction,
@@ -80,6 +81,10 @@ const arbTodoStateDispatch = gp.record({
 
 describe("renderTodo", () => {
 	propsForIF(it, arbTodoStateDispatch, () =>
-		composeMemoL(renderTodoApp, atomicFunc(renderToString)),
+		composer<StateDispatch<TodoState, TodoAction>, ElementConstruction>(
+			renderTodoApp,
+		)
+			.pipe(atomicFunc(renderToString))
+			.build(),
 	);
 });

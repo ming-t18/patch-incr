@@ -63,15 +63,8 @@ export const composeMemoR = <
 
 export interface Pipe<X extends WeakKey, A extends WeakKey> {
 	<B>(f1: IF<A, B>): MemoComposer<X, B>;
-	<B, C>(
-		f1: IF<A, B>,
-		f2: IF<B, C>,
-	): MemoComposer<X, C>;
-	<B, C, D>(
-		f1: IF<A, B>,
-		f2: IF<B, C>,
-		f3: IF<C, D>,
-	): MemoComposer<X, D>;
+	<B, C>(f1: IF<A, B>, f2: IF<B, C>): MemoComposer<X, C>;
+	<B, C, D>(f1: IF<A, B>, f2: IF<B, C>, f3: IF<C, D>): MemoComposer<X, D>;
 	<B, C, D, E>(
 		f1: IF<A, B>,
 		f2: IF<B, C>,
@@ -92,7 +85,8 @@ export interface Pipe<X extends WeakKey, A extends WeakKey> {
 		_f4: IF<any, any>,
 		_f5: IF<any, any>,
 		_f6: IF<any, any>,
-		...args: IF<any, any>[]): MemoComposer<X, R>;
+		...args: IF<any, any>[]
+	): MemoComposer<X, R>;
 }
 
 export class MemoComposer<A extends WeakKey, B> {
@@ -103,7 +97,9 @@ export class MemoComposer<A extends WeakKey, B> {
 	}
 
 	// @ts-expect-error Can't be checked
-	pipe: Pipe<A, B> = (...args: IF<unknown, unknown>[]): MemoComposer<A, unknown> => {
+	pipe: Pipe<A, B> = (
+		...args: IF<unknown, unknown>[]
+	): MemoComposer<A, unknown> => {
 		let f = this.func;
 		for (const arg of args) {
 			// @ts-expect-error Can't be checked
@@ -111,11 +107,13 @@ export class MemoComposer<A extends WeakKey, B> {
 		}
 		// @ts-expect-error Can't be checked
 		return new MemoComposer(f);
-	}
+	};
 
 	build(): IF<A, B> {
 		return this.func;
 	}
 }
 
-export const composer = <A extends WeakKey, B>(f: IF<A, B>): MemoComposer<A, B> => new MemoComposer<A, B>(f);
+export const composer = <A extends WeakKey, B>(
+	f: IF<A, B>,
+): MemoComposer<A, B> => new MemoComposer<A, B>(f);

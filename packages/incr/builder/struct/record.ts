@@ -72,6 +72,17 @@ export const record = <
 	};
 };
 
+export const recordFor = <Input>(): (<Entries extends Record<string, unknown>>(
+	entries: Entries,
+) => IF<Input, InferRecordOutput<Entries>>) => record as never;
+
+export const tupleFor = <Input>(): (<Entries extends unknown[]>(
+	...args: Entries
+) => IF<Input, InferRecordOutput<Entries>>) => {
+	// @ts-expect-error Can't be checked
+	return (...args: Entries) => record(args);
+};
+
 export const recordWithSchema = <Input, C extends RecordConstruction>(
 	entries: { [k in keyof C]: IF<Input, C[k]> },
 	outSchema: PatchSchemaRecord<C, InferTypeFromRecordConstruction<C>>,

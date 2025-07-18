@@ -1,6 +1,6 @@
+import type { Patches } from "../patch";
 import * as ps from "../patchSchema";
-import type { Patches } from "./patch";
-import type { IF } from "./types";
+import type { IF } from "../types";
 
 /**
  * Creates an incremental "let-binding" that is incremental as long as
