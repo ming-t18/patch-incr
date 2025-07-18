@@ -241,7 +241,7 @@ export const getPatchesOnTodoState = (
 		case TodoActionType.ToggleAll: {
 			return state.items.map(({ done }, i) => ({
 				op: PatchOp.Replace,
-				path: ["items", i],
+				path: ["items", i, "done"],
 				value: !done,
 			}));
 		}
