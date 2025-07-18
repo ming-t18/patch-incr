@@ -1,12 +1,12 @@
 import type { ChildConstruction, ElementConstruction } from "../types";
-import { type Props, parseProps } from "./typedProps";
+import { type Props, parseProps, type TagName } from "./typedProps";
 
 export interface VanJSTag {
 	(props: Props, ...children: ChildConstruction[]): ElementConstruction;
 	(...children: ChildConstruction[]): ElementConstruction;
 }
 
-export type Tags = Record<string, VanJSTag>;
+export type Tags = Record<TagName, VanJSTag>;
 
 const isProps = (x: unknown): x is Props => {
 	if (!(typeof x === "object" && x !== null)) {
@@ -47,13 +47,13 @@ const TagsHandler: ProxyHandler<Tags> = {
 		}
 
 		if (Object.hasOwn(target, tagName)) {
-			return target[tagName];
+			return target[tagName as TagName];
 		}
 
 		const tagFactory = makeTagFactory(tagName);
-		target[tagName] = tagFactory;
+		target[tagName as TagName] = tagFactory;
 		return tagFactory;
 	},
 };
 
-export const tags = new Proxy({}, TagsHandler);
+export const tags: Tags = new Proxy({} as never, TagsHandler);

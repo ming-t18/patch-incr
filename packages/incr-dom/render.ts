@@ -128,7 +128,7 @@ export function* renderToStringGen(
 	return;
 }
 
-export const renderToString = (c: DOMConstruction) =>
+export const renderToString = (c: DOMConstruction): string =>
 	[...renderToStringGen(c)].join("");
 
 export const hydrate = (el: Element, domc: DOMConstruction) => {

@@ -4,7 +4,7 @@ import {
 	type Patches,
 	removePatch,
 	replacePatch,
-} from "incr//patch";
+} from "incr/patch";
 import { IndexEnd } from "incr/patchSchema/types";
 import { elem, elem0, elemEvents } from "../construct";
 import { patchDOM, renderDOM } from "../patch";
