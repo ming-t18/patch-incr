@@ -1,4 +1,4 @@
-import type { AccessTypes, TypesKey } from "../typeHelpers";
+import type { AccessTypes, TypesKey } from "../builder/typeHelpers";
 import type { AnyApply } from "../types";
 
 export const ReplaceOnly = Symbol.for("ReplaceOnly");

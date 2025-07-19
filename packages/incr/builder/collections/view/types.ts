@@ -1,4 +1,4 @@
-import type { Patches } from "../../patch";
+import type { Patches } from "../../../patch";
 
 export type ListSplit<N, T> = { left: N; middle: T; right: N } | null;
 

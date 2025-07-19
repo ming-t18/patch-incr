@@ -1,10 +1,13 @@
 {
-    "name": "incr",
-    "version": "0.0.0",
-    "workspaces": ["packages/incr", "packages/incr-dom", "packages/incr-dom-examples"],
-    "devDependencies": {
-        "incr": "workspace:*",
-        "incr-dom": "workspace:*"
-    }
-
+	"name": "incr",
+	"version": "0.0.0",
+	"workspaces": [
+		"packages/incr",
+		"packages/incr-dom",
+		"packages/incr-dom-examples"
+	],
+	"devDependencies": {
+		"incr": "workspace:*",
+		"incr-dom": "workspace:*"
+	}
 }

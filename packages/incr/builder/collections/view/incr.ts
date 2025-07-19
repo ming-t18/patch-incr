@@ -1,11 +1,5 @@
 import type { DRO, InferApplyType } from "../../../algebra";
 import { getReplaceOnly, isReplaceOnly } from "../../../algebra/replaceOnly";
-import * as ps from "../../../patchSchema";
-import type {
-	AnyPatchSchema,
-	IndexEnd,
-	PatchSchema,
-} from "../../../patchSchema/types";
 import {
 	CannotReduce,
 	type PatchAdd,
@@ -15,8 +9,14 @@ import {
 	type PatchRemove,
 	type PatchReplace,
 	type Targeted,
-} from "../../patch";
-import type { IF } from "../../types";
+} from "../../../patch";
+import * as ps from "../../../patchSchema";
+import type {
+	AnyPatchSchema,
+	IndexEnd,
+	PatchSchema,
+} from "../../../patchSchema/types";
+import type { IF } from "../../../types";
 import type { ListView } from "./types";
 
 export type PatchSchemaListViewEntry<N, Elem> =

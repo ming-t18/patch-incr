@@ -79,12 +79,19 @@ export interface Pipe<X extends WeakKey, A extends WeakKey> {
 		f5: IF<E, F>,
 	): MemoComposer<X, E>;
 	<R>(
+		// biome-ignore lint/suspicious/noExplicitAny: intentional
 		_f1: IF<any, any>,
+		// biome-ignore lint/suspicious/noExplicitAny: intentional
 		_f2: IF<any, any>,
+		// biome-ignore lint/suspicious/noExplicitAny: intentional
 		_f3: IF<any, any>,
+		// biome-ignore lint/suspicious/noExplicitAny: intentional
 		_f4: IF<any, any>,
+		// biome-ignore lint/suspicious/noExplicitAny: intentional
 		_f5: IF<any, any>,
+		// biome-ignore lint/suspicious/noExplicitAny: intentional
 		_f6: IF<any, any>,
+		// biome-ignore lint/suspicious/noExplicitAny: intentional
 		...args: IF<any, any>[]
 	): MemoComposer<X, R>;
 }
