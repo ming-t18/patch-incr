@@ -9,7 +9,7 @@ import {
 	PatchBuilder,
 	type Path,
 	replacePatch,
-} from "..//patch";
+} from "../patch";
 import type { IF } from "../types";
 import * as gp from "./helpers/genPatched.test";
 import { ensurePatchCoherent } from "./helpers/props.test";

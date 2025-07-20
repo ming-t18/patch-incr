@@ -47,21 +47,27 @@ export const splice = <T>(
 		const toAdd = add.slice(0, remove);
 		const rest = add.slice(remove);
 		return [
-			...toAdd.map((value, d) => ({
-				op: PatchOp.Replace,
-				path: [index + d] as [number],
-				value,
-			})),
+			...toAdd.map(
+				(value, d) =>
+					({
+						op: PatchOp.Replace,
+						path: [index + d] as [number],
+						value,
+					}) as ArrayOp<T>,
+			),
 			...splice(index + remove, 0, rest),
 		];
 	}
 
 	return [
-		...add.map((value, d) => ({
-			op: PatchOp.Replace,
-			path: [index + d] as [number],
-			value,
-		})),
+		...add.map(
+			(value, d) =>
+				({
+					op: PatchOp.Replace,
+					path: [index + d] as [number],
+					value,
+				}) as ArrayOp<T>,
+		),
 		...splice(index + add.length, remove - add.length, []),
 	];
 };

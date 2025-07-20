@@ -5,7 +5,7 @@ import { filter, flatMap } from "../builder/array";
 import { compose } from "../builder/compose";
 import { memoInterm, memoIntermR } from "../builder/memoPair";
 import { access, record } from "../builder/struct";
-import { type Patches, PatchOp } from "..//patch";
+import { type Patches, PatchOp } from "../patch";
 import * as ps from "../patchSchema";
 import type { InferIFOutput } from "../types";
 import * as gp from "./helpers/genPatched.test";

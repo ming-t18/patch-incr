@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { create } from "../builder/collections/linkedList/linkedList";
-import { applyPatches } from "..//patch";
+import { applyPatches } from "../patch";
 import * as gp from "./helpers/genPatched.test";
 
 describe("LinkedList", () => {

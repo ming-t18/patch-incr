@@ -7,7 +7,7 @@ import {
 	type Patches,
 	reduceReplaceRoot,
 	replacePatch,
-} from "..//patch";
+} from "../patch";
 import type { PatchSchema } from "./types";
 
 const EMPTY: readonly never[] = Object.freeze([]);

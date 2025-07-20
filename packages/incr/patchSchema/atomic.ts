@@ -1,5 +1,5 @@
 import { type DRO, makeReplaceOnly } from "../algebra/replaceOnly";
-import { type Patches, reduceReplaceRoot } from "..//patch";
+import { type Patches, reduceReplaceRoot } from "../patch";
 import { BasePatchSchema } from "./base";
 import type { PatchSchemaAtomic } from "./types";
 

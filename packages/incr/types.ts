@@ -1,15 +1,8 @@
-import type { ApplyCombine, ReplaceOnly } from "./algebra";
+import type { Apply, ApplyCombine } from "./algebra";
 import type { AccessTypes, TypesKey } from "./builder/typeHelpers";
-import type { Patches } from ".//patch";
+import type { Patches } from "./patch";
 
-export interface Apply<Value, Change> {
-	apply: (value: Value, change: Change) => Value;
-	readonly empty: Change;
-	fromReplace: (value: Value) => Change;
-	isEmpty: (change: Change) => boolean;
-	isReplace: (change: Change) => ReplaceOnly<Value> | null;
-	[TypesKey]?: { value: Value; change: Change };
-}
+export type { Apply } from "./algebra";
 
 export interface ApplyCombineLift<T, Patch> extends ApplyCombine<T, Patch> {
 	liftObjectKey: (key: string, patch: Patch) => Patch;

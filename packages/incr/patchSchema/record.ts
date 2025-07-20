@@ -1,6 +1,6 @@
 import type { DRO } from "../algebra";
 import { makeReplaceOnly } from "../algebra/replaceOnly";
-import { type PatchEntry, type Patches, reduceReplaceRoot } from "..//patch";
+import { type PatchEntry, type Patches, reduceReplaceRoot } from "../patch";
 import { BasePatchSchema } from "./base";
 import type {
 	AnyRecord,

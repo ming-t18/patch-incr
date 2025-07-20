@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { applyPatches, canApplyPatches } from "..//patch";
+import { applyPatches, canApplyPatches } from "../patch";
 import type { GenWithPatches } from "./helpers/genPatched.test";
 import * as gp from "./helpers/genPatched.test";
 

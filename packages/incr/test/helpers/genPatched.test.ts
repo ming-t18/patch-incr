@@ -10,7 +10,7 @@ import {
 	type PatchReplace,
 	type Path,
 	type Targeted,
-} from "../..//patch";
+} from "../../patch";
 import { IndexEnd } from "../../patchSchema/types";
 export type WithPatches<T> = { value: T; patches: Patches<T> };
 
@@ -531,8 +531,8 @@ export const oneof = <T>(
 	);
 
 	const arbReplaceRoot = arb0.map((value) => ({
-		op: PatchOp.Replace,
-		path: [],
+		op: PatchOp.Replace as const,
+		path: [] as [],
 		value,
 	}));
 	const arbPatchEntry0 = fc.oneof(

@@ -1,4 +1,4 @@
-import { applyPatches, PatchOp, PatchOpExtended } from "..//patch";
+import { applyPatches, PatchOp, PatchOpExtended } from "../patch";
 
 describe("applyPatches", () => {
 	describe("swap", () => {

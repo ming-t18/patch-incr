@@ -31,14 +31,14 @@ export type ReduceEntry<Input, Output> = (
 	input: Input,
 	entry: PatchEntry,
 	output: Output,
-) => Patches | typeof CannotReduce;
+) => Patches<Output> | typeof CannotReduce;
 
 export const reducePatches =
 	<Input, Output>(
 		evaluate: Evaluate<Input, Output>,
 		reduceEntry: ReduceEntry<Input, Output>,
 	): Forward<Input, Output> =>
-	(input: Input, patches: Patches, output: Output) => {
+	(input: Input, patches: Patches, output: Output): Patches<Output> => {
 		let patches1 = patches;
 		const res = reduceReplaceRoot(patches);
 		if ("replace" in res) {
@@ -51,7 +51,7 @@ export const reducePatches =
 			] as Patches<Input>;
 		}
 		return patches1.reduce(
-			({ input, patches, output }, entry: PatchEntry) => {
+			({ input, patches, output }, entry: PatchEntry<Input>) => {
 				const res = reduceEntry(input, entry, output);
 				const input1 = applyPatches(input, [entry]);
 				if (res === CannotReduce) {
@@ -64,7 +64,7 @@ export const reducePatches =
 								path: [],
 								value: output1,
 							},
-						],
+						] as Patches<Output>,
 						output: output1,
 					};
 				}
@@ -76,7 +76,7 @@ export const reducePatches =
 			},
 			{
 				input,
-				patches: [] as Patches,
+				patches: [] as Patches<Output>,
 				output,
 			},
 		).patches;
@@ -92,7 +92,11 @@ export const reducePatchesNoOutput =
 		evaluate: Evaluate<Input, Output>,
 		reduceEntry: ReduceEntryNoOutput<Input>,
 	): Forward<Input, Output, Patches<Input>, Patches<Output>, false> =>
-	(input: Input, patches: Patches, _ignoredOutput?: Output) => {
+	(
+		input: Input,
+		patches: Patches<Input>,
+		_ignoredOutput?: Output,
+	): Patches<Output> => {
 		let patches1 = patches;
 		const res = reduceReplaceRoot(patches);
 		if ("replace" in res) {
@@ -105,7 +109,7 @@ export const reducePatchesNoOutput =
 			] as Patches<Input>;
 		}
 		return patches1.reduce(
-			({ input, patches }, entry: PatchEntry) => {
+			({ input, patches }, entry: PatchEntry<Input>) => {
 				const res = reduceEntry(input, entry);
 				const input1 = applyPatches(input, [entry]);
 				if (res === CannotReduce) {
@@ -118,7 +122,7 @@ export const reducePatchesNoOutput =
 								path: [],
 								value: output1,
 							},
-						],
+						] as Patches<Output>,
 						output: output1,
 					};
 				}
@@ -129,7 +133,7 @@ export const reducePatchesNoOutput =
 			},
 			{
 				input,
-				patches: [] as Patches,
+				patches: [] as Patches<Output>,
 			},
 		).patches;
 	};

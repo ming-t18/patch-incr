@@ -19,7 +19,7 @@ import {
 } from "../builder/array/sort";
 import { IFGraphBuilder } from "../builder/graphBuilder";
 import { access, accessFor, record } from "../builder/struct";
-import { applyPatches, liftPatch, type Patches, PatchOp } from "..//patch";
+import { applyPatches, liftPatch, type Patches, PatchOp } from "../patch";
 import type { IF, InferIFOutput } from "../types";
 import * as gp from "./helpers/genPatched.test";
 import {
