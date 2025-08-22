@@ -4,8 +4,8 @@ import {
 	type Patches,
 	removePatch,
 	replacePatch,
-} from "incr/patch";
-import { IndexEnd } from "incr/patchSchema/types";
+} from "patch-incr/patch";
+import { IndexEnd } from "patch-incr/patchSchema/types";
 import { elem, elem0, elemEvents } from "../construct";
 import { patchDOM, renderDOM } from "../patch";
 import type { DOMConstruction, ElementConstruction } from "../types";

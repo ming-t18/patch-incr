@@ -49,7 +49,7 @@ export class EventManager<E extends Element = Element> {
 	}
 }
 
-const EventManagerKey = Symbol.for("incr/dom/EventManagerKey");
+const EventManagerKey = Symbol.for("patch-incr/dom/EventManagerKey");
 export const getEventManager = (node: Element): EventManager => {
 	if (
 		EventManagerKey in node &&

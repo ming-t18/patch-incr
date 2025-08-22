@@ -4,12 +4,12 @@ import {
 	type PatchEntry,
 	PatchOp,
 	type Path,
-} from "incr//patch";
-import * as gp from "incr/test/helpers/genPatched.test";
+} from "patch-incr/patch";
+import * as gp from "patch-incr/test/helpers/genPatched.test";
 import {
 	type GenWithPatches,
 	makeArbHelper,
-} from "incr/test/helpers/genPatched.test";
+} from "patch-incr/test/helpers/genPatched.test";
 import {
 	type Attrs,
 	type ChildConstruction,

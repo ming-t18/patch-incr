@@ -5,6 +5,6 @@ the changes are expressed as "patches".
 
 This is a workspace with 3 packages:
 
-- [`incr`](packages/incr/README.md): Library for patch-based incremental computation
-- [`incr-dom`](packages/incr-dom/README.md): Incremental DOM manipulation library
-- [`incr-dom-examples`](packages/incr-dom-examples/README.md): Example web apps using `incr-dom`
+- [`patch-incr`](packages/patch-incr/README.md): Library for patch-based incremental computation
+- [`patch-incr-dom`](packages/patch-incr-dom/README.md): Incremental DOM manipulation library
+- [`patch-incr-dom-examples`](packages/patch-incr-dom-examples/README.md): Example web apps using `patch-incr-dom`

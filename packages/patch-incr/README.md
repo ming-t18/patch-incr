@@ -1,4 +1,4 @@
-# `incr`: Patch-Based Incremental Computation
+# `patch-incr`: Patch-Based Incremental Computation
 
 To install dependencies:
 

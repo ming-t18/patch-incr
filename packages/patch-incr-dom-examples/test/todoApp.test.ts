@@ -1,11 +1,11 @@
 import { describe, it } from "bun:test";
 import fc from "fast-check";
-import { atomicFunc } from "incr/builder";
-import { composer } from "incr/builder/compose/memo";
-import * as gp from "incr/test/helpers/genPatched.test";
-import { propsForIF } from "incr/test/helpers/props.test";
-import { renderToString, type StateDispatch } from "incr-dom/render";
-import type { ElementConstruction } from "incr-dom/types";
+import { atomicFunc } from "patch-incr/builder";
+import { composer } from "patch-incr/builder/compose/memo";
+import * as gp from "patch-incr/test/helpers/genPatched.test";
+import { propsForIF } from "patch-incr/test/helpers/props.test";
+import { renderToString, type StateDispatch } from "patch-incr-dom/render";
+import type { ElementConstruction } from "patch-incr-dom/types";
 import { renderTodoApp } from "../server/app";
 import {
 	type TodoAction,

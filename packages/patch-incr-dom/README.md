@@ -155,7 +155,7 @@ There are helper functions for constructing DOM nodes:
 
 #### VanJS style
 ```tsx
-import { tags } from "incr-dom/construct/vanjs"
+import { tags } from "patch-incr-dom/construct/vanjs"
 
 const { div, h1, ol, li } = tags;
 const domc: DOMConstruction =
@@ -171,7 +171,7 @@ const domc: DOMConstruction =
 
 #### React + JSX Style (warning: untested)
 ```tsx
-import { createElement } from "incr-dom/construct/react"
+import { createElement } from "patch-incr-dom/construct/react"
 
 // Use tsconfig.json to set up JSX support
 const domc: DOMConstruction = (
@@ -239,7 +239,7 @@ interface TodoState {
 ## Using Immer
 ```typescript
 import { type Draft, enablePatches } from 'immer';
-import { fromReducerOnDraft, type ReducerIF } from "incr/reducer";
+import { fromReducerOnDraft, type ReducerIF } from "patch-incr/reducer";
 
 // Using Immer
 export const todoStateReducerOnDraft = (
@@ -280,7 +280,7 @@ const todoReducer: ReducerIF<TodoState, TodoAction> = fromReducerOnDraft(todoSta
 
 ## By returning JSON Patches
 ```typescript
-import { fromReducerReturningPatches, type ReducerIF } from "incr/reducer";
+import { fromReducerReturningPatches, type ReducerIF } from "patch-incr/reducer";
 const todoReducer: ReducerIF<TodoState, TodoAction> =
 	fromReducerReturningPatches(getPatchesOnTodoState);
 
@@ -341,9 +341,9 @@ The `DOMRoot` class orchestrates the rendering and updating the DOM based on the
 
 ```typescript
 
-import { fromReducerOnDraft, type ReducerIF } from "incr/reducer";
-import { DOMRoot } from "incr-dom/mount";
-import type { RenderIF } from "incr-dom/render";
+import { fromReducerOnDraft, type ReducerIF } from "patch-incr/reducer";
+import { DOMRoot } from "patch-incr-dom/mount";
+import type { RenderIF } from "patch-incr-dom/render";
 
 const initialState: State = ...;
 const reducer: ReducerIF<State, Action> = fromReducerOnDraft(...);

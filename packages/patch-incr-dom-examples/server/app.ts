@@ -1,21 +1,21 @@
-import { atomicFunc } from "incr/builder";
-import { filter, map } from "incr/builder/array";
-import { bind, bindMemo } from "incr/builder/bind";
-import { composeMemoL, composer } from "incr/builder/compose/memo";
+import { atomicFunc } from "patch-incr/builder";
+import { filter, map } from "patch-incr/builder/array";
+import { bind, bindMemo } from "patch-incr/builder/bind";
+import { composeMemoL, composer } from "patch-incr/builder/compose/memo";
 import {
 	access,
 	accessFor,
 	accessPathFor,
 	template,
 	tupleFor,
-} from "incr/builder/struct";
-import type { IF } from "incr/types";
-import { elem, elemEvents } from "incr-dom/construct";
-import type { Props } from "incr-dom/construct/typedProps";
-import { tags } from "incr-dom/construct/vanjs";
-import { type Dispatch, DOMRoot } from "incr-dom/mount";
-import type { RenderIF, StateDispatch } from "incr-dom/render";
-import type { ElementConstruction } from "incr-dom/types";
+} from "patch-incr/builder/struct";
+import type { IF } from "patch-incr/types";
+import { elem, elemEvents } from "patch-incr-dom/construct";
+import type { Props } from "patch-incr-dom/construct/typedProps";
+import { tags } from "patch-incr-dom/construct/vanjs";
+import { type Dispatch, DOMRoot } from "patch-incr-dom/mount";
+import type { RenderIF, StateDispatch } from "patch-incr-dom/render";
+import type { ElementConstruction } from "patch-incr-dom/types";
 import {
 	type TodoAction,
 	TodoActionType,

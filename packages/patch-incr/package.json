@@ -1,5 +1,5 @@
 {
-	"name": "incr",
+	"name": "patch-incr",
 	"module": "src/index.ts",
 	"main": "src/index.ts",
 	"type": "module",
