@@ -1,11 +1,13 @@
 import { type Server, serve } from "bun";
 import { renderToString } from "patch-incr-dom/render";
-import { initState, renderTodoApp } from "./../todo_app/app";
+import { initState, renderTodoApp } from "../todo_app/apptodo_app/app";
 import todoPage from "./../todo_app/index.html";
+import benchPage from "./../framework_benchmark/index.html";
 
 const server: Server = serve({
 	routes: {
 		"/todo": todoPage,
+		"/bench": benchPage,
 		"/ssr": async (_req) => {
 			const rewriter = new HTMLRewriter();
 			rewriter.on("#root", {

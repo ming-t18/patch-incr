@@ -137,7 +137,7 @@ export const distr = <Elem, Dist>(): IF<[Elem[], Dist], [Elem, Dist][]> => {
 };
 
 export const distAssign = <
-	Elem extends Record<string, unknown>,
+	Elem extends Record<any, any>,
 	Key extends string,
 	Dist,
 >(
