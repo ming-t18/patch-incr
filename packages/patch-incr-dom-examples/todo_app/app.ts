@@ -393,16 +393,22 @@ export const load = () => {
 	const domRoot = new DOMRoot(root, initState, todoReducer, renderTodoApp);
 	domRoot.initialize();
 
-  const { dispatch } = domRoot;
-  const locationHashChanged = () => {
-    if (location.hash === '#/active') {
-      dispatch({ type: TodoActionType.SetViewFilter, viewFilter: ViewFilter.Active })
-    } else if (location.hash === '#/completed') {
-      dispatch({ type: TodoActionType.SetViewFilter, viewFilter: ViewFilter.Completed })
-    }
-  };
-	window.addEventListener('hashchange', locationHashChanged)
-  locationHashChanged();
+	const { dispatch } = domRoot;
+	const locationHashChanged = () => {
+		if (location.hash === "#/active") {
+			dispatch({
+				type: TodoActionType.SetViewFilter,
+				viewFilter: ViewFilter.Active,
+			});
+		} else if (location.hash === "#/completed") {
+			dispatch({
+				type: TodoActionType.SetViewFilter,
+				viewFilter: ViewFilter.Completed,
+			});
+		}
+	};
+	window.addEventListener("hashchange", locationHashChanged);
+	locationHashChanged();
 };
 
 if (globalThis.document) {

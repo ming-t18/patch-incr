@@ -41,7 +41,7 @@ export interface HTMLElementMap {
 	optgroup: HTMLOptGroupElement;
 	option: HTMLOptionElement;
 	p: HTMLParagraphElement;
-	// @ts-ignore TS6385 Deprecated
+	// @ts-expect-error TS6385 Deprecated
 	param: HTMLParamElement;
 	pre: HTMLPreElement;
 	progress: HTMLProgressElement;

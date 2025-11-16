@@ -1,8 +1,8 @@
 import { type Server, serve } from "bun";
 import { renderToString } from "patch-incr-dom/render";
-import { initState, renderTodoApp } from "../todo_app/apptodo_app/app";
-import todoPage from "./../todo_app/index.html";
 import benchPage from "./../framework_benchmark/index.html";
+import { initState, renderTodoApp } from "../todo_app/app";
+import todoPage from "./../todo_app/index.html";
 
 const server: Server = serve({
 	routes: {
@@ -22,7 +22,9 @@ const server: Server = serve({
 					el.setAttribute("data-ssr", "true");
 				},
 			});
-			const resp = await Bun.fetch((server.url  || "http://localhost:3000") + "/todo");
+			const resp = await Bun.fetch(
+				`${server.url || "http://localhost:3000"}/todo`,
+			);
 			return rewriter.transform(resp);
 		},
 	},
