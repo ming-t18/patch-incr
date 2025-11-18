@@ -100,7 +100,7 @@ export const keys = <
 		(_input, entry, output) => {
 			const op = entry.op;
 			const key = entry.path[0] as Key;
-			const outIndex = output.findIndex((x) => x === key);
+			const outIndex = output.indexOf(key);
 			if (entry.path.length === 0) {
 				return CannotReduce;
 			}
