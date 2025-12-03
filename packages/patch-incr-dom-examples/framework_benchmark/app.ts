@@ -24,8 +24,9 @@ import {
 	type Item,
 	initState,
 } from "./app_state";
+import { accessWithFor } from "patch-incr/builder/struct/access";
 
-const _SD = accessFor<StateDispatch<AppState, AppAction>>();
+const _SD = accessWithFor<StateDispatch<AppState, AppAction>>();
 
 const { div, h1, span, button, table, tr, td, a: _a } = tags;
 
@@ -37,8 +38,8 @@ interface ItemWithIsSelected extends Item {
 	isSelected: boolean;
 }
 
-const _S = accessFor<AppState>();
-const _I = accessFor<ItemWithSelected>();
+const _S = accessWithFor<AppState>();
+const _I = accessWithFor<ItemWithSelected>();
 
 // regular version
 const getItemSelected_NonIncr = ({ data, selected }: AppState): ItemWithIsSelected[] =>
@@ -51,15 +52,15 @@ const getItemSelected_NonIncr = ({ data, selected }: AppState): ItemWithIsSelect
 
 // incremental version
 const getItemSelected: IF<AppState, ItemWithIsSelected[]> = composer(
-  tupleFor<AppState>()(_S("data"), _S("selected"))
+  tupleFor<AppState>()(_S(x => x.data), _S(x => x.selected))
 )
 	.pipe(distAssign("selected"))
 	.pipe(
 		map(
 			record({
-				id: _I("id"),
-				label: _I("label"),
-				isSelected: composer(tupleFor<ItemWithSelected>()(_I("selected"), _I("id")))
+				id: _I(x => x.id),
+				label: _I(x => x.label),
+				isSelected: composer(tupleFor<ItemWithSelected>()(_I(x => x.selected), _I(x => x.id)))
   				.pipe(atomicFunc(([selected, id]) => selected === id))
   				.build(),
 			}),
@@ -67,10 +68,10 @@ const getItemSelected: IF<AppState, ItemWithIsSelected[]> = composer(
 	)
 	.build();
 
-const _IS = accessFor<ItemWithIsSelected>();
+const _IS = accessWithFor<ItemWithIsSelected>();
 
-const _State = _SD("state");
-const _Dispatch = _SD("dispatch");
+const _State = _SD(x => x.state);
+const _Dispatch = _SD(x => x.dispatch);
 
 const getRenderApp = (
 	dispatch: Dispatch<AppAction>,
@@ -132,12 +133,12 @@ const getRenderApp = (
 
 	const renderRow: IF<ItemWithIsSelected, ElementConstruction> = template(
 		{
-			id: _IS("id"),
+			id: _IS(x => x.id),
 			selectedClass:
-  			composer(_IS("isSelected"))
+  			composer(_IS(x => x.isSelected))
      			.pipe(atomicFunc((selected) => (selected ? "danger" : "")))
      			.build(),
-			label: _IS("label"),
+			label: _IS(x => x.label),
 		},
 		({ id, label, selectedClass }) =>
 			tr(

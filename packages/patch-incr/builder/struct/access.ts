@@ -17,6 +17,7 @@ import type {
 import type { IF, NoForwardOutput } from "../../types";
 import { composeMemoL } from "../compose/memo";
 import type { AccessPath } from "../typeHelpers";
+import { getTrackedPath, trackedProxy } from "./pathTracker";
 
 export const accessRecord = <
 	C extends RecordConstruction,
@@ -159,3 +160,12 @@ export const accessPathFor = <Input>(): (<
 	path: Path,
 ) => IF<Input, Output, Patches<Input>, Patches<Output>, NoForwardOutput>) =>
 	accessPath as never;
+
+export const accessWith = <Output, Input extends WeakKey>(pathBuilder: (input: Input) => Output): IF<Input, Output> => {
+  const path: Path = getTrackedPath(pathBuilder(trackedProxy())) as never[];
+  return accessPath<Output, Input>(path)
+}
+
+export const accessWithFor = <Input>(): (
+  <Output>(pathBuilder: (input: Input) => Output) =>  IF<Input, Output>
+) => accessWith as never;
