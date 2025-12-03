@@ -25,15 +25,9 @@ import {
 	initState,
 } from "./app_state";
 
-const accessS = accessFor<AppState>();
+const _SD = accessFor<StateDispatch<AppState, AppAction>>();
 
-const accessSD = accessFor<StateDispatch<AppState, AppAction>>();
-// const accessPathSD = accessPathFor<StateDispatch<AppState, AppAction>>();
-
-const accessState = accessSD("state");
-const accessDispatch = accessSD("dispatch");
-
-const { div, h1, span, button, table, tbody, tr, td, a: _a } = tags;
+const { div, h1, span, button, table, tr, td, a: _a } = tags;
 
 interface ItemWithSelected extends Item {
 	selected: number;
@@ -43,29 +37,40 @@ interface ItemWithIsSelected extends Item {
 	isSelected: boolean;
 }
 
-const accessI = accessFor<ItemWithSelected>();
-const accessIS = accessFor<ItemWithIsSelected>();
+const _S = accessFor<AppState>();
+const _I = accessFor<ItemWithSelected>();
 
+// regular version
 const getItemSelected_NonIncr = ({ data, selected }: AppState): ItemWithIsSelected[] =>
   data.map(({ id, label }) => ({ id, label, isSelected: selected === id }));
 
+// jq version:
+//   .selected as $selected
+//   | .data[]
+//   | { id, label, isSelected: $selected == .id }
+
+// incremental version
 const getItemSelected: IF<AppState, ItemWithIsSelected[]> = composer(
-  tupleFor<AppState>()(accessS("data"), accessS("selected"))
+  tupleFor<AppState>()(_S("data"), _S("selected"))
 )
-	.pipe(distAssign<Item, "selected", number>("selected"))
+	.pipe(distAssign("selected"))
 	.pipe(
 		map(
 			record({
-				id: accessI("id"),
-				label: accessI("label"),
-				isSelected: composeMemoL(
-					tupleFor<ItemWithSelected>()(accessI("selected"), accessI("id")),
-					atomicFunc(([s, i]) => s === i),
-				),
+				id: _I("id"),
+				label: _I("label"),
+				isSelected: composer(tupleFor<ItemWithSelected>()(_I("selected"), _I("id")))
+  				.pipe(atomicFunc(([selected, id]) => selected === id))
+  				.build(),
 			}),
 		),
 	)
 	.build();
+
+const _IS = accessFor<ItemWithIsSelected>();
+
+const _State = _SD("state");
+const _Dispatch = _SD("dispatch");
 
 const getRenderApp = (
 	dispatch: Dispatch<AppAction>,
@@ -127,12 +132,12 @@ const getRenderApp = (
 
 	const renderRow: IF<ItemWithIsSelected, ElementConstruction> = template(
 		{
-			id: accessIS("id"),
-			selectedClass: composeMemoL(
-				accessIS("isSelected"),
-				atomicFunc((selected) => (selected ? "danger" : "")),
-			),
-			label: accessIS("label"),
+			id: _IS("id"),
+			selectedClass:
+  			composer(_IS("isSelected"))
+     			.pipe(atomicFunc((selected) => (selected ? "danger" : "")))
+     			.build(),
+			label: _IS("label"),
 		},
 		({ id, label, selectedClass }) =>
 			tr(
@@ -156,10 +161,9 @@ const getRenderApp = (
 			),
 	);
 
-	const renderRows: IF<AppState, ElementConstruction[]> = composeMemoL(
-		getItemSelected,
-		map(renderRow),
-	);
+	const renderRows: IF<AppState, ElementConstruction[]> = composer(getItemSelected)
+  	.pipe(map(renderRow))
+    .build();
 
 	const renderMain: IF<AppState, ElementConstruction> = template(
 		{
@@ -184,11 +188,11 @@ const getRenderApp = (
 			),
 	);
 
-	return composeMemo(accessState, renderMain);
+	return composeMemo(_State, renderMain);
 };
 
 export const renderApp: RenderIF<AppState, AppAction> = bindMemo(
-	accessDispatch,
+	_Dispatch,
 	getRenderApp,
 );
 

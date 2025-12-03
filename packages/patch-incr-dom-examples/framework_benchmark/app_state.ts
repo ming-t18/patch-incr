@@ -122,6 +122,7 @@ const buildData = (count: number): Item[] => {
 	return data;
 };
 
+// The reducer
 export const getPatchesOnAppState = (
 	state: AppState,
 	action: AppAction,
