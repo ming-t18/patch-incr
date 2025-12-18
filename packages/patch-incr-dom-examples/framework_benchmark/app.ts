@@ -3,14 +3,8 @@ import { map } from "patch-incr/builder/array";
 import { distAssign } from "patch-incr/builder/array/dist";
 import { bindMemo } from "patch-incr/builder/bind";
 import { composeMemo, composer } from "patch-incr/builder/compose";
-import { composeMemoL } from "patch-incr/builder/compose/memo";
-import {
-	accessFor,
-	accessPathFor,
-	record,
-	template,
-	tupleFor,
-} from "patch-incr/builder/struct";
+import { record, template, tupleFor } from "patch-incr/builder/struct";
+import { accessWithFor } from "patch-incr/builder/struct/access";
 import type { IF } from "patch-incr/types";
 import { tags } from "patch-incr-dom/construct/vanjs";
 import { type Dispatch, DOMRoot } from "patch-incr-dom/mount";
@@ -24,7 +18,6 @@ import {
 	type Item,
 	initState,
 } from "./app_state";
-import { accessWithFor } from "patch-incr/builder/struct/access";
 
 const _SD = accessWithFor<StateDispatch<AppState, AppAction>>();
 
@@ -42,8 +35,11 @@ const _S = accessWithFor<AppState>();
 const _I = accessWithFor<ItemWithSelected>();
 
 // regular version
-const getItemSelected_NonIncr = ({ data, selected }: AppState): ItemWithIsSelected[] =>
-  data.map(({ id, label }) => ({ id, label, isSelected: selected === id }));
+const _getItemSelected_NonIncr = ({
+	data,
+	selected,
+}: AppState): ItemWithIsSelected[] =>
+	data.map(({ id, label }) => ({ id, label, isSelected: selected === id }));
 
 // jq version:
 //   .selected as $selected
@@ -52,17 +48,25 @@ const getItemSelected_NonIncr = ({ data, selected }: AppState): ItemWithIsSelect
 
 // incremental version
 const getItemSelected: IF<AppState, ItemWithIsSelected[]> = composer(
-  tupleFor<AppState>()(_S(x => x.data), _S(x => x.selected))
+	tupleFor<AppState>()(
+		_S((x) => x.data),
+		_S((x) => x.selected),
+	),
 )
 	.pipe(distAssign("selected"))
 	.pipe(
 		map(
 			record({
-				id: _I(x => x.id),
-				label: _I(x => x.label),
-				isSelected: composer(tupleFor<ItemWithSelected>()(_I(x => x.selected), _I(x => x.id)))
-  				.pipe(atomicFunc(([selected, id]) => selected === id))
-  				.build(),
+				id: _I((x) => x.id),
+				label: _I((x) => x.label),
+				isSelected: composer(
+					tupleFor<ItemWithSelected>()(
+						_I((x) => x.selected),
+						_I((x) => x.id),
+					),
+				)
+					.pipe(atomicFunc(([selected, id]) => selected === id))
+					.build(),
 			}),
 		),
 	)
@@ -70,8 +74,8 @@ const getItemSelected: IF<AppState, ItemWithIsSelected[]> = composer(
 
 const _IS = accessWithFor<ItemWithIsSelected>();
 
-const _State = _SD(x => x.state);
-const _Dispatch = _SD(x => x.dispatch);
+const _State = _SD((x) => x.state);
+const _Dispatch = _SD((x) => x.dispatch);
 
 const getRenderApp = (
 	dispatch: Dispatch<AppAction>,
@@ -133,12 +137,11 @@ const getRenderApp = (
 
 	const renderRow: IF<ItemWithIsSelected, ElementConstruction> = template(
 		{
-			id: _IS(x => x.id),
-			selectedClass:
-  			composer(_IS(x => x.isSelected))
-     			.pipe(atomicFunc((selected) => (selected ? "danger" : "")))
-     			.build(),
-			label: _IS(x => x.label),
+			id: _IS((x) => x.id),
+			selectedClass: composer(_IS((x) => x.isSelected))
+				.pipe(atomicFunc((selected) => (selected ? "danger" : "")))
+				.build(),
+			label: _IS((x) => x.label),
 		},
 		({ id, label, selectedClass }) =>
 			tr(
@@ -162,9 +165,11 @@ const getRenderApp = (
 			),
 	);
 
-	const renderRows: IF<AppState, ElementConstruction[]> = composer(getItemSelected)
-  	.pipe(map(renderRow))
-    .build();
+	const renderRows: IF<AppState, ElementConstruction[]> = composer(
+		getItemSelected,
+	)
+		.pipe(map(renderRow))
+		.build();
 
 	const renderMain: IF<AppState, ElementConstruction> = template(
 		{

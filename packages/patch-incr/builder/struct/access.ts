@@ -161,11 +161,13 @@ export const accessPathFor = <Input>(): (<
 ) => IF<Input, Output, Patches<Input>, Patches<Output>, NoForwardOutput>) =>
 	accessPath as never;
 
-export const accessWith = <Output, Input extends WeakKey>(pathBuilder: (input: Input) => Output): IF<Input, Output> => {
-  const path: Path = getTrackedPath(pathBuilder(trackedProxy())) as never[];
-  return accessPath<Output, Input>(path)
-}
+export const accessWith = <Output, Input extends WeakKey>(
+	pathBuilder: (input: Input) => Output,
+): IF<Input, Output> => {
+	const path: Path = getTrackedPath(pathBuilder(trackedProxy())) as never[];
+	return accessPath<Output, Input>(path);
+};
 
-export const accessWithFor = <Input>(): (
-  <Output>(pathBuilder: (input: Input) => Output) =>  IF<Input, Output>
-) => accessWith as never;
+export const accessWithFor = <Input>(): (<Output>(
+	pathBuilder: (input: Input) => Output,
+) => IF<Input, Output>) => accessWith as never;

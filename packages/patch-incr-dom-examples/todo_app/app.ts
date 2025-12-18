@@ -2,13 +2,8 @@ import { atomicFunc } from "patch-incr/builder";
 import { filter, map } from "patch-incr/builder/array";
 import { bind, bindMemo } from "patch-incr/builder/bind";
 import { composeMemoL, composer } from "patch-incr/builder/compose/memo";
-import {
-	access,
-	accessFor,
-	accessPathFor,
-	template,
-	tupleFor,
-} from "patch-incr/builder/struct";
+import { access, template, tupleFor } from "patch-incr/builder/struct";
+import { accessWithFor } from "patch-incr/builder/struct/access";
 import type { IF } from "patch-incr/types";
 import { elem, elemEvents } from "patch-incr-dom/construct";
 import type { Props } from "patch-incr-dom/construct/typedProps";
@@ -25,24 +20,17 @@ import {
 	ViewFilter,
 } from "./todo_state";
 
-const accessPathSD = accessPathFor<StateDispatch<TodoState, TodoAction>>();
-const accessSD = accessFor<StateDispatch<TodoState, TodoAction>>();
-const accessTodoItem = accessFor<TodoItem>();
+const _SD = accessWithFor<StateDispatch<TodoState, TodoAction>>();
+const _I = accessWithFor<TodoItem>();
 
-const accessViewFilter = accessPathSD<["state", "viewFilter"], ViewFilter>([
-	"state",
-	"viewFilter",
-]);
-const accessItems = accessPathSD<["state", "items"], TodoItem[]>([
-	"state",
-	"items",
-]);
-const accessItemId = accessTodoItem("id");
-const accessDispatch = accessSD("dispatch");
+const accessViewFilter = _SD((s) => s.state.viewFilter);
+const accessItems = _SD((s) => s.state.items);
+const accessDispatch = _SD((s) => s.dispatch);
 
-const accessItemText = accessTodoItem("text");
-const accessItemDone = accessTodoItem("done");
-const accessItemEditing = accessTodoItem("editing");
+const accessItemId = _I((i) => i.id);
+const accessItemText = _I((i) => i.text);
+const accessItemDone = _I((i) => i.done);
+const accessItemEditing = _I((i) => i.editing);
 
 const getFilteredItems: IF<
 	StateDispatch<TodoState, TodoAction>,
@@ -76,9 +64,7 @@ const {
 	a: _a,
 } = tags;
 
-const getTodoCountText = composer(
-	accessPathSD<["state", "items"], TodoState["items"]>(["state", "items"]),
-)
+const getTodoCountText = composer(accessItems)
 	.pipe(
 		atomicFunc((x: TodoState["items"]) => {
 			const count =
