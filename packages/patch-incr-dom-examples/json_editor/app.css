@@ -1,0 +1,21 @@
+@import "jer.css";
+
+body {
+    font-family: monospace;
+}
+
+.jer-value-number {
+    color: cadetblue;
+}
+
+.jer-value-boolean {
+    color: darkgreen;
+}
+
+.jer-value-string {
+    color: saddlebrown;
+}
+
+.jer-brackets {
+    font-weight: bold;
+}

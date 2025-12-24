@@ -3,11 +3,13 @@ import { renderToString } from "patch-incr-dom/render";
 import benchPage from "./../framework_benchmark/index.html";
 import { initState, renderTodoApp } from "../todo_app/app";
 import todoPage from "./../todo_app/index.html";
+import jsonEditorPage from "./../json_editor/index.html";
 
 const server: Server = serve({
 	routes: {
 		"/todo": todoPage,
 		"/bench": benchPage,
+		"/json-editor": jsonEditorPage,
 		"/ssr": async (_req) => {
 			const rewriter = new HTMLRewriter();
 			rewriter.on("#root", {
