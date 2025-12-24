@@ -6,6 +6,7 @@ import {
 	replacePatch,
 } from "../../patch";
 import type { AnyIF, IF, InferIFInput, InferIFOutput } from "../../types";
+import { identity } from "..";
 
 export const assign = <Input, Output>(
 	getInitial: () => Output,
@@ -184,3 +185,6 @@ export const template = <
 		forward,
 	};
 };
+
+export const template0 = <X, Y>(func: (input: X) => Y) =>
+	template({ value: identity<X>() }, ({ value }) => func(value));

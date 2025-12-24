@@ -104,3 +104,5 @@ export const patchesBuilder: StructuralChangeBuilder<any, Patches> = {
 		p: Patches<T>,
 	): Patches<Record<K, T>> => liftPatch(key, p),
 };
+
+export { recurse } from "./recurse";

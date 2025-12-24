@@ -1,5 +1,5 @@
 import { isTemplatePlaceholder } from "patch-incr/builder/struct/assign";
-import type { Attrs, AttrValue, Events } from "../types";
+import type { Attrs, AttrValue, ChildConstruction, ElementConstruction, Events } from "../types";
 
 export interface HTMLElementMap {
 	a: HTMLAnchorElement;
@@ -90,11 +90,14 @@ export type EventProps = {
 // biome-ignore lint/complexity/noBannedTypes: intentional type criteria (Function)
 export type Props = Record<string, AttrValue | Function>;
 
-export const parseProps = (props: Props): { attrs: Attrs; events: Events } => {
-	const attrs: Attrs = {};
+export const parseProps = (props: Props): { attrs: Attrs; events: Events, children: ChildConstruction[] | undefined } => {
+  let children: ElementConstruction[] | undefined = undefined;
+  const attrs: Attrs = {};
 	const events: Events = {};
 	for (const [key, value] of Object.entries(props)) {
-		if (key.startsWith("on")) {
+  	if (key === 'children') {
+      children = (Array.isArray(value) ? value : [value]) as never;
+    } else if (key.startsWith("on")) {
 			if (!isTemplatePlaceholder(value) && typeof value !== "function") {
 				throw new TypeError(`parseProps: event prop ${key} must be a function`);
 			}
@@ -109,5 +112,5 @@ export const parseProps = (props: Props): { attrs: Attrs; events: Events } => {
 			attrs[key] = value as never;
 		}
 	}
-	return { attrs, events };
+	return { children, attrs, events };
 };
