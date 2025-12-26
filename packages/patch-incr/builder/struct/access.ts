@@ -1,11 +1,11 @@
 import { getReplaceOnly, isReplaceOnly } from "../../algebra/replaceOnly";
 import {
 	applyPatches,
-	type PatchEntry,
 	type Patches,
 	type Path,
 	replacePatch,
 } from "../../patch";
+import { projectPatch } from "../../patch/helpers";
 import type {
 	InferTypeFromRecordConstruction,
 	InferTypeFromTupleConstruction,
@@ -104,24 +104,18 @@ export const access = <
 		change: Patches<Input>,
 		_ignored?: Output,
 	): Patches<Output> => {
-		const res = [] as Patches<Output>;
+		const res: Patches<Output> | null = projectPatch(key, change);
+		if (res !== null) {
+			return res;
+		}
 		for (const entry of change) {
 			const { path } = entry;
 			if (path.length === 0) {
 				const updated = applyPatches(input, change);
 				return replacePatch(evaluateAccess(updated));
 			}
-
-			const [head, ...rest] = path;
-			if (head === key) {
-				res.push({
-					...entry,
-					path: rest,
-				} as PatchEntry<Output>);
-			}
 		}
-
-		return res;
+		return [];
 	};
 	return {
 		evaluate: evaluateAccess,

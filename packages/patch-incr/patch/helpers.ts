@@ -52,6 +52,7 @@ export const tryDeconsPath = (path: Path): [string | number, Path] | null => {
 	return [path[0], path.slice(1)];
 };
 
+/** Given a list of patches for `x`, returns the patches for `{ [key]: x }` */
 export const liftPatch = <Out>(
 	prefix: string | number,
 	patches: Patches,
@@ -81,12 +82,60 @@ export const unliftPatch = <Out>(
 
 export const combinePatches = (a: Patches, b: Patches): Patches => [...a, ...b];
 
+/** Given a `key` and a list of `patches`,
+ * returns a new list of patches that only act on `target[key]`
+ * derived from the original `patches`,
+ * or `null` of the patches affect the root.
+ *
+ * Opposite of `liftPatch`.
+ */
+export const projectPatch = <Target>(
+	key: string | number,
+	patches: Patches,
+): Patches<Target> | null => {
+	const res = [] as Patches<Target>;
+	for (const entry of patches) {
+		const { path, op } = entry;
+		if (path.length === 0) {
+			return null;
+		}
+		const [head, ...rest] = path;
+		if (head === key) {
+			res.push({
+				...entry,
+				path: rest,
+			} as PatchEntry<Target>);
+		}
+	}
+
+	return res;
+};
+
+/**
+ * The builder pattern for constructing `Patches<Target>`.
+ * The methods `add`, `remove`, `replace` appends a `PatchEntry` and
+ * mutates the instance itself.
+ * The `build()` method returns the built patches.
+ *
+ * @example
+ * ```ts
+ * PatchBuilder.empty<T>()
+ *   .remove(['array', 0])
+ *   .add(['array', '-'], 'test')
+ *   .replace('name', 'updated')
+ *   .build()
+ * ```
+ */
 // biome-ignore lint/suspicious/noExplicitAny: intentional
 export class PatchBuilder<Target = any> {
 	private readonly patches: Patches;
 
-	static empty() {
-		return new PatchBuilder([]);
+	/**
+	 * Creates a new instance of `PatchBuilder`.
+	 */
+	// biome-ignore lint/suspicious/noExplicitAny: intentional
+	static empty<T = any>() {
+		return new PatchBuilder<T>([]);
 	}
 
 	static from(patches: Patches) {
