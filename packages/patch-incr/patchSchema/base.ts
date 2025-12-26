@@ -71,5 +71,5 @@ export class BasePatchSchema<T> implements PatchSchema<T> {
 	declare readonly [TypesKey]: { value: T; change: Patches<T> };
 }
 
-// @ts-expect-error TS6169
+// @ts-ignore TS6169
 type _DontEliminateWorkaround = TypesKey;

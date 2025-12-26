@@ -32,7 +32,7 @@ import {
 describe("genPatches helpers", () => {
 	const prop_noArrayHoles = <T>({ value, patches }: gp.WithPatches<T[]>) => {
 		const value1 = applyPatches(value, patches);
-		if (!(value1.indexOf(undefined) === -1)) {
+		if (!(value1.indexOf(undefined as never) === -1)) {
 			console.error({ value, patches, value1 });
 			return false;
 		}
