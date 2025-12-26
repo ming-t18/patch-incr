@@ -1,4 +1,5 @@
 import {
+    PatchBuilder,
 	type Patches,
 	PatchOp,
 	removePatch,
@@ -128,45 +129,36 @@ export const getPatchesOnAppState = (
 	action: AppAction,
 ): Patches<AppState> => {
 	const { data } = state;
+	const patches = PatchBuilder.empty<AppState>();
 	switch (action.type) {
 		case ActionType.RUN:
 			return replacePatch({ data: buildData(1000), selected: 0 });
 		case ActionType.RUN_LOTS:
 			return replacePatch({ data: buildData(10000), selected: 0 });
 		case ActionType.ADD: {
-			const patches: Patches<AppState> = [];
 			for (const value of buildData(1000)) {
-				patches.push({
-					op: PatchOp.Add,
-					path: ["data", "-"] as const,
-					value,
-				});
+				patches.add(["data", "-"], value);
 			}
 
-			return patches;
+			return patches.build();
 		}
 		case ActionType.UPDATE: {
-			const patches: Patches<AppState> = [];
 			for (let i = 0; i < data.length; i += 10) {
-				patches.push({
-					op: PatchOp.Replace,
-					path: ["data", i, "label"] as const,
-					value: `${data[i].label} !!!`,
-				});
+				patches.replace(["data", i, "label"], `${data[i]!.label} !!!`);
 			}
-			return patches;
+			return patches.build();
 		}
 		case ActionType.CLEAR:
 			return replacePatch({ data: [], selected: 0 } as AppState);
 		case ActionType.SWAP_ROWS: {
 			if (data.length <= 998) {
-				return [];
+				return patches.build();
 			}
 
-			return [
-				...replacePatch(data[998], ["data", 1]),
-				...replacePatch(data[1], ["data", 998]),
-			] as Patches<AppState>;
+      return patches
+        .replace(["data", 1], data[998])
+        .replace(["data", 998], data[1])
+  			.build();
 		}
 		case ActionType.REMOVE: {
 			const idx = data.findIndex((d) => d.id === action.id);
@@ -177,7 +169,7 @@ export const getPatchesOnAppState = (
 		}
 	}
 
-	return [];
+	return patches.build();
 };
 
 export const initState: AppState = { data: [], selected: 0 };
