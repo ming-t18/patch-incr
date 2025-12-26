@@ -47,29 +47,28 @@ const _getItemSelected_NonIncr = ({
 //   | { id, label, isSelected: $selected == .id }
 
 // incremental version
-const getItemSelected: IF<AppState, ItemWithIsSelected[]> = composer(
-	tupleFor<AppState>()(
-		_S((x) => x.data),
-		_S((x) => x.selected),
-	),
-)
-	.pipe(distAssign("selected"))
-	.pipe(
-		map(
-			record({
-				id: _I((x) => x.id),
-				label: _I((x) => x.label),
-				isSelected: composer(
-					tupleFor<ItemWithSelected>()(
-						_I((x) => x.selected),
-						_I((x) => x.id),
-					),
-				)
-					.pipe(atomicFunc(([selected, id]) => selected === id))
-					.build(),
-			}),
-		),
-	)
+const getItemSelected: IF<AppState, ItemWithIsSelected[]> = composer<AppState>()
+  .pipe(
+    tupleFor<AppState>()(
+      _S((x) => x.data),
+      _S((x) => x.selected),
+    ),
+    distAssign("selected"),
+    map(
+      record({
+        id: _I((x) => x.id),
+        label: _I((x) => x.label),
+        isSelected: composer(
+          tupleFor<ItemWithSelected>()(
+            _I((x) => x.selected),
+            _I((x) => x.id),
+          ),
+        )
+        .pipe(atomicFunc(([selected, id]) => selected === id))
+        .build(),
+      }),
+    )
+  )
 	.build();
 
 const _IS = accessWithFor<ItemWithIsSelected>();

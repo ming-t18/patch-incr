@@ -3,7 +3,7 @@ import { filter, map } from "patch-incr/builder/array";
 import { bind, bindMemo } from "patch-incr/builder/bind";
 import { composeMemoL, composer } from "patch-incr/builder/compose/memo";
 import { access, template, tupleFor } from "patch-incr/builder/struct";
-import { accessWithFor } from "patch-incr/builder/struct/access";
+import { accessFor, accessWithFor } from "patch-incr/builder/struct/access";
 import type { IF } from "patch-incr/types";
 import { elem, elemEvents } from "patch-incr-dom/construct";
 import type { Props } from "patch-incr-dom/construct/typedProps";
@@ -45,7 +45,10 @@ const getFilteredItems: IF<
 			? ({ done }: TodoItem) => !done
 			: ({ done }: TodoItem) => done;
 	return composer(accessItems)
-		.pipe(filter(pred), access<TodoItem[], 0, [TodoItem[], number[]]>(0))
+		.pipe(
+  		filter(pred),
+  		accessFor<[TodoItem[], number[]]>()(0),
+		)
 		.build();
 });
 
@@ -136,15 +139,14 @@ const getRenderTodoApp = (dispatch: Dispatch<TodoAction>) => {
 	>(
 		template(
 			{
-				liClass: composer(getPair)
-					.pipe(
+				liClass: composeMemoL(
+  					getPair,
 						atomicFunc(([editing, completed]: [boolean, boolean]) =>
 							!editing && !completed
 								? ""
 								: `${editing ? "editing" : ""} ${completed ? "completed" : ""}`,
 						),
-					)
-					.build(),
+					),
 				checked: composeMemoL(
 					accessItemDone,
 					atomicFunc((x: boolean) => x || undefined),
