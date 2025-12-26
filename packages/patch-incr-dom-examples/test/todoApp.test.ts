@@ -6,13 +6,13 @@ import * as gp from "patch-incr/test/helpers/genPatched.test";
 import { propsForIF } from "patch-incr/test/helpers/props.test";
 import { renderToString, type StateDispatch } from "patch-incr-dom/render";
 import type { ElementConstruction } from "patch-incr-dom/types";
-import { renderTodoApp } from "../server/app";
+import { renderTodoApp } from "../todo_app/app";
 import {
 	type TodoAction,
 	TodoActionType,
 	type TodoState,
 	ViewFilter,
-} from "../server/todo_state";
+} from "../todo_app/todo_state";
 
 const _arbAction = (state: TodoState): fc.Arbitrary<TodoAction> => {
 	const arbClear = fc.constant({ type: TodoActionType.Clear as const });

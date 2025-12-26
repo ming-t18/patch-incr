@@ -5,7 +5,7 @@ import {
 	type TodoItem,
 	type TodoState,
 	ViewFilter,
-} from "../server/todo_state";
+} from "../todo_app/todo_state";
 
 const arbText = fc.string({ maxLength: 80 });
 

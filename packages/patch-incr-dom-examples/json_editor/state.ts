@@ -1,16 +1,19 @@
-import { enablePatches, type Draft } from "immer";
-import { type ReducerIF, fromReducerOnDraft } from "patch-incr/reducer";
+import { type Draft, enablePatches } from "immer";
+import { fromReducerOnDraft, type ReducerIF } from "patch-incr/reducer";
+
 enablePatches();
 
 export interface EditorState {
-  data: unknown;
-  isExpandedMap: Map<string, string>;
+	data: unknown;
+	isExpandedMap: Map<string, string>;
 }
 
-export interface EditorAction {}
+export type EditorAction = {};
 
-export const editorStateReducerOnDraft = (draft: Draft<EditorState>, _action: EditorAction): void => {
+export const editorStateReducerOnDraft = (
+	_draft: Draft<EditorState>,
+	_action: EditorAction,
+): void => {};
 
-};
-
-export const editorReducer: ReducerIF<EditorState, EditorAction> = fromReducerOnDraft(editorStateReducerOnDraft);
+export const editorReducer: ReducerIF<EditorState, EditorAction> =
+	fromReducerOnDraft(editorStateReducerOnDraft);

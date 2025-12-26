@@ -1,5 +1,5 @@
 import type { Draft } from "immer";
-import { type Patches, PatchOp, replacePatch } from "patch-incr/patch";
+import { PatchBuilder, type Patches, replacePatch } from "patch-incr/patch";
 import { IndexEnd } from "patch-incr/patchSchema/types";
 import {
 	fromReducerReturningPatches,
@@ -119,7 +119,7 @@ export const todoStateReducerOnDraft = (
 		case TodoActionType.ClearCompleted: {
 			draft.editingId = null;
 			for (let i = draft.items.length - 1; i >= 0; i--) {
-				if (draft.items[i].done) {
+				if (draft.items[i]?.done) {
 					draft.items.splice(i, 1);
 				}
 			}
@@ -129,7 +129,7 @@ export const todoStateReducerOnDraft = (
 		case TodoActionType.ToggleAll: {
 			const target = !draft.items.every((i) => i.done);
 			for (let i = 0; i < draft.items.length; i++) {
-				draft.items[i].done = target;
+				draft.items[i]!.done = target;
 			}
 			return;
 		}
@@ -146,7 +146,7 @@ export const todoStateReducerOnDraft = (
 		case TodoActionType.SetDone: {
 			const index = findById(draft.items, action.id);
 			if (index !== -1) {
-				draft.items[index].done = action.done;
+				draft.items[index]!.done = action.done;
 			}
 			return;
 		}
@@ -190,7 +190,7 @@ export const todoStateReducerOnDraft = (
 				return;
 			}
 
-			draft.items[index].text = action.value;
+			draft.items[index]!.text = action.value;
 			return;
 		}
 		case TodoActionType.SetViewFilter: {
@@ -208,45 +208,29 @@ export const getPatchesOnTodoState = (
 	state: TodoState,
 	action: TodoAction,
 ): Patches<TodoState> => {
+	const patches = PatchBuilder.empty<TodoState>();
 	switch (action.type) {
 		case TodoActionType.Clear: {
-			return [
-				{
-					op: PatchOp.Replace,
-					path: ["editingId"],
-					value: null,
-				},
-				{
-					op: PatchOp.Replace,
-					path: ["items"],
-					value: [],
-				},
-			];
+			return patches
+				.replace(["editingId"], null)
+				.replace(["items"], [])
+				.build();
 		}
 		case TodoActionType.ClearCompleted: {
-			const patches: Patches<TodoState> = [
-				{
-					op: PatchOp.Replace,
-					path: ["editingId"],
-					value: null,
-				},
-			];
+			patches.replace(["editingId"], null);
 			for (let i = state.items.length - 1; i >= 0; i--) {
-				if (state.items[i].done) {
-					patches.push({
-						op: PatchOp.Remove,
-						path: ["items", i],
-					});
+				if (state.items[i]?.done) {
+					patches.remove(["items", i]);
 				}
 			}
-			return patches;
+			return patches.build();
 		}
 		case TodoActionType.ToggleAll: {
-			return state.items.map(({ done }, i) => ({
-				op: PatchOp.Replace,
-				path: ["items", i, "done"],
-				value: !done,
-			}));
+			for (let i = 0; i < state.items.length; i++) {
+				const done = state.items[i]?.done;
+				patches.replace(["items", i, "done"], !done);
+			}
+			return patches.build();
 		}
 		case TodoActionType.Add: {
 			const newItem = {
@@ -255,99 +239,57 @@ export const getPatchesOnTodoState = (
 				id: genId(state.counter),
 				editing: false,
 			};
-			return [
-				{
-					op: PatchOp.Replace,
-					path: ["counter"],
-					value: state.counter + 1,
-				},
-				{
-					op: PatchOp.Add,
-					path: ["items", IndexEnd],
-					value: newItem,
-				},
-			];
+			return patches
+				.replace(["counter"], state.counter + 1)
+				.add(["items", IndexEnd], newItem)
+				.build();
 		}
 		case TodoActionType.SetDone: {
 			const index = findById(state.items, action.id);
 			if (index !== -1) {
-				return [
-					{
-						op: PatchOp.Replace,
-						path: ["items", index, "done"],
-						value: action.done,
-					},
-				];
+				patches.replace(["items", index, "done"], action.done);
 			}
-			return [];
+			return patches.build();
 		}
 		case TodoActionType.Remove: {
 			const index = findById(state.items, action.id);
 			if (index === -1) {
-				return [];
+				return patches.build();
 			}
 
-			const patches: Patches<TodoState> = [
-				{
-					op: PatchOp.Remove,
-					path: ["items", index],
-				},
-			];
+			patches.remove(["items", index]);
 			if (
 				typeof state.editingId === "string" &&
 				state.editingId === action.id
 			) {
-				patches.push({
-					op: PatchOp.Replace,
-					path: ["editingId"],
-					value: null,
-				});
+				patches.replace(["editingId"], null);
 			}
-			return patches;
+
+			return patches.build();
 		}
 		case TodoActionType.StartEditing: {
 			const { id } = action;
-			const patches: Patches<TodoState> = [
-				{
-					op: PatchOp.Replace,
-					path: ["editingId"],
-					value: id,
-				},
-			];
+			patches.replace(["editingId"], id);
 			for (let i = 0; i < state.items.length; i++) {
-				const newValue = state.items[i].id === id;
-				if (state.items[i].editing !== newValue) {
-					patches.push({
-						op: PatchOp.Replace,
-						path: ["items", i, "editing"],
-						value: newValue,
-					});
+				const newValue = state.items[i]?.id === id;
+				if (state.items[i]?.editing !== newValue) {
+					patches.replace(["items", i, "editing"], newValue);
 				}
 			}
-			return patches;
+			return patches.build();
 		}
 		case TodoActionType.StopEditing: {
 			if (state.editingId === null) {
 				return [];
 			}
 
-			const patches: Patches<TodoState> = [
-				{
-					op: PatchOp.Replace,
-					path: ["editingId"],
-					value: null,
-				},
-			];
+			patches.replace(["editingId"], null);
 			for (let i = 0; i < state.items.length; i++) {
-				if (state.items[i].editing === true) {
-					patches.push({
-						op: PatchOp.Replace,
-						path: ["items", i, "editing"],
-						value: false,
-					});
+				if (state.items[i]?.editing === true) {
+					patches.replace(["items", i, "editing"], false);
 				}
 			}
-			return patches;
+			return patches.build();
 		}
 		case TodoActionType.EditText: {
 			if (typeof state.editingId !== "string") {
@@ -359,13 +301,7 @@ export const getPatchesOnTodoState = (
 				return [];
 			}
 
-			return [
-				{
-					op: PatchOp.Replace,
-					path: ["items", index, "text"],
-					value: action.value,
-				},
-			];
+			return replacePatch(action.value, ["items", index, "text"]);
 		}
 		case TodoActionType.SetViewFilter: {
 			return replacePatch(action.viewFilter, ["viewFilter"]);

@@ -209,7 +209,7 @@ export const load = () => {
 	}
 
 	const domRoot = new DOMRoot(root, initState, appReducer, renderApp);
-	domRoot.debug = true;
+	// domRoot.debug = true;
 	domRoot.initialize();
 };
 

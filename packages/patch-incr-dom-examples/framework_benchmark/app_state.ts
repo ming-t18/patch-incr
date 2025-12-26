@@ -1,7 +1,6 @@
 import {
-    PatchBuilder,
+	PatchBuilder,
 	type Patches,
-	PatchOp,
 	removePatch,
 	replacePatch,
 } from "patch-incr/patch";
@@ -144,7 +143,7 @@ export const getPatchesOnAppState = (
 		}
 		case ActionType.UPDATE: {
 			for (let i = 0; i < data.length; i += 10) {
-				patches.replace(["data", i, "label"], `${data[i]!.label} !!!`);
+				patches.replace(["data", i, "label"], `${data[i]?.label} !!!`);
 			}
 			return patches.build();
 		}
@@ -155,10 +154,10 @@ export const getPatchesOnAppState = (
 				return patches.build();
 			}
 
-      return patches
-        .replace(["data", 1], data[998])
-        .replace(["data", 998], data[1])
-  			.build();
+			return patches
+				.replace(["data", 1], data[998])
+				.replace(["data", 998], data[1])
+				.build();
 		}
 		case ActionType.REMOVE: {
 			const idx = data.findIndex((d) => d.id === action.id);
