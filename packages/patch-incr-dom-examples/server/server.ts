@@ -10,7 +10,7 @@ const server = serve({
 		"/todo": todoPage,
 		"/bench": benchPage,
 		"/json-editor": jsonEditorPage,
-		"/ssr": async (_req) => {
+		"/ssr": async (_req): Promise<Response> => {
 			const rewriter = new HTMLRewriter();
 			rewriter.on("#root", {
 				element(el) {
@@ -34,7 +34,7 @@ const server = serve({
 	// Enable development mode for:
 	// - Detailed error messages
 	// - Rebuild on request
-	development: false,
+	development: true,
 	// Handle API requests
 	async fetch(_req) {
 		// Return 404 for unmatched routes
