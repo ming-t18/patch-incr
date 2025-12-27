@@ -1,7 +1,7 @@
-import { identity } from "..";
 import { MultiWeakMap } from "../../cache/weak_map";
 import type { Patches } from "../../patch";
 import type { IF } from "../../types";
+import { identity } from "..";
 
 export const composeMemoL = <
 	Input extends WeakKey,
@@ -63,8 +63,8 @@ export const composeMemoR = <
 };
 
 export interface Create {
-  <A extends WeakKey>(): MemoComposer<A>;
-  <A extends WeakKey, B>(f: IF<A, B>): MemoComposer<A, B>;
+	<A extends WeakKey>(): MemoComposer<A>;
+	<A extends WeakKey, B>(f: IF<A, B>): MemoComposer<A, B>;
 }
 
 export interface Pipe<X extends WeakKey, A extends WeakKey> {
@@ -105,17 +105,17 @@ export interface Pipe<X extends WeakKey, A extends WeakKey> {
 export class MemoComposer<A extends WeakKey, B = A> {
 	constructor(private readonly func: IF<A, B> | null) {}
 
-  static create: Create = <A extends WeakKey, B = A>(func?: IF<A, B> | null): MemoComposer<A, B> => (
-    new MemoComposer(func ?? null)
-  );
+	static create: Create = <A extends WeakKey, B = A>(
+		func?: IF<A, B> | null,
+	): MemoComposer<A, B> => new MemoComposer(func ?? null);
 
 	// @ts-expect-error Can't be checked
 	pipe: Pipe<A, B> = (
 		...args: IF<unknown, unknown>[]
 	): MemoComposer<A, unknown> => {
-  	if (args.length === 0) {
-      return this as never;
-    }
+		if (args.length === 0) {
+			return this as never;
+		}
 
 		let f = this.func;
 		for (const arg of args) {

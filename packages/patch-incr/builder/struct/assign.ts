@@ -5,7 +5,7 @@ import {
 	type Path,
 	replacePatch,
 } from "../../patch";
-import type { AnyIF, IF, InferIFInput, InferIFOutput } from "../../types";
+import type { IF } from "../../types";
 
 export const assign = <Input, Output>(
 	getInitial: () => Output,
