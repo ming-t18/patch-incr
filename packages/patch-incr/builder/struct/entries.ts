@@ -26,56 +26,57 @@ export const entries = <Key extends string = string, Value = unknown>(): IF<
 		const op = entry.op;
 		const key = entry.path[0] as Key;
 		const outIndex = output.findIndex((x) => x[0] === key);
-		if (entry.path.length === 1) {
-			if (op === PatchOp.Add) {
-				return outIndex === -1
-					? [
-							{
-								op: PatchOp.Add,
-								path: ["-"],
-								value: [key, input[key] as Value],
-							},
-						]
-					: [];
-			} else if (op === PatchOp.Remove) {
-				return outIndex === -1
-					? []
-					: [
-							{
-								op: PatchOp.Remove,
-								path: [outIndex],
-							},
-						];
-			} else if (op === PatchOp.Replace) {
-				return outIndex === -1
-					? [
-							{
-								op: PatchOp.Add,
-								path: ["-"],
-								value: [key, entry.value],
-							},
-						]
-					: [
-							{
-								op: PatchOp.Replace,
-								path: [outIndex, 1],
-								value: entry.value,
-							},
-						];
+
+		if (entry.path.length > 1) {
+			if (outIndex === -1) {
+				throw new Error("entries: expecting corresponding entry to be found");
 			}
-			throw new Error(`Unsupported patch op: ${op}`);
+
+			return [
+				{
+					...entry,
+					path: [outIndex, 1, ...entry.path.slice(1)],
+				},
+			];
 		}
 
-		if (outIndex === -1) {
-			throw new Error("entries: expecting corresponding entry to be found");
+		if (op === PatchOp.Add) {
+			return outIndex === -1
+				? [
+						{
+							op: PatchOp.Add,
+							path: ["-"],
+							value: [key, input[key] as Value],
+						},
+					]
+				: [];
+		} else if (op === PatchOp.Remove) {
+			return outIndex === -1
+				? []
+				: [
+						{
+							op: PatchOp.Remove,
+							path: [outIndex],
+						},
+					];
+		} else if (op === PatchOp.Replace) {
+			return outIndex === -1
+				? [
+						{
+							op: PatchOp.Add,
+							path: ["-"],
+							value: [key, entry.value],
+						},
+					]
+				: [
+						{
+							op: PatchOp.Replace,
+							path: [outIndex, 1],
+							value: entry.value,
+						},
+					];
 		}
-
-		return [
-			{
-				...entry,
-				path: [outIndex, 1, ...entry.path.slice(1)],
-			},
-		];
+		throw new Error(`Unsupported patch op: ${op}`);
 	});
 	return {
 		evaluate: evaluateEntries,
