@@ -34,6 +34,7 @@ function* findPaths(
 	}
 }
 
+/** A marker type for template placeholders. Not to be confused with `TemplatePlaceholder`. */
 export type IsTemplatePlaceholder = { readonly __isTemplatePlaceholder?: unique symbol };
 
 export type InferTemplateSlots<Evals extends Record<string, IF<unknown, unknown>>> = {
