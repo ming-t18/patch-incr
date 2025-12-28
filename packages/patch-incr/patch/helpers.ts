@@ -54,13 +54,21 @@ export const tryDeconsPath = (path: Path): [string | number, Path] | null => {
 
 /** Given a list of patches for `x`, returns the patches for `{ [key]: x }` */
 export const liftPatch = <Out>(
-	prefix: string | number,
+	prefix: string | number | Path,
 	patches: Patches,
-): Patches<Out> =>
-	patches.map((x) => ({
-		...x,
-		path: [prefix, ...x.path],
-	}));
+): Patches<Out> => {
+  if (Array.isArray(prefix)) {
+    return patches.map((x) => ({
+      ...x,
+      path: [...prefix, ...x.path],
+    }));
+  }
+
+  return patches.map((x) => ({
+    ...x,
+    path: [prefix, ...x.path],
+  }));
+};
 
 export const unliftPatchEntry = <Out>(
 	prefix: string | number,
@@ -95,7 +103,7 @@ export const projectPatch = <Target>(
 ): Patches<Target> | null => {
 	const res = [] as Patches<Target>;
 	for (const entry of patches) {
-		const { path, op } = entry;
+		const { path } = entry;
 		if (path.length === 0) {
 			return null;
 		}
