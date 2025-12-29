@@ -9,7 +9,7 @@ export const getTrackedPath = <T>(x: T): unknown[] | null =>
 	// @ts-expect-error Can't be checked
 	x[GetTracked]?._path ?? null;
 
-const HANDLER: ProxyHandler<PathTracker<any>> = {
+const HANDLER: ProxyHandler<PathTracker<unknown>> = {
 	get(target, key, _receiver) {
 		if (key === GetTracked) {
 			return target;

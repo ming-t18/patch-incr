@@ -57,17 +57,17 @@ export const liftPatch = <Out>(
 	prefix: string | number | Path,
 	patches: Patches,
 ): Patches<Out> => {
-  if (Array.isArray(prefix)) {
-    return patches.map((x) => ({
-      ...x,
-      path: [...prefix, ...x.path],
-    }));
-  }
+	if (Array.isArray(prefix)) {
+		return patches.map((x) => ({
+			...x,
+			path: [...prefix, ...x.path],
+		}));
+	}
 
-  return patches.map((x) => ({
-    ...x,
-    path: [prefix, ...x.path],
-  }));
+	return patches.map((x) => ({
+		...x,
+		path: [prefix, ...x.path],
+	}));
 };
 
 export const unliftPatchEntry = <Out>(

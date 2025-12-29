@@ -8,3 +8,10 @@ export type {
 	InferRecordOutput,
 	TupleOrRecord,
 } from "./types";
+export {
+	Star,
+	type UseFunc,
+	type XTarget,
+	type XTemplateHandler,
+	xtemplate,
+} from "./xtemplate";

@@ -1,7 +1,7 @@
-import { assign } from "./assign";
-import { identity } from "..";
-import type { IF, InferIFOutput, AnyIF, InferIFInput } from "../../types";
 import type { Path } from "../../patch";
+import type { AnyIF, IF, InferIFInput, InferIFOutput } from "../../types";
+import { identity } from "..";
+import { assign } from "./assign";
 
 function* findPaths(
 	obj: unknown,
@@ -27,6 +27,8 @@ function* findPaths(
 		return;
 	}
 
+	// TODO handle Map/Set
+
 	if (obj !== null && typeof obj === "object") {
 		for (const [key, objValue] of Object.entries(obj)) {
 			yield* findPaths(objValue, value, [...path, key]);
@@ -35,9 +37,13 @@ function* findPaths(
 }
 
 /** A marker type for template placeholders. Not to be confused with `TemplatePlaceholder`. */
-export type IsTemplatePlaceholder = { readonly __isTemplatePlaceholder?: unique symbol };
+export type IsTemplatePlaceholder = {
+	readonly __isTemplatePlaceholder?: unique symbol;
+};
 
-export type InferTemplateSlots<Evals extends Record<string, IF<unknown, unknown>>> = {
+export type InferTemplateSlots<
+	Evals extends Record<string, IF<unknown, unknown>>,
+> = {
 	[key in keyof Evals]: InferIFOutput<Evals[key]> & IsTemplatePlaceholder;
 };
 

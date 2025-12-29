@@ -136,11 +136,10 @@ export const distr = <Elem, Dist>(): IF<[Elem[], Dist], [Elem, Dist][]> => {
 	return { evaluate: evaluateDistr, forward: forwardDistr };
 };
 
-export const distAssign = <
-	Elem extends Record<any, any>,
-	Key extends string,
-	Dist,
->(
+// biome-ignore lint/suspicious/noExplicitAny: intentional
+export type AnyRecord = Record<any, any>;
+
+export const distAssign = <Elem extends AnyRecord, Key extends string, Dist>(
 	key: Key,
 ): IF<[Elem[], Dist], Merged<Elem, Record<Key, Dist>>[]> => {
 	const evaluateDistAssign = ([xs, d]: [Elem[], Dist]): Merged<
