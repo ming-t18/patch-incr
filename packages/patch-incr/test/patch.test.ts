@@ -391,4 +391,61 @@ describe("applyPatches", () => {
 			});
 		});
 	});
+
+	describe("does not mutate the input", () => {
+		const getInitial = () => ({
+			a: {
+				b: [{ c: 1 }, { c: 2 }, { c: 3 }],
+			},
+			x: { p: 1 },
+		});
+
+		it("should handle empty patches", () => {
+			const before = getInitial();
+			const after = applyPatches(before, []);
+			expect(after).toEqual(getInitial());
+			expect(before).toEqual(getInitial());
+		});
+
+		it("should handle multiple patch operations", () => {
+			const before = getInitial();
+			const after = applyPatches(before, [
+				{
+					op: PatchOp.Remove,
+					path: ["x", "p"],
+				},
+				{
+					op: PatchOp.Add,
+					path: ["x", "q"],
+					value: "test",
+				},
+				{
+					op: PatchOp.Remove,
+					path: ["a", "b", 2],
+				},
+				{
+					op: PatchOp.Replace,
+					path: ["a", "b", 1, "c"],
+					value: 4,
+				},
+				{
+					op: PatchOp.Add,
+					path: ["a", "b", 0],
+					value: { c: 0 },
+				},
+				{
+					op: PatchOp.Replace,
+					path: ["a", "b", 0],
+					value: { c: 2 },
+				},
+			]);
+			expect(before).toEqual(getInitial());
+			expect(after).toEqual({
+				a: {
+					b: [{ c: 2 }, { c: 1 }, { c: 4 }],
+				},
+				x: { q: "test" },
+			});
+		});
+	});
 });
