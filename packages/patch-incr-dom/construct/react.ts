@@ -1,5 +1,9 @@
-import type { AttrValue, ChildConstruction, ElementConstruction } from "../types";
-import { parseProps as decomposeProps, type HTMLElementMap, type Props } from "./typedProps";
+import type {
+	AttrValue,
+	ChildConstruction,
+	ElementConstruction,
+} from "../types";
+import { parseProps as decomposeProps, type Props } from "./typedProps";
 
 export type ReactCreateElement = <TagName extends string>(
 	tagName: TagName,
@@ -21,16 +25,18 @@ export const createElement: ReactCreateElement = (
 	};
 };
 
-export type GetPropValueType<Name> =
-  Name extends 'children'
-  ? ChildConstruction | ChildConstruction[]
-  : Name extends `on${infer Event}` ? Function : AttrValue | ChildConstruction | ChildConstruction[];
+export type GetPropValueType<Name> = Name extends "children"
+	? ChildConstruction | ChildConstruction[]
+	: Name extends `on${infer Event}`
+		? Function
+		: AttrValue | ChildConstruction | ChildConstruction[];
 
 export namespace JSX {
-  export type IntrinsicElements = Record<string,
-    {
-      [key in string]: GetPropValueType<key>
-    }
-  >;
-  export type Element = ElementConstruction;
+	export type IntrinsicElements = Record<
+		string,
+		{
+			[key in string]: GetPropValueType<key>;
+		}
+	>;
+	export type Element = ElementConstruction;
 }

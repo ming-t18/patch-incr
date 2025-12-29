@@ -48,27 +48,27 @@ const _getItemSelected_NonIncr = ({
 
 // incremental version
 const getItemSelected: IF<AppState, ItemWithIsSelected[]> = composer<AppState>()
-  .pipe(
-    tupleFor<AppState>()(
-      _S((x) => x.data),
-      _S((x) => x.selected),
-    ),
-    distAssign("selected"),
-    map(
-      record({
-        id: _I((x) => x.id),
-        label: _I((x) => x.label),
-        isSelected: composer(
-          tupleFor<ItemWithSelected>()(
-            _I((x) => x.selected),
-            _I((x) => x.id),
-          ),
-        )
-        .pipe(atomicFunc(([selected, id]) => selected === id))
-        .build(),
-      }),
-    )
-  )
+	.pipe(
+		tupleFor<AppState>()(
+			_S((x) => x.data),
+			_S((x) => x.selected),
+		),
+		distAssign("selected"),
+		map(
+			record({
+				id: _I((x) => x.id),
+				label: _I((x) => x.label),
+				isSelected: composer(
+					tupleFor<ItemWithSelected>()(
+						_I((x) => x.selected),
+						_I((x) => x.id),
+					),
+				)
+					.pipe(atomicFunc(([selected, id]) => selected === id))
+					.build(),
+			}),
+		),
+	)
 	.build();
 
 const _IS = accessWithFor<ItemWithIsSelected>();
@@ -82,7 +82,7 @@ const getRenderApp = (
 	const renderJumbotron: IF<
 		StateDispatch<AppState, AppAction>,
 		ElementConstruction
-	> = template({}, (_: {}) =>
+	> = template({}, (_: unknown) =>
 		div(
 			{ class: "jumbotron" },
 			div(
