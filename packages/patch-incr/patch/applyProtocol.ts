@@ -21,7 +21,7 @@ export interface PatchApplier<T, Key = unknown> {
 	keys: (target: T) => Key[];
 
 	get: (target: T, key: Key) => unknown;
-	add: (target: T, key: Key) => void;
+	add: (target: T, key: Key, value: unknown) => void;
 	set: (target: T, key: Key, value: unknown) => boolean;
 	has: (target: T, key: Key) => boolean;
 	delete: (target: T, key: Key) => boolean;
@@ -56,9 +56,9 @@ export const defaultNumKeys = <T, Key = unknown>(
 ) => keys(target).map((key: Key) => get(target, key));
 
 export function hasPatchApplier<T = unknown, Key = unknown>(
-  value: unknown,
+	value: unknown,
 ): value is HasPatchApplier<T, Key> {
-  return value !== null && typeof value === "object" && Applier in value;
+	return value !== null && typeof value === "object" && Applier in value;
 }
 
 export const getPatchApplier = <T = unknown, Key = unknown>(

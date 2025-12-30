@@ -1,4 +1,5 @@
 import { IndexEnd } from "../patchSchema/types";
+import { Applier, hasPatchApplier } from "./applyProtocol";
 import type {
 	PatchCopy,
 	PatchEntry,
@@ -12,30 +13,28 @@ import { PatchOp, PatchOpExtended } from "./types";
 
 export class ApplyPatchesError extends Error {}
 
-export const shallowCopy = <T>(value: T): T => {
-	if (value === null || value === undefined || typeof value !== "object") {
-		return value;
-	}
-
-	if (value instanceof Map) {
-		return new Map(value) as T;
-	}
-	if (value instanceof Set) {
-		return new Set(value) as T;
-	}
-	if (Array.isArray(value)) {
-		return [...value] as never;
-	}
-	return { ...value };
-};
-
 function ensureObject(value: unknown): asserts value is object {
 	if (value === null || value === undefined || typeof value !== "object") {
 		throw new ApplyPatchesError("Must be object/array");
 	}
 }
 
-export const applyShallowAssign = <T, Assign = unknown>(
+export const shallowCopy = <T>(value: T): T => {
+	if (value === null || value === undefined || typeof value !== "object") {
+		return value;
+	} else if (value instanceof Map) {
+		return new Map(value) as T;
+	} else if (value instanceof Set) {
+		return new Set(value) as T;
+	} else if (Array.isArray(value)) {
+		return [...value] as never;
+	} else if (hasPatchApplier(value)) {
+		return value[Applier].shallowCopy(value) as never;
+	}
+	return { ...value };
+};
+
+const _assign = <T, Assign = unknown>(
 	base: T,
 	key: string | number,
 	value: Assign,
@@ -43,6 +42,8 @@ export const applyShallowAssign = <T, Assign = unknown>(
 	const copied = shallowCopy(base);
 	if (copied instanceof Map) {
 		copied.set(key, value);
+	} else if (hasPatchApplier(base)) {
+		base[Applier].set(base, key, value);
 	} else {
 		// @ts-expect-error Can't be checked
 		copied[key] = value;
@@ -50,10 +51,11 @@ export const applyShallowAssign = <T, Assign = unknown>(
 	return copied;
 };
 
-export const applyAccess = <T, Result = unknown>(
-	value: T,
-	key: string | number,
-): Result => {
+const _get = <T, Result = unknown>(value: T, key: string | number): Result => {
+	if (hasPatchApplier(value)) {
+		return value[Applier].get(value, key) as never;
+	}
+
 	ensureObject(value);
 
 	// @ts-expect-error can't be checked
@@ -63,7 +65,7 @@ export const applyAccess = <T, Result = unknown>(
 export const applyGet = <T, Result = unknown>(value: T, path: Path): Result => {
 	let value1: unknown = value;
 	for (let i = 0; i < path.length; i++) {
-		value1 = applyAccess(value1, path[i]);
+		value1 = _get(value1, path[i]);
 	}
 	return value1 as never;
 };
@@ -81,11 +83,11 @@ const applyRemove = <T, Deleted = unknown>(
 	const key = path[pathIndex];
 	if (pathIndex + 1 < path.length) {
 		const [replacement, deleted] = applyRemove(
-			applyAccess(base, key),
+			_get(base, key),
 			path,
 			pathIndex + 1,
 		);
-		return [applyShallowAssign(base, key, replacement), deleted as Deleted];
+		return [_assign(base, key, replacement), deleted as Deleted];
 	}
 
 	ensureObject(base);
@@ -103,6 +105,9 @@ const applyRemove = <T, Deleted = unknown>(
 		const index = key as number;
 		deleted = base1[index];
 		base1.splice(index, 1);
+	} else if (hasPatchApplier(base1)) {
+		deleted = base1[Applier].get(base, key) as never;
+		base1[Applier].delete(base, key);
 	} else {
 		// @ts-expect-error Can't be checked
 		deleted = base1[key];
@@ -124,10 +129,10 @@ const applyReplace = <T, Assign = unknown>(
 
 	const key = path[pathIndex];
 	if (pathIndex + 1 < path.length) {
-		return applyShallowAssign(
+		return _assign(
 			base,
 			key,
-			applyReplace(applyAccess(base, key), path, value, pathIndex + 1),
+			applyReplace(_get(base, key), path, value, pathIndex + 1),
 		);
 	}
 
@@ -142,6 +147,8 @@ const applyReplace = <T, Assign = unknown>(
 			throw new ApplyPatchesError("Can't replace in the end");
 		}
 		base1[key as number] = value;
+	} else if (hasPatchApplier(base1)) {
+		base1[Applier].set(base, key, value);
 	} else {
 		// @ts-expect-error Can't be checked
 		base1[key] = value;
@@ -161,10 +168,10 @@ const applyAdd = <T, Assign = unknown>(
 
 	const key = path[pathIndex];
 	if (pathIndex + 1 < path.length) {
-		return applyShallowAssign(
+		return _assign(
 			base,
 			key,
-			applyAdd(applyAccess(base, key), path, value, pathIndex + 1),
+			applyAdd(_get(base, key), path, value, pathIndex + 1),
 		);
 	}
 
@@ -182,6 +189,8 @@ const applyAdd = <T, Assign = unknown>(
 		} else {
 			base1.splice(key as number, 0, value);
 		}
+	} else if (hasPatchApplier(base1)) {
+		base1[Applier].add(base, key, value);
 	} else {
 		// @ts-expect-error Can't be checked
 		base1[key] = value;
@@ -234,6 +243,7 @@ const applyPatchEntryBase = <T>(value: T, entry: PatchEntry<T, []>): T => {
 	throw new ApplyPatchesError(`invalid patchOp: ${op}`);
 };
 
+// TODO applyPatches mutable mode (mutable = true)
 export const applyPatches = <T>(value: T, patches: PatchesExtended<T>): T => {
 	if (patches.length === 0) {
 		return value;
