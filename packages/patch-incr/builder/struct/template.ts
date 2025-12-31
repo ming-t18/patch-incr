@@ -1,9 +1,8 @@
-import type { Path } from "../../patch";
+import { type Path, patchableEntries } from "../../patch";
 import type { AnyIF, IF, InferIFInput, InferIFOutput } from "../../types";
 import { identity } from "..";
 import { assign } from "./assign";
 
-// TODO use patchableEntries
 function* findPaths(
 	obj: unknown,
 	value: unknown,
@@ -21,6 +20,10 @@ function* findPaths(
 		return;
 	}
 
+	if (!(obj !== null && typeof obj === "object")) {
+		return;
+	}
+
 	if (Array.isArray(obj)) {
 		for (let i = 0; i < obj.length; i++) {
 			yield* findPaths(obj[i], value, [...path, i]);
@@ -28,12 +31,8 @@ function* findPaths(
 		return;
 	}
 
-	// TODO handle Map/Set
-
-	if (obj !== null && typeof obj === "object") {
-		for (const [key, objValue] of Object.entries(obj)) {
-			yield* findPaths(objValue, value, [...path, key]);
-		}
+	for (const [key, objValue] of patchableEntries(obj)) {
+		yield* findPaths(objValue, value, [...path, key]);
 	}
 }
 

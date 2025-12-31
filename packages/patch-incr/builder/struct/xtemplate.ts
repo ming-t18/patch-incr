@@ -4,6 +4,7 @@ import {
 	type Patches,
 	PatchOp,
 	type Path,
+	patchableEntries,
 } from "../../patch";
 import type { AnyIF, IF } from "../../types";
 import { composeMemoL } from "../compose/memo";
@@ -96,6 +97,10 @@ export const xtemplate = <
 			return;
 		}
 
+		if (!(obj !== null && typeof obj === "object")) {
+			return;
+		}
+
 		if (Array.isArray(obj)) {
 			for (let i = 0; i < obj.length; i++) {
 				collect(obj[i], [...path, i]);
@@ -103,12 +108,8 @@ export const xtemplate = <
 			return;
 		}
 
-		// TODO handle Map/Set
-
-		if (obj !== null && typeof obj === "object") {
-			for (const [key, objValue] of Object.entries(obj)) {
-				collect(objValue, [...path, key]);
-			}
+		for (const [key, objValue] of patchableEntries(obj)) {
+			collect(objValue, [...path, key]);
 		}
 	};
 	collect(root, []);
