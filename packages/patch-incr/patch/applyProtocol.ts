@@ -48,7 +48,8 @@ export interface HasPatchApplier<T, Key = unknown> {
 export const defaultEntries = <T, Key = unknown>(
 	{ keys, get }: Pick<PatchApplier<T, Key>, "keys" | "get">,
 	target: T,
-) => keys(target).map((key: Key) => get(target, key));
+) =>
+	keys(target).map((key: Key): [unknown, unknown] => [key, get(target, key)]);
 
 export const defaultNumKeys = <T, Key = unknown>(
 	{ keys, get }: Pick<PatchApplier<T, Key>, "keys" | "get">,

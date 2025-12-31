@@ -1,5 +1,7 @@
 import { IndexEnd } from "../patchSchema/types";
+import { get as _get, applyGet, ensureObject, shallowCopy } from "./access";
 import { Applier, hasPatchApplier } from "./applyProtocol";
+import { ApplyPatchesError } from "./error";
 import type {
 	PatchCopy,
 	PatchEntry,
@@ -10,29 +12,6 @@ import type {
 	Path,
 } from "./types";
 import { PatchOp, PatchOpExtended } from "./types";
-
-export class ApplyPatchesError extends Error {}
-
-function ensureObject(value: unknown): asserts value is object {
-	if (value === null || value === undefined || typeof value !== "object") {
-		throw new ApplyPatchesError("Must be object/array");
-	}
-}
-
-export const shallowCopy = <T>(value: T): T => {
-	if (value === null || value === undefined || typeof value !== "object") {
-		return value;
-	} else if (value instanceof Map) {
-		return new Map(value) as T;
-	} else if (value instanceof Set) {
-		return new Set(value) as T;
-	} else if (Array.isArray(value)) {
-		return [...value] as never;
-	} else if (hasPatchApplier(value)) {
-		return value[Applier].shallowCopy(value) as never;
-	}
-	return { ...value };
-};
 
 const _assign = <T, Assign = unknown>(
 	base: T,
@@ -49,25 +28,6 @@ const _assign = <T, Assign = unknown>(
 		copied[key] = value;
 	}
 	return copied;
-};
-
-const _get = <T, Result = unknown>(value: T, key: string | number): Result => {
-	if (hasPatchApplier(value)) {
-		return value[Applier].get(value, key) as never;
-	}
-
-	ensureObject(value);
-
-	// @ts-expect-error can't be checked
-	return value instanceof Map ? value.get(key) : value[key];
-};
-
-export const applyGet = <T, Result = unknown>(value: T, path: Path): Result => {
-	let value1: unknown = value;
-	for (let i = 0; i < path.length; i++) {
-		value1 = _get(value1, path[i]);
-	}
-	return value1 as never;
 };
 
 const applyRemove = <T, Deleted = unknown>(
@@ -241,10 +201,15 @@ const applyPatchEntryBase = <T>(value: T, entry: PatchEntry<T, []>): T => {
 	}
 
 	throw new ApplyPatchesError(`invalid patchOp: ${op}`);
-};
-
-// TODO applyPatches mutable mode (mutable = true)
+}; /**
+ * Applies an array of patches to the first argument.
+ *
+ * This function is designed to be compatible with Immer's `applyPatches` function under `enableMapSet()`.
+ *
+ * Extensions: `Move`, `Copy` and `Swap` patches, and patching handlers through the `[Apply]` protocl.
+ */
 export const applyPatches = <T>(value: T, patches: PatchesExtended<T>): T => {
+	// TODO applyPatches mutable mode (mutable = true)
 	if (patches.length === 0) {
 		return value;
 	}
@@ -273,7 +238,8 @@ export const applyPatches = <T>(value: T, patches: PatchesExtended<T>): T => {
 	return value1;
 };
 
-export const canApplyPatches = <T>(value: T, patches: Patches) => {
+/** Determines of the patches on the second argument can be successfully applied on the first argument. */
+export const canApplyPatches = <T>(value: T, patches: Patches<T>) => {
 	try {
 		applyPatches(value, patches);
 		return true;

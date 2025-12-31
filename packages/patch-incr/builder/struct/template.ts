@@ -3,6 +3,7 @@ import type { AnyIF, IF, InferIFInput, InferIFOutput } from "../../types";
 import { identity } from "..";
 import { assign } from "./assign";
 
+// TODO use patchableEntries
 function* findPaths(
 	obj: unknown,
 	value: unknown,

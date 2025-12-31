@@ -1,4 +1,11 @@
-export { applyGet, applyPatches, canApplyPatches } from "./apply";
+export {
+	applyGet,
+	ensureObject,
+	patchableEntries,
+	shallowCopy,
+} from "./access";
+export { applyPatches, canApplyPatches } from "./apply";
+export { ApplyPatchesError } from "./error";
 export {
 	addPatch,
 	combinePatches,
