@@ -65,55 +65,66 @@ const defaultUse = (arg1: unknown, arg2?: AnyIF) => {
 const ANTI_CAPTURE_MESSAGE = `xtemplate: anti-capture: The use-callback has been revoked. Do not call the use-callback inside a callback.`;
 const KEY = "__ANTI_CAPTURE_REF";
 
-export const xtemplate = <
-	Input extends WeakKey,
-	Output,
-	Use extends UseFunc = UseFunc,
->(
-	getXTemplate: XTemplateHandler<Input, Output>,
-	useFunc = defaultUse as Use,
-): XTemplate<Input, Output> => {
-	const target = trackedProxy<XTarget<Input>>();
-	const useRef = { [KEY]: useFunc };
-	let root: Output;
+export type SlotTuple<Input extends WeakKey = WeakKey> = [
+	Path,
+	AnyIF,
+	WeakMap<Input, unknown>,
+];
+
+const withAntiCapture = <T extends (...args: never[]) => unknown, R>(
+	useFunc: T,
+	func: (guard: T) => R,
+) => {
+	const ref = { [KEY]: useFunc };
 	try {
-		const antiCaptureGuard = (...args: unknown[]) => {
-			if (!useRef[KEY]) {
+		const antiCaptureGuard = (...args: never[]) => {
+			if (!ref[KEY]) {
 				throw new Error(ANTI_CAPTURE_MESSAGE);
 			}
-			// @ts-expect-error Passing (...args)
-			return useRef[KEY](...args);
+			return ref[KEY](...args);
 		};
-		root = getXTemplate(target, antiCaptureGuard);
+		return func(antiCaptureGuard as never as T);
 	} finally {
 		// @ts-expect-error intentionally unset this field
-		useRef[KEY] = undefined;
+		ref[KEY] = undefined;
+	}
+};
+
+function* collectSlots<Input extends WeakKey = WeakKey>(
+	obj: unknown,
+	path = [] as Path,
+): Generator<SlotTuple<Input>> {
+	if (obj instanceof UsePlaceholder) {
+		yield [path, obj.func, new WeakMap()] as SlotTuple<Input>;
+		return;
 	}
 
-	const collected: [Path, AnyIF, WeakMap<Input, unknown>][] = [];
-	const collect = (obj: unknown, path: Path) => {
-		if (obj instanceof UsePlaceholder) {
-			collected.push([path, obj.func, new WeakMap()]);
-			return;
-		}
+	if (!(obj !== null && typeof obj === "object")) {
+		return;
+	}
 
-		if (!(obj !== null && typeof obj === "object")) {
-			return;
+	if (Array.isArray(obj)) {
+		for (let i = 0; i < obj.length; i++) {
+			yield* collectSlots(obj[i], [...path, i]);
 		}
+		return;
+	}
 
-		if (Array.isArray(obj)) {
-			for (let i = 0; i < obj.length; i++) {
-				collect(obj[i], [...path, i]);
-			}
-			return;
-		}
+	for (const [key, objValue] of patchableEntries(obj)) {
+		yield* collectSlots(objValue, [...path, key]);
+	}
+}
 
-		for (const [key, objValue] of patchableEntries(obj)) {
-			collect(objValue, [...path, key]);
-		}
-	};
-	collect(root, []);
+export const xtemplate = <Input extends WeakKey, Output>(
+	getXTemplate: XTemplateHandler<Input, Output>,
+	useFunc = defaultUse,
+): XTemplate<Input, Output> => {
+	const target = trackedProxy<XTarget<Input>>();
+	const root: Output = withAntiCapture(useFunc, (guard) =>
+		getXTemplate(target, guard),
+	);
 
+	const collected: SlotTuple<Input>[] = [...collectSlots(root)];
 	const evaluateXTemplate = (input: Input): Output =>
 		applyPatches(
 			root,
