@@ -109,8 +109,7 @@ describe("xtemplate", () => {
 		propsForIF(it, genInput, getFuncXT);
 
 		it("identical outputs between xtemplate and template versions", () => {
-			const func1 = getFunc();
-			const func2 = getFuncXT();
+			const [func1, func2] = [getFunc(), getFuncXT()];
 			fc.assert(
 				fc.property(genInput.arb(), ({ value: x }) => {
 					expect(func2.evaluate(x)).toEqual(func1.evaluate(x));
@@ -119,9 +118,8 @@ describe("xtemplate", () => {
 		});
 
 		it("identical outputs and patches between xtemplate and template versions", () => {
-			fc.assert(
-				fc.property(genInput.arb(), ensureIFEq(getFunc(), getFuncXT())),
-			);
+			const [func1, func2] = [getFunc(), getFuncXT()];
+			fc.assert(fc.property(genInput.arb(), ensureIFEq(func1, func2)));
 		});
 	});
 
