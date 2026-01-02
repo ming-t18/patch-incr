@@ -9,29 +9,26 @@ import {
 import type { AnyIF, IF } from "../../types";
 import { composeMemoL } from "../compose/memo";
 import { accessPath } from "./access";
-import { getTrackedPath, trackedProxy } from "./pathTracker";
+import { getTrackedPath, isPathTracker, trackedProxy } from "./pathTracker";
 
-export const Star = Symbol.for("patch-incr:*");
+type EmptyObj = Record<string, never>;
 
 export type XTargetAccess<T> = T extends unknown[]
 	? {
-			[Star]: XTarget<T[keyof T]>;
-		} & {
 			[key in keyof T]: XTarget<T[key]>;
 		}
 	: T extends object
 		? { [key in keyof T]: XTarget<T[key]> }
-		: // biome-ignore lint/complexity/noBannedTypes: intentional
-			{};
+		: EmptyObj;
 
 export type XTarget<T> = XTargetAccess<T> & { "~xtarget": T };
 
 export interface UseFunc {
 	<Type extends WeakKey, Output>(
-		target: XTarget<Type>,
+		target: XTarget<Type> | Type,
 		func: IF<Type, Output>,
 	): Output;
-	<Type>(target: XTarget<Type>): Type;
+	<Type>(target: XTarget<Type> | Type): Type;
 }
 
 export type XTemplateHandler<Input, Output> = (
@@ -52,13 +49,7 @@ export interface XTemplate<Input extends WeakKey, Output>
 
 const defaultUse = (arg1: unknown, arg2?: AnyIF) => {
 	const path = getTrackedPath(arg1);
-	if (!path) {
-		throw new Error(
-			"xtemplate: use: Invalid first argument. Must be an access pattern on the target.",
-		);
-	}
-
-	const fn = accessPath(path as Path);
+	const fn = path ? accessPath(path as Path) : xtemplate(() => arg1);
 	return new UsePlaceholder(arg2 ? composeMemoL(fn, arg2) : fn);
 };
 
@@ -103,6 +94,12 @@ function* collectSlots<Input extends WeakKey = WeakKey>(
 		return;
 	}
 
+	if (isPathTracker(obj)) {
+		throw new TypeError(
+			`Do not pass the target into the template object. Path: ${path.map((x) => String(x)).join(", ")}`,
+		);
+	}
+
 	if (Array.isArray(obj)) {
 		for (let i = 0; i < obj.length; i++) {
 			yield* collectSlots(obj[i], [...path, i]);
@@ -115,16 +112,20 @@ function* collectSlots<Input extends WeakKey = WeakKey>(
 	}
 }
 
-export const xtemplate = <Input extends WeakKey, Output>(
+export function xtemplate<Input extends WeakKey, Output>(
 	getXTemplate: XTemplateHandler<Input, Output>,
 	useFunc = defaultUse,
-): XTemplate<Input, Output> => {
+): XTemplate<Input, Output> {
 	const target = trackedProxy<XTarget<Input>>();
 	const root: Output = withAntiCapture(useFunc, (guard) =>
 		getXTemplate(target, guard),
 	);
 
-	const collected: SlotTuple<Input>[] = [...collectSlots(root)];
+	const collected: SlotTuple<Input>[] = [];
+	for (const entry of collectSlots(root)) {
+		collected.push(entry);
+	}
+
 	const evaluateXTemplate = (input: Input): Output =>
 		applyPatches(
 			root,
@@ -152,4 +153,4 @@ export const xtemplate = <Input extends WeakKey, Output>(
 		forward: forwardXTemplate,
 		slots: collected,
 	};
-};
+}

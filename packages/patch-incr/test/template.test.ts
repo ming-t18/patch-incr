@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { constant } from "../builder";
+import { atomicFunc, constant } from "../builder";
 import { map } from "../builder/array";
 import { composer } from "../builder/compose";
 import type { XTarget } from "../builder/struct";
@@ -7,6 +7,7 @@ import { accessFor, template, xtemplate } from "../builder/struct";
 import { getTrackedPath } from "../builder/struct/pathTracker";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
+import { applyPatches } from "../patch";
 
 const genInput = gp.record({
 	a: gp.integer(),
@@ -117,6 +118,8 @@ describe("xtemplate", () => {
 			);
 		});
 
+		const compareEntries = (a: unknown, b: unknown) =>
+			JSON.stringify(a).localeCompare(JSON.stringify(b));
 		it("identical outputs and patches between xtemplate and template versions", () => {
 			const func1 = getFunc();
 			const func2 = getFuncXT();
@@ -126,10 +129,27 @@ describe("xtemplate", () => {
 					const y2 = func2.evaluate(x);
 					expect(func2.evaluate(x)).toEqual(func1.evaluate(x));
 					const dy1 = func1.forward(x, dx, y1);
-					const dy2 = func1.forward(x, dx, y2);
-					expect(dy2).toEqual(dy1);
+					const dy2 = func2.forward(x, dx, y2);
+					// The patches can be in different orders due to commutativity
+					expect(dy2.toSorted(compareEntries)).toEqual(
+						dy1.toSorted(compareEntries),
+					);
+					expect(applyPatches(y1, dy1)).toStrictEqual(applyPatches(y2, dy2));
 				}),
 			);
+		});
+	});
+
+	describe("nested xtemplate", () => {
+		it("example", () => {
+			const f1 = xtemplate(
+				(t: XTarget<{ a: { value: number }[]; b: string }>, _) => ({
+					x: _({ arr: _(t.a) }, atomicFunc(JSON.stringify)),
+				}),
+			);
+			expect(f1.evaluate({ a: [{ value: 4 }], b: "test" })).toStrictEqual({
+				x: `{"arr":[{"value":4}]}`,
+			});
 		});
 	});
 });

@@ -9,7 +9,6 @@ export type {
 	TupleOrRecord,
 } from "./types";
 export {
-	Star,
 	type UseFunc,
 	type XTarget,
 	type XTemplateHandler,
