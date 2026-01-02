@@ -6,7 +6,7 @@ import type { XTarget } from "../builder/struct";
 import { accessFor, template, xtemplate } from "../builder/struct";
 import { getTrackedPath } from "../builder/struct/pathTracker";
 import * as gp from "./helpers/genPatched.test";
-import { propsForIF } from "./helpers/props.test";
+import { ensureIFEq, propsForIF } from "./helpers/props.test";
 import { applyPatches } from "../patch";
 
 const genInput = gp.record({
@@ -118,24 +118,9 @@ describe("xtemplate", () => {
 			);
 		});
 
-		const compareEntries = (a: unknown, b: unknown) =>
-			JSON.stringify(a).localeCompare(JSON.stringify(b));
 		it("identical outputs and patches between xtemplate and template versions", () => {
-			const func1 = getFunc();
-			const func2 = getFuncXT();
 			fc.assert(
-				fc.property(genInput.arb(), ({ value: x, patches: dx }) => {
-					const y1 = func1.evaluate(x);
-					const y2 = func2.evaluate(x);
-					expect(func2.evaluate(x)).toEqual(func1.evaluate(x));
-					const dy1 = func1.forward(x, dx, y1);
-					const dy2 = func2.forward(x, dx, y2);
-					// The patches can be in different orders due to commutativity
-					expect(dy2.toSorted(compareEntries)).toEqual(
-						dy1.toSorted(compareEntries),
-					);
-					expect(applyPatches(y1, dy1)).toStrictEqual(applyPatches(y2, dy2));
-				}),
+				fc.property(genInput.arb(), ensureIFEq(getFunc(), getFuncXT())),
 			);
 		});
 	});

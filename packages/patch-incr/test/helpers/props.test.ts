@@ -241,3 +241,24 @@ export const ensurePatchLiftingProperty = <
 		throw e;
 	}
 };
+
+const compareEntries = (a: unknown, b: unknown) =>
+	JSON.stringify(a).localeCompare(JSON.stringify(b));
+
+/**
+ * Returns a predicate asserting two `IF` have equal outputs and patches (up to commutativity)
+ * given same inputs and same patches on the input.
+ *
+ * Patches are sorted by JSON.stringify before comparing.
+ */
+export const ensureIFEq =
+	<A, B>(func1: IF<A, B>, func2: IF<A, B>) =>
+	({ value: x, patches: dx }: { value: A; patches: Patches<A> }) => {
+		const y1 = func1.evaluate(x);
+		const y2 = func2.evaluate(x);
+		expect(func2.evaluate(x)).toEqual(func1.evaluate(x));
+		const dy1 = func1.forward(x, dx, y1);
+		const dy2 = func2.forward(x, dx, y2);
+		expect(dy2.toSorted(compareEntries)).toEqual(dy1.toSorted(compareEntries));
+		expect(applyPatches(y1, dy1)).toStrictEqual(applyPatches(y2, dy2));
+	};
