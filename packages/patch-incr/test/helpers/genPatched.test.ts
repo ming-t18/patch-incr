@@ -126,6 +126,9 @@ export const atomic = <T>(arb: fc.Arbitrary<T>): GenWithPatches<T> => {
 	};
 };
 
+export const constant = <T>(value: T): GenWithPatches<T> =>
+	atomic(fc.constant(value));
+
 export const integer = (c?: fc.IntegerConstraints): GenWithPatches<number> =>
 	atomic(fc.integer(c));
 export const bigInt = (c?: fc.BigIntConstraints): GenWithPatches<bigint> =>

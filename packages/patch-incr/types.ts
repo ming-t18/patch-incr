@@ -76,6 +76,9 @@ export type IFInv<
 // biome-ignore lint/suspicious/noExplicitAny: used on constraints
 export type AnyIF = IF<any, any, any, any>;
 
+// biome-ignore lint/suspicious/noExplicitAny: used on constraints
+export type AnyIFWithInput<Input> = IF<Input, any, any, any>;
+
 export const isIF = <
 	Input,
 	Output,

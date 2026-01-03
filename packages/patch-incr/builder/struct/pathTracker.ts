@@ -5,9 +5,11 @@ export interface PathTracker<T> {
 	_target?: T;
 }
 
-export function isPathTracker<T = unknown>(x: unknown): x is { [GetTracked]: PathTracker<T> } {
+export function isPathTracker<T = unknown>(
+	x: unknown,
+): x is { [GetTracked]: PathTracker<T> } {
 	// @ts-expect-error Accessing GetTracked
-	return x !== null && typeof x === 'object' && !!x[GetTracked];
+	return x !== null && typeof x === "object" && !!x[GetTracked];
 }
 
 export const getTrackedPath = <T>(x: T): unknown[] | null =>

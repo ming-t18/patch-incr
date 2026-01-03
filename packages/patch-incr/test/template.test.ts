@@ -7,7 +7,6 @@ import { accessFor, template, xtemplate } from "../builder/struct";
 import { getTrackedPath } from "../builder/struct/pathTracker";
 import * as gp from "./helpers/genPatched.test";
 import { ensureIFEq, propsForIF } from "./helpers/props.test";
-import { applyPatches } from "../patch";
 
 const genInput = gp.record({
 	a: gp.integer(),
