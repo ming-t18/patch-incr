@@ -7,23 +7,17 @@ describe("produceWithPatches", () => {
 		describe("recipe return value", () => {
 			it("should not replace root with void return", () => {
 				expect(
-					produceWithPatches(
-  					[1] as number[] | undefined,
-						(_draft) => {
-							return;
-						},
-					),
+					produceWithPatches([1] as number[] | undefined, (_draft) => {
+						return;
+					}),
 				).toStrictEqual([[1], []]);
 			});
 
 			it("should replace root with null return", () => {
 				expect(
-					produceWithPatches(
-  					[1] as number[] | null,
-						(_draft) => {
-							return null;
-						},
-					),
+					produceWithPatches([1] as number[] | null, (_draft) => {
+						return null;
+					}),
 				).toStrictEqual([
 					null,
 					[{ op: PatchOp.Replace, path: [], value: null }],
@@ -32,12 +26,9 @@ describe("produceWithPatches", () => {
 
 			it("should replace root with undefined with NOTHING", () => {
 				expect(
-					produceWithPatches(
-  					[1] as number[] | undefined,
-						(_draft) => {
-							return NOTHING;
-						},
-					),
+					produceWithPatches([1] as number[] | undefined, (_draft) => {
+						return NOTHING;
+					}),
 				).toStrictEqual([
 					undefined,
 					[{ op: PatchOp.Replace, path: [], value: undefined }],
@@ -54,13 +45,16 @@ describe("produceWithPatches", () => {
 			let after: typeof before;
 			let patches: Patches<typeof before>;
 			beforeEach(() => {
-				[after, patches] = produceWithPatches<typeof before>(before, (draft) => {
-					draft.b = "xyz";
-					draft.a = 5;
-					draft.d.shift();
-					draft.c.splice(0, 2);
-					delete draft.a;
-				});
+				[after, patches] = produceWithPatches<typeof before>(
+					before,
+					(draft) => {
+						draft.b = "xyz";
+						draft.a = 5;
+						draft.d.shift();
+						draft.c.splice(0, 2);
+						delete draft.a;
+					},
+				);
 			});
 			it("should not return a draft for the after-value", () => {
 				expect(isDraft(after)).toBe(false);
@@ -86,17 +80,57 @@ describe("produceWithPatches", () => {
 				});
 			});
 		});
+
+		it("should accept additional arguments", () => {
+			const before = { p: "test", x: [2, 5] };
+			const func = produceWithPatches(
+				before,
+				(draft: typeof before, p1: string, j: number) => {
+					draft.p = p1;
+					draft.x.push(j);
+				},
+			);
+			const [after, patches] = func("test", 1);
+			expect(before).toStrictEqual({ p: "test", x: [2, 5] });
+			expect(after).toStrictEqual({
+				p: "test",
+				x: [2, 5, 1],
+			});
+			expect(applyPatches(before, patches)).toStrictEqual(after);
+		});
 	});
 
 	describe("one-argument function", () => {
 		it("should curry the second argument", () => {
 			const before = { x: [1] };
-			const [after, patches] = produceWithPatches<{ x: number[] }>((draft) => {
+			const [after, patches] = produceWithPatches((draft: typeof before) => {
 				draft.x.push(2);
 			})(before);
 
 			expect(after).toStrictEqual({ x: [1, 2] });
 			expect(applyPatches(before, patches)).toStrictEqual({ x: [1, 2] });
+		});
+
+		it("should accept additional arguments", () => {
+			const before = { p: "test", x: [2, 5] };
+			const func = produceWithPatches(
+				(draft: typeof before, p1: string, j: number) => {
+					draft.p = p1;
+					draft.x.push(j);
+				},
+			);
+			const _shouldTypeCheck: (
+				value: typeof before,
+				p1: string,
+				j: number,
+			) => [typeof before, Patches<typeof before>] = func;
+			const [after, patches] = func(before, "test", 1);
+			expect(before).toStrictEqual({ p: "test", x: [2, 5] });
+			expect(after).toStrictEqual({
+				p: "test",
+				x: [2, 5, 1],
+			});
+			expect(applyPatches(before, patches)).toStrictEqual(after);
 		});
 	});
 });

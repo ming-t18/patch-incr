@@ -1,19 +1,36 @@
 import { type Patches, PatchOp } from "patch-incr/patch";
-import { createDraft, current, finishDraft, patchesOnRoot } from "./proxy";
+import {
+	type AnyFunc,
+	createDraft,
+	current,
+	finishDraft,
+	patchesOnRoot,
+} from "./proxy";
 
 export const NOTHING = Symbol.for("immer-nothing");
 
+type Void = void;
 export type Recipe1<T, Args extends unknown[] = []> = (
 	draft: T,
 	...args: Args
-) => T | void | undefined | (undefined extends T ? typeof NOTHING : never);
+) => T | Void | undefined | (undefined extends T ? typeof NOTHING : never);
 
 export interface IProduceWithPatches {
-	<T, Args extends unknown[] = []>(recipe: Recipe1<T, Args>): (base: T, ...args: Args) => [T, Patches<T>];
-	<T, Args extends unknown[] = []>(base: T, recipe: Recipe1<T, Args>): [T, Patches<T>];
+	<T, Args extends unknown[] = []>(
+		recipe: Recipe1<T, Args>,
+	): (base: T, ...args: Args) => [T, Patches<T>];
+	<T>(base: T, recipe: Recipe1<T, []>): [T, Patches<T>];
+	<T, Args extends unknown[]>(
+		base: T,
+		recipe: Recipe1<T, Args>,
+	): (...args: Args) => [T, Patches<T>];
 }
 
-const _produceWithPatches = <T, Args extends unknown[] = []>(func: Recipe1<T, Args>, base: T, args: Args) => {
+const _produceWithPatches = <T, Args extends unknown[] = []>(
+	func: Recipe1<T, Args>,
+	base: T,
+	args: Args,
+) => {
 	const draft: T = createDraft(base);
 	try {
 		let res = func(draft, ...args);
@@ -31,11 +48,17 @@ const _produceWithPatches = <T, Args extends unknown[] = []>(func: Recipe1<T, Ar
 
 // @ts-expect-error Casting function type
 export const produceWithPatches: IProduceWithPatches = (
-  arg0: unknown,
-  ...rest: unknown[]
+	arg0: unknown,
+	...rest: unknown[]
 ) => {
-  if (rest.length === 0) {
-		return (arg: unknown) => _produceWithPatches(arg0 as never, arg, []);
+	if (rest.length === 0) {
+		return (arg: unknown, ...rest1: unknown[]) =>
+			_produceWithPatches(arg0 as never, arg, rest1);
 	}
-	return _produceWithPatches(rest[0] as never, arg0 as never, rest.slice(1));
+	const [func]: [AnyFunc] = rest as [never];
+	if (func.length <= 1) {
+		return _produceWithPatches(func, arg0 as never, []);
+	}
+	return (...rest1: unknown[]) =>
+		_produceWithPatches(func, arg0 as never, rest1);
 };
