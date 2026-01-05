@@ -62,10 +62,38 @@ export const get = <T, Result = unknown>(
 	return value instanceof Map ? value.get(key) : value[key];
 };
 
+export const getOpt = <T, Result = unknown>(
+	value: T,
+	key: string | number,
+): Result | undefined => {
+	if (hasPatchApplier(value)) {
+		return value[Applier].get(value, key) as never;
+	}
+
+	if (value === null || typeof value !== 'object') {
+		return undefined;
+	}
+
+	// @ts-expect-error can't be checked
+	return value instanceof Map ? value.get(key) : value[key];
+};
+
+
 export const applyGet = <T, Result = unknown>(value: T, path: Path): Result => {
 	let value1: unknown = value;
 	for (let i = 0; i < path.length; i++) {
 		value1 = get(value1, path[i]);
+	}
+	return value1 as never;
+};
+
+export const applyGetOpt = <T, Result = unknown>(value: T, path: Path): Result | undefined => {
+	let value1: unknown | undefined = value;
+	for (let i = 0; i < path.length; i++) {
+		if (value === null || typeof value !== 'object') {
+			break;
+		}
+		value1 = getOpt(value1, path[i]);
 	}
 	return value1 as never;
 };

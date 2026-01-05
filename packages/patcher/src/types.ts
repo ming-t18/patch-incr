@@ -1,0 +1,55 @@
+import type { Patches, Path } from "patch-incr/patch";
+
+export enum RefTag {
+	Copy = "copy",
+	Move = "move",
+	Swap = "swap",
+}
+
+/** Root object to keep track of the changes on a draft. */
+export interface Tracked<T> {
+	/** True if and only if revoked. */
+	_finished: boolean;
+	/** Original value. */
+	readonly _orig: T;
+	/** Current value. Is reassigned when updated. */
+	_curr?: T;
+	/* Collector for the cumulative patches, updated in-place. */
+	readonly _patches: Patches<T>;
+	/** Keep track of the current value? */
+	readonly _track?: boolean;
+}
+
+export interface HasCurrent<T> extends Tracked<T> {
+	readonly _track: true;
+	_curr: T;
+}
+
+export interface TrackedRef<T> {
+	readonly _root: Tracked<T>;
+	readonly _path: Path;
+	/** Tag for a copy/move/swap operation */
+	readonly _tag?: RefTag;
+}
+
+/**
+ * The return value of a method handler, which can be
+ * a reference to a particular element by path, or
+ * a new value.
+ */
+export type HandlerReturn = { value: unknown } | { path: Path };
+
+export interface HandlerSpec<T> {
+	mutating: boolean;
+	numArgs?: undefined | number | { min: number; max?: number };
+	handler: (
+		target: TrackedRef<T>,
+		prefix: Path,
+		args: unknown[],
+	) => HandlerReturn;
+}
+
+/**
+ * Contains handlers for collection methods such as `push` and `pop` for arrays.
+ */
+export type MethodHandlers<T> = Record<string, HandlerSpec<T>>;

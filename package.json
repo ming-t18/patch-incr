@@ -1,13 +1,15 @@
 {
-	"name": "patch-incr",
-	"version": "0.0.0",
-	"workspaces": [
-		"packages/patch-incr",
-		"packages/patch-incr-dom",
-		"packages/patch-incr-dom-examples"
-	],
-	"devDependencies": {
-		"patch-incr": "workspace:*",
-		"patch-incr-dom": "workspace:*"
-	}
+  "name": "patch-incr",
+  "version": "0.0.0",
+  "workspaces": [
+    "packages/patch-incr",
+    "packages/patcher",
+    "packages/patch-incr-dom",
+    "packages/patch-incr-dom-examples"
+  ],
+  "devDependencies": {
+    "patch-incr": "workspace:*",
+    "patcher": "workspace:*",
+    "patch-incr-dom": "workspace:*"
+  }
 }

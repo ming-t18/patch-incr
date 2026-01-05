@@ -44,14 +44,27 @@
     "packages/patch-incr-dom-examples": {
       "name": "patch-incr-dom-examples",
       "dependencies": {
-        "@types/jest": "^30.0.0",
         "patch-incr": "*",
         "patch-incr-dom": "*",
       },
       "devDependencies": {
         "@types/bun": "^1.3.5",
+        "@types/jest": "^30.0.0",
         "patch-incr": "workspace:*",
         "patch-incr-dom": "workspace:*",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "packages/patcher": {
+      "name": "patcher",
+      "dependencies": {
+        "patch-incr": "*",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.5",
+        "patch-incr": "workspace:*",
       },
       "peerDependencies": {
         "typescript": "^5",
@@ -180,6 +193,8 @@
     "patch-incr-dom": ["patch-incr-dom@workspace:packages/patch-incr-dom"],
 
     "patch-incr-dom-examples": ["patch-incr-dom-examples@workspace:packages/patch-incr-dom-examples"],
+
+    "patcher": ["patcher@workspace:packages/patcher"],
 
     "picocolors": ["picocolors@1.1.1", "", {}, "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA=="],
 

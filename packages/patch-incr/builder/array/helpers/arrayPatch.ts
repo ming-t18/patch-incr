@@ -11,6 +11,18 @@ type ArrayOp<T> =
 	| (PatchReplace<[number], T> & Targeted<T[]>)
 	| (PatchRemove<[number]> & Targeted<T[]>);
 
+/**
+ * Generates the array patches to perform the `splice(...)` operation,
+ * while maximizing the use of replace-patch if needed.
+
+ * Unlike the actual `splice` function:
+ *  - Negative indices are not supported
+ *  - All parameters are mandatory
+ *  - The third parameter is an array instead of a variadic
+ * @param index The index to perform the splice operation, non-negative
+ * @param remove The number of elements to remove at the splice index
+ * @param add The array of elements to add after removing at the splice index
+ */
 export const splice = <T>(
 	index: number,
 	remove: number,
