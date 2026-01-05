@@ -3,19 +3,20 @@ import { createDraft, current, finishDraft, patchesOnRoot } from "./proxy";
 
 export const NOTHING = Symbol.for("immer-nothing");
 
-export type Recipe1<T> = (
+export type Recipe1<T, Args extends unknown[] = []> = (
 	draft: T,
-) => T | undefined | (undefined extends T ? typeof NOTHING : never);
+	...args: Args
+) => T | void | undefined | (undefined extends T ? typeof NOTHING : never);
 
 export interface IProduceWithPatches {
-	<T>(recipe: Recipe1<T>): (base: T) => [T, Patches<T>];
-	<T>(recipe: Recipe1<T>, base: T): [T, Patches<T>];
+	<T, Args extends unknown[] = []>(recipe: Recipe1<T, Args>): (base: T, ...args: Args) => [T, Patches<T>];
+	<T, Args extends unknown[] = []>(base: T, recipe: Recipe1<T, Args>): [T, Patches<T>];
 }
 
-const _produceWithPatches = <T>(func: Recipe1<T>, base: T) => {
+const _produceWithPatches = <T, Args extends unknown[] = []>(func: Recipe1<T, Args>, base: T, args: Args) => {
 	const draft: T = createDraft(base);
 	try {
-		let res = func(draft);
+		let res = func(draft, ...args);
 		if (typeof res === "undefined") {
 			return [current(draft), patchesOnRoot(draft)];
 		}
@@ -29,12 +30,12 @@ const _produceWithPatches = <T>(func: Recipe1<T>, base: T) => {
 };
 
 // @ts-expect-error Casting function type
-export const produceWithPatches: IProduceWithPatches = <T>(
-	func: Recipe1<T>,
-	...rest: unknown[]
+export const produceWithPatches: IProduceWithPatches = (
+  arg0: unknown,
+  ...rest: unknown[]
 ) => {
-	if (rest.length === 0) {
-		return (arg: T) => _produceWithPatches(func, arg);
+  if (rest.length === 0) {
+		return (arg: unknown) => _produceWithPatches(arg0 as never, arg, []);
 	}
-	return _produceWithPatches(func, rest[0] as T);
+	return _produceWithPatches(rest[0] as never, arg0 as never, rest.slice(1));
 };

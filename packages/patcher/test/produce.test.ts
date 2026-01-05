@@ -8,10 +8,10 @@ describe("produceWithPatches", () => {
 			it("should not replace root with void return", () => {
 				expect(
 					produceWithPatches(
+  					[1] as number[] | undefined,
 						(_draft) => {
 							return;
 						},
-						[1] as number[] | undefined,
 					),
 				).toStrictEqual([[1], []]);
 			});
@@ -19,10 +19,10 @@ describe("produceWithPatches", () => {
 			it("should replace root with null return", () => {
 				expect(
 					produceWithPatches(
+  					[1] as number[] | null,
 						(_draft) => {
 							return null;
 						},
-						[1] as number[] | null,
 					),
 				).toStrictEqual([
 					null,
@@ -33,10 +33,10 @@ describe("produceWithPatches", () => {
 			it("should replace root with undefined with NOTHING", () => {
 				expect(
 					produceWithPatches(
+  					[1] as number[] | undefined,
 						(_draft) => {
 							return NOTHING;
 						},
-						[1] as number[] | undefined,
 					),
 				).toStrictEqual([
 					undefined,
@@ -54,13 +54,13 @@ describe("produceWithPatches", () => {
 			let after: typeof before;
 			let patches: Patches<typeof before>;
 			beforeEach(() => {
-				[after, patches] = produceWithPatches<typeof before>((draft) => {
+				[after, patches] = produceWithPatches<typeof before>(before, (draft) => {
 					draft.b = "xyz";
 					draft.a = 5;
 					draft.d.shift();
 					draft.c.splice(0, 2);
 					delete draft.a;
-				}, before);
+				});
 			});
 			it("should not return a draft for the after-value", () => {
 				expect(isDraft(after)).toBe(false);
