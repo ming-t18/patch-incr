@@ -54,7 +54,7 @@ const applyRemove = <T, Deleted = unknown>(
 	}
 
 	ensureObject(base);
-	const base1 = shallowCopy(base);
+	const base1 = shallowCopy(base, alreadyCopied);
 	let deleted: Deleted;
 	if (base1 instanceof Map) {
 		deleted = base1.get(key);
@@ -102,7 +102,7 @@ const applyReplace = <T, Assign = unknown>(
 	}
 
 	ensureObject(base);
-	const base1 = shallowCopy(base);
+	const base1 = shallowCopy(base, alreadyCopied);
 	if (base1 instanceof Map) {
 		base1.set(key, value);
 	} else if (base1 instanceof Set) {
@@ -145,7 +145,7 @@ const applyAdd = <T, Assign = unknown>(
 	if (base === undefined || base === null || typeof base !== "object") {
 		throw new ApplyPatchesError("Invalid type for add target");
 	}
-	const base1 = shallowCopy(base);
+	const base1 = shallowCopy(base, alreadyCopied);
 	if (base1 instanceof Map) {
 		base1.set(key, value);
 	} else if (base1 instanceof Set) {
