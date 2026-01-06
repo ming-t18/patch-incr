@@ -235,6 +235,17 @@ describe("tracked mode", () => {
 		});
 	});
 
+	describe("reference invalidation", () => {
+		// Different from Immer's behavior
+		it("should reference by path not by value", () => {
+			const ref = draft.c[0]!;
+			draft.c[0] = { x: 5, y: [50] };
+			expect(ref.x).toBe(5);
+			expect(ref.y!.length).toBe(1);
+			expect(ref.y[0]).toBe(50);
+		});
+	});
+
 	describe("array operations", () => {
 		describe("push", () => {
 			it("should be a function", () => {

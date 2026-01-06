@@ -34,6 +34,7 @@ Array and map methods have special handlers to generate efficient patches, such 
 
 ## Differences from Immer
 
+ - Drafts are resolved by **path** instead of reference (affects displaced/reassigned valeus)
  - No auto-freezing at all
  - No support for `[immerable]` objects
  - Fewer safety and correctness checks
