@@ -8,19 +8,33 @@ export function ensureObject(value: unknown): asserts value is object {
 	}
 }
 
-export const shallowCopy = <T>(value: T): T => {
+export const shallowCopy = <T>(
+	value: T,
+	alreadyCopied?: WeakSet<WeakKey>,
+): T => {
 	if (value === null || value === undefined || typeof value !== "object") {
 		return value;
-	} else if (value instanceof Map) {
-		return new Map(value) as T;
-	} else if (value instanceof Set) {
-		return new Set(value) as T;
-	} else if (Array.isArray(value)) {
-		return [...value] as never;
-	} else if (hasPatchApplier(value)) {
-		return value[Applier].shallowCopy(value) as never;
 	}
-	return { ...value };
+
+	if (alreadyCopied?.has(value)) {
+		return value;
+	}
+
+	let copied: T;
+	if (value instanceof Map) {
+		copied = new Map(value) as T;
+	} else if (value instanceof Set) {
+		copied = new Set(value) as T;
+	} else if (Array.isArray(value)) {
+		copied = [...value] as never;
+	} else if (hasPatchApplier(value)) {
+		copied = value[Applier].shallowCopy(value) as T;
+	} else {
+		copied = { ...value };
+	}
+
+	alreadyCopied?.add(copied as WeakKey);
+	return copied;
 };
 
 /**
@@ -70,14 +84,13 @@ export const getOpt = <T, Result = unknown>(
 		return value[Applier].get(value, key) as never;
 	}
 
-	if (value === null || typeof value !== 'object') {
+	if (value === null || typeof value !== "object") {
 		return undefined;
 	}
 
 	// @ts-expect-error can't be checked
 	return value instanceof Map ? value.get(key) : value[key];
 };
-
 
 export const applyGet = <T, Result = unknown>(value: T, path: Path): Result => {
 	let value1: unknown = value;
@@ -87,10 +100,13 @@ export const applyGet = <T, Result = unknown>(value: T, path: Path): Result => {
 	return value1 as never;
 };
 
-export const applyGetOpt = <T, Result = unknown>(value: T, path: Path): Result | undefined => {
+export const applyGetOpt = <T, Result = unknown>(
+	value: T,
+	path: Path,
+): Result | undefined => {
 	let value1: unknown | undefined = value;
 	for (let i = 0; i < path.length; i++) {
-		if (value === null || typeof value !== 'object') {
+		if (value === null || typeof value !== "object") {
 			break;
 		}
 		value1 = getOpt(value1, path[i]);

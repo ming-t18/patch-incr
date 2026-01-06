@@ -17,8 +17,9 @@ const _assign = <T, Assign = unknown>(
 	base: T,
 	key: string | number,
 	value: Assign,
+	alreadyCopied: WeakSet<WeakKey>,
 ): T => {
-	const copied = shallowCopy(base);
+	const copied = shallowCopy(base, alreadyCopied);
 	if (copied instanceof Map) {
 		copied.set(key, value);
 	} else if (hasPatchApplier(base)) {
@@ -33,6 +34,7 @@ const _assign = <T, Assign = unknown>(
 const applyRemove = <T, Deleted = unknown>(
 	base: T,
 	path: Path,
+	alreadyCopied: WeakSet<WeakKey>,
 	pathIndex = 0,
 ): [T, Deleted] => {
 	if (pathIndex >= path.length) {
@@ -45,9 +47,10 @@ const applyRemove = <T, Deleted = unknown>(
 		const [replacement, deleted] = applyRemove(
 			_get(base, key),
 			path,
+			alreadyCopied,
 			pathIndex + 1,
 		);
-		return [_assign(base, key, replacement), deleted as Deleted];
+		return [_assign(base, key, replacement, alreadyCopied), deleted as Deleted];
 	}
 
 	ensureObject(base);
@@ -81,6 +84,7 @@ const applyReplace = <T, Assign = unknown>(
 	base: T,
 	path: Path,
 	value: Assign,
+	alreadyCopied: WeakSet<WeakKey>,
 	pathIndex = 0,
 ): T => {
 	if (pathIndex >= path.length) {
@@ -92,7 +96,8 @@ const applyReplace = <T, Assign = unknown>(
 		return _assign(
 			base,
 			key,
-			applyReplace(_get(base, key), path, value, pathIndex + 1),
+			applyReplace(_get(base, key), path, value, alreadyCopied, pathIndex + 1),
+			alreadyCopied,
 		);
 	}
 
@@ -120,6 +125,7 @@ const applyAdd = <T, Assign = unknown>(
 	base: T,
 	path: Path,
 	value: Assign,
+	alreadyCopied: WeakSet<WeakKey>,
 	pathIndex = 0,
 ): T => {
 	if (pathIndex >= path.length) {
@@ -131,7 +137,8 @@ const applyAdd = <T, Assign = unknown>(
 		return _assign(
 			base,
 			key,
-			applyAdd(_get(base, key), path, value, pathIndex + 1),
+			applyAdd(_get(base, key), path, value, alreadyCopied, pathIndex + 1),
+			alreadyCopied,
 		);
 	}
 
@@ -158,30 +165,51 @@ const applyAdd = <T, Assign = unknown>(
 	return base1;
 };
 
-const applyMove = <T>(base: T, entry: PatchMove): T => {
-	const [value1, deleted] = applyRemove(base, entry.from);
-	return applyAdd<T>(value1, entry.path, deleted as never);
+const applyMove = <T>(
+	base: T,
+	entry: PatchMove,
+	alreadyCopied: WeakSet<WeakKey>,
+): T => {
+	const [value1, deleted] = applyRemove(base, entry.from, alreadyCopied);
+	return applyAdd<T>(value1, entry.path, deleted as never, alreadyCopied);
 };
 
-const applyCopy = <T>(base: T, entry: PatchCopy): T => {
+const applyCopy = <T>(
+	base: T,
+	entry: PatchCopy,
+	alreadyCopied: WeakSet<WeakKey>,
+): T => {
 	const toCopy = applyGet(base, entry.from);
-	return applyAdd<T>(base, entry.path, toCopy as never);
+	return applyAdd<T>(base, entry.path, toCopy as never, alreadyCopied);
 };
 
-const applySwap = <T>(base: T, entry: PatchSwap): T => {
+const applySwap = <T>(
+	base: T,
+	entry: PatchSwap,
+	alreadyCopied: WeakSet<WeakKey>,
+): T => {
 	const a = applyGet(base, entry.from);
 	const b = applyGet(base, entry.path);
-	return applyReplace(applyReplace(base, entry.path, a), entry.from, b);
+	return applyReplace(
+		applyReplace(base, entry.path, a, alreadyCopied),
+		entry.from,
+		b,
+		alreadyCopied,
+	);
 };
 
-const applyEntry = <T>(value: T, entry: PatchEntry<T>): T => {
+const applyEntry = <T>(
+	value: T,
+	entry: PatchEntry<T>,
+	alreadyCopied: WeakSet<WeakKey>,
+): T => {
 	const { op } = entry;
 	if (op === PatchOp.Add) {
-		return applyAdd(value, entry.path, entry.value);
+		return applyAdd(value, entry.path, entry.value, alreadyCopied);
 	} else if (op === PatchOp.Remove) {
-		return applyRemove(value, entry.path)[0];
+		return applyRemove(value, entry.path, alreadyCopied)[0];
 	} else if (op === PatchOp.Replace) {
-		return applyReplace(value, entry.path, entry.value);
+		return applyReplace(value, entry.path, entry.value, alreadyCopied);
 	}
 	throw new ApplyPatchesError("applyEntry: invalid op");
 };
@@ -201,19 +229,26 @@ const applyPatchEntryBase = <T>(value: T, entry: PatchEntry<T, []>): T => {
 	}
 
 	throw new ApplyPatchesError(`invalid patchOp: ${op}`);
-}; /**
+};
+
+/**
  * Applies an array of patches to the first argument.
  *
  * This function is designed to be compatible with Immer's `applyPatches` function under `enableMapSet()`.
  *
  * Extensions: `Move`, `Copy` and `Swap` patches, and patching handlers through the `[Apply]` protocl.
  */
-export const applyPatches = <T>(value: T, patches: PatchesExtended<T>): T => {
+export const applyPatches = <T>(
+	value: T,
+	patches: PatchesExtended<T>,
+	alreadyCopiedFromArg?: WeakSet<WeakKey>,
+): T => {
 	// TODO applyPatches mutable mode (mutable = true)
 	if (patches.length === 0) {
 		return value;
 	}
 
+	const alreadyCopied = alreadyCopiedFromArg ?? new WeakSet();
 	let value1: T = value;
 	for (const entry of patches) {
 		const { op, path } = entry;
@@ -223,13 +258,13 @@ export const applyPatches = <T>(value: T, patches: PatchesExtended<T>): T => {
 		}
 
 		if (op === PatchOp.Add || op === PatchOp.Remove || op === PatchOp.Replace) {
-			value1 = applyEntry(value1, entry);
+			value1 = applyEntry(value1, entry, alreadyCopied);
 		} else if (op === PatchOpExtended.Move) {
-			value1 = applyMove(value1, entry);
+			value1 = applyMove(value1, entry, alreadyCopied);
 		} else if (op === PatchOpExtended.Copy) {
-			value1 = applyCopy(value1, entry);
+			value1 = applyCopy(value1, entry, alreadyCopied);
 		} else if (op === PatchOpExtended.Swap) {
-			value1 = applySwap(value1, entry);
+			value1 = applySwap(value1, entry, alreadyCopied);
 		} else {
 			throw new ApplyPatchesError(`invalid patchOp: ${op}`);
 		}
