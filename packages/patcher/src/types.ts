@@ -27,8 +27,8 @@ export interface HasCurrent<T> extends Root<T> {
 	_curr: T;
 }
 
-export interface Ref<T> {
-	readonly _root: Root<T>;
+export interface Ref<T, IsTracked extends boolean = boolean> {
+	readonly _root: IsTracked extends true ? HasCurrent<T> : Root<T>;
 	readonly _path: Path;
 	/** Tag for a copy/move/swap operation */
 	readonly _tag?: RefTag;

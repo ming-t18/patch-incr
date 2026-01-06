@@ -1,26 +1,18 @@
 import { applyGet, type Patches, PatchOp, type Path } from "patch-incr/patch";
-import {
-	doPatch,
-	GetTarget,
-	isTrackedRef,
-	toKey,
-	unwrapTracked,
-} from "./helpers";
+import { doPatch, GetTarget, isRef, toKey, unwrapTracked } from "./helpers";
 import { ARRAY_HANDLERS, checkNumArgs, MAP_HANDLERS } from "./methods";
 import type { MethodHandlers, Ref, Root } from "./types";
 
 export const originalRoot = <T = unknown>(value: T): T | undefined =>
-	isTrackedRef(value) ? (value[GetTarget]._root._orig as T) : undefined;
+	isRef(value) ? (value[GetTarget]._root._orig as T) : undefined;
 
 export const original = <T = unknown>(value: T): T | undefined => {
-	if (!isTrackedRef(value)) {
+	if (!isRef(value)) {
 		return undefined;
 	}
 
 	const target = value[GetTarget];
-	return isTrackedRef(value)
-		? applyGet(target._root._orig, target._path)
-		: undefined;
+	return isRef(value) ? applyGet(target._root._orig, target._path) : undefined;
 };
 
 const currentFromRef = <T = unknown>(ref: Ref<T>): T => {
@@ -29,18 +21,18 @@ const currentFromRef = <T = unknown>(ref: Ref<T>): T => {
 };
 
 export const current = <T = unknown>(value: T): T | undefined =>
-	isTrackedRef<T>(value) ? currentFromRef<T>(value[GetTarget]) : undefined;
+	isRef<T>(value) ? currentFromRef<T>(value[GetTarget]) : undefined;
 
 export const currentPath = <T = unknown>(value: T): Path | undefined =>
-	isTrackedRef<T>(value) ? value[GetTarget]._path : undefined;
+	isRef<T>(value) ? value[GetTarget]._path : undefined;
 
 export const isDraft = <T = unknown>(value: T): boolean =>
-	isTrackedRef<T>(value) ? !value[GetTarget]._root._finished : false;
+	isRef<T>(value) ? !value[GetTarget]._root._finished : false;
 
 export const patchesOnRoot = <T = unknown>(
 	value: T,
 ): Patches<T> | undefined => {
-	if (!isTrackedRef(value)) {
+	if (!isRef(value)) {
 		return undefined;
 	}
 
@@ -49,17 +41,17 @@ export const patchesOnRoot = <T = unknown>(
 };
 
 export const isTracked = <T = unknown>(value: T): boolean =>
-	isTrackedRef(value) ? (value[GetTarget]._root._track ?? false) : false;
+	isRef(value) ? (value[GetTarget]._root._track ?? false) : false;
 
 // biome-ignore lint/suspicious/noExplicitAny: intentional
 export type AnyFunc = (...args: any[]) => any;
 
-const makeMethodHandler = <T = unknown>(
-	target: Ref<T>,
+function makeMethodHandler<T = unknown>(
+	target: Ref<T, true>,
 	parent: T,
 	_actualFunc: AnyFunc,
 	methodName: string,
-): AnyFunc => {
+): AnyFunc {
 	let handlers: MethodHandlers<T> | undefined;
 	if (parent instanceof Map) {
 		handlers = MAP_HANDLERS as never;
@@ -91,11 +83,55 @@ const makeMethodHandler = <T = unknown>(
 		}
 
 		const res = method.handler(target, target._path, args);
-		return "value" in res ? res.value : makeRef(target._root, res.path);
+		return "value" in res ? res.value : performGetPath(target, res.path);
 	};
-};
+}
 
-const _getRef = <T = unknown>(target: Ref<T>, key: string) => {
+function performGet<T = unknown>(
+	target: Ref<T, true>,
+	key: string | symbol,
+	receiver?: unknown,
+) {
+	if (!target._root._track) {
+		if (typeof key === "symbol") {
+			throw new TypeError("get: symbols are not supported");
+		}
+		return _getRef(target, key);
+	}
+
+	const parent = currentFromRef(target);
+	const fromGet = Reflect.get(parent as never, key, receiver);
+	if (typeof key === "symbol") {
+		return fromGet;
+	}
+
+	if (typeof fromGet === "function" && !Object.hasOwn(parent as never, key)) {
+		return makeMethodHandler(target, parent, fromGet, key);
+	}
+
+	if (
+		fromGet === null ||
+		fromGet === undefined ||
+		typeof fromGet !== "object"
+	) {
+		return fromGet;
+	}
+
+	if (typeof key === "symbol") {
+		throw new TypeError("get: symbols are not supported");
+	}
+	return _getRef(target, key);
+}
+
+function performGetPath<T = unknown>(target: Ref<T, true>, path: Path) {
+	const res = applyGet(target._root._curr, path);
+	if (res !== null && typeof res === "object") {
+		return makeRef(target._root, path);
+	}
+	return res;
+}
+
+const _getRef = <T = unknown>(target: Ref<T, true>, key: string) => {
 	const path1 = [...target._path, toKey(key)];
 	return makeRef(target._root, path1);
 };
@@ -106,41 +142,14 @@ export const HANDLER: ProxyHandler<Ref<unknown>> = {
 			return target;
 		}
 
-		if (!target._root._track) {
-			if (typeof key === "symbol") {
-				throw new TypeError("get: symbols are not supported");
-			}
-			return _getRef(target, key);
-		}
-
-		const curr = currentFromRef(target);
-		const fromGet = Reflect.get(curr as never, key, receiver);
-		if (typeof key === "symbol") {
-			return fromGet;
-		}
-
-		if (typeof fromGet === "function") {
-			return makeMethodHandler(target, curr, fromGet, key);
-		}
-
-		if (
-			fromGet === null ||
-			fromGet === undefined ||
-			typeof fromGet !== "object"
-		) {
-			return fromGet;
-		}
-
-		if (typeof key === "symbol") {
-			throw new TypeError("get: symbols are not supported");
-		}
-		return _getRef(target, key);
+		return performGet(target as Ref<unknown, true>, key, receiver);
 	},
 	set(target, key, value, _receiver) {
 		if (typeof key === "symbol") {
 			throw new Error("set: symbols are not supported");
 		}
 
+		// Don't generate patch for same value
 		if (target._root._track) {
 			const prevValue = applyGet(target._root._curr, [
 				...target._path,
@@ -150,6 +159,7 @@ export const HANDLER: ProxyHandler<Ref<unknown>> = {
 				return true;
 			}
 		}
+
 		doPatch(target._root, [
 			{
 				op: PatchOp.Replace,
@@ -207,6 +217,7 @@ export const HANDLER: ProxyHandler<Ref<unknown>> = {
 				writable: false,
 			};
 		}
+
 		if (!target._root._track) {
 			throw new TypeError(
 				"untracked: cannot call getOwnPropertyDescriptor on untracked draft",
@@ -217,7 +228,7 @@ export const HANDLER: ProxyHandler<Ref<unknown>> = {
 			throw new TypeError("symbols are not supported");
 		}
 		return {
-			value: _getRef(target, key),
+			value: performGet(target, key),
 			configurable: true,
 			enumerable: true,
 			writable: true,
@@ -253,7 +264,7 @@ export const createDraft = <T>(target: T, track = true) => {
 };
 
 export const finishDraft = <T>(target: T) => {
-	if (!isTrackedRef(target)) {
+	if (!isRef(target)) {
 		throw new TypeError("finishDraft: not a draft");
 	}
 

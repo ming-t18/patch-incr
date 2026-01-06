@@ -32,7 +32,7 @@ export const doPatch = <T>(root: Root<T>, patches: Patches<T>) => {
 
 export const GetTarget = Symbol.for("patcher-GetTarget");
 
-export function isTrackedRef<T = unknown>(
+export function isRef<T = unknown>(
 	value: unknown,
 ): value is { [GetTarget]: Ref<T> } {
 	// @ts-expect-error Accessing [GetTarget]
@@ -40,7 +40,7 @@ export function isTrackedRef<T = unknown>(
 }
 
 export const unwrapTracked = (value: unknown): unknown => {
-	if (isTrackedRef(value)) {
+	if (isRef(value)) {
 		const { _root: root, _path: path } = value[GetTarget];
 		if (!root._track) {
 			throw new TypeError("target is untracked");

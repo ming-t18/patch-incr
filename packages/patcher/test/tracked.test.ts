@@ -199,6 +199,30 @@ describe("tracked mode", () => {
 		});
 	});
 
+	describe("callback values are treated as primitives", () => {
+		const func = (x: number) => 2 + x;
+		it("should get callbacks in objects", () => {
+			const draft1 = createDraft({ func });
+			expect(typeof draft1.func).toBe("function");
+			expect(draft1.func).toBe(func);
+			expect(draft1.func(1)).toBe(3);
+		});
+
+		it("should get callbacks in arrays", () => {
+			const draft1 = createDraft({ arr: [func] });
+			expect(typeof draft1.arr[0]).toBe("function");
+			expect(draft1.arr[0]).toBe(func);
+			expect(draft1.arr[0]!(1)).toBe(3);
+		});
+
+		it("should get callbacks in Maps", () => {
+			const draft1 = createDraft({ map: new Map([["func", func]]) });
+			expect(typeof draft1.map.get("func")!).toBe("function");
+			expect(draft1.map.get("func")!).toBe(func);
+			expect(draft1.map.get("func")!(1)).toBe(3);
+		});
+	});
+
 	describe("with aliasing", () => {
 		it("should not update original value", () => {
 			draft.c[1] = draft.c[0]!;
