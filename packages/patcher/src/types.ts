@@ -18,6 +18,8 @@ export interface Root<T> {
 	readonly _patches: Patches<T>;
 	/** Keep track of the current value? */
 	readonly _track?: boolean;
+	/** Set of objects to avoid shallow copying due to sole ownership of this `Root`. */
+	readonly _alreadyCopied: WeakSet<WeakKey>;
 }
 
 export interface HasCurrent<T> extends Root<T> {

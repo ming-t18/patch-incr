@@ -241,6 +241,7 @@ export const createDraft = <T>(target: T, track = true) => {
 		_curr: target,
 		_patches: [],
 		_track: track,
+		_alreadyCopied: new WeakSet(),
 	};
 	return makeRef(root, []) as T;
 };

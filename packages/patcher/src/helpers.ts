@@ -27,7 +27,7 @@ export const doPatch = <T>(root: Root<T>, patches: Patches<T>) => {
 	}
 
 	root._patches.push(...patches);
-	root._curr = applyPatches(root._curr, patches);
+	root._curr = applyPatches(root._curr, patches, root._alreadyCopied);
 };
 
 export const GetTarget = Symbol.for("patcher-GetTarget");
