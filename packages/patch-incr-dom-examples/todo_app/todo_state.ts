@@ -1,10 +1,7 @@
-import type { Draft } from "immer";
-import { PatchBuilder, type Patches, replacePatch } from "patch-incr/patch";
-import { IndexEnd } from "patch-incr/patchSchema/types";
-import {
-	fromReducerReturningPatches,
-	type ReducerIF,
-} from "patch-incr/reducer";
+import type { ReducerIF } from "patch-incr/reducer";
+import { fromReducerOnDraft } from "patcher/src/reducer";
+
+export type { ReducerIF } from "patch-incr/reducer";
 
 export enum ViewFilter {
 	All = "All",
@@ -107,7 +104,7 @@ export const getEditingIndexById = (state: TodoState, id: string): number =>
 	findById(state.items, id);
 
 export const todoStateReducerOnDraft = (
-	draft: Draft<TodoState>,
+	draft: TodoState,
 	action: TodoAction,
 ) => {
 	switch (action.type) {
@@ -204,116 +201,6 @@ export const todoStateReducerOnDraft = (
 	}
 };
 
-export const getPatchesOnTodoState = (
-	state: TodoState,
-	action: TodoAction,
-): Patches<TodoState> => {
-	const patches = PatchBuilder.empty<TodoState>();
-	switch (action.type) {
-		case TodoActionType.Clear: {
-			return patches
-				.replace(["editingId"], null)
-				.replace(["items"], [])
-				.build();
-		}
-		case TodoActionType.ClearCompleted: {
-			patches.replace(["editingId"], null);
-			for (let i = state.items.length - 1; i >= 0; i--) {
-				if (state.items[i]?.done) {
-					patches.remove(["items", i]);
-				}
-			}
-			return patches.build();
-		}
-		case TodoActionType.ToggleAll: {
-			for (let i = 0; i < state.items.length; i++) {
-				const done = state.items[i]?.done;
-				patches.replace(["items", i, "done"], !done);
-			}
-			return patches.build();
-		}
-		case TodoActionType.Add: {
-			const newItem = {
-				done: false,
-				text: action.value,
-				id: genId(state.counter),
-				editing: false,
-			};
-			return patches
-				.replace(["counter"], state.counter + 1)
-				.add(["items", IndexEnd], newItem)
-				.build();
-		}
-		case TodoActionType.SetDone: {
-			const index = findById(state.items, action.id);
-			if (index !== -1) {
-				patches.replace(["items", index, "done"], action.done);
-			}
-			return patches.build();
-		}
-		case TodoActionType.Remove: {
-			const index = findById(state.items, action.id);
-			if (index === -1) {
-				return patches.build();
-			}
-
-			patches.remove(["items", index]);
-			if (
-				typeof state.editingId === "string" &&
-				state.editingId === action.id
-			) {
-				patches.replace(["editingId"], null);
-			}
-
-			return patches.build();
-		}
-		case TodoActionType.StartEditing: {
-			const { id } = action;
-			patches.replace(["editingId"], id);
-			for (let i = 0; i < state.items.length; i++) {
-				const newValue = state.items[i]?.id === id;
-				if (state.items[i]?.editing !== newValue) {
-					patches.replace(["items", i, "editing"], newValue);
-				}
-			}
-			return patches.build();
-		}
-		case TodoActionType.StopEditing: {
-			if (state.editingId === null) {
-				return [];
-			}
-
-			patches.replace(["editingId"], null);
-			for (let i = 0; i < state.items.length; i++) {
-				if (state.items[i]?.editing === true) {
-					patches.replace(["items", i, "editing"], false);
-				}
-			}
-			return patches.build();
-		}
-		case TodoActionType.EditText: {
-			if (typeof state.editingId !== "string") {
-				return [];
-			}
-
-			const index = findById(state.items, state.editingId);
-			if (index === -1) {
-				return [];
-			}
-
-			return replacePatch(action.value, ["items", index, "text"]);
-		}
-		case TodoActionType.SetViewFilter: {
-			return replacePatch(action.viewFilter, ["viewFilter"]);
-		}
-		default: {
-			// @ts-expect-error action should be type never
-			throw new Error(`Unsupported action: ${action.type}`);
-		}
-	}
-};
-
-// enablePatches();
-// export const todoReducer: ReducerIF<TodoState, TodoAction> = fromReducerOnDraft(todoStateReducerOnDraft);
-export const todoReducer: ReducerIF<TodoState, TodoAction> =
-	fromReducerReturningPatches(getPatchesOnTodoState);
+export const todoReducer: ReducerIF<TodoState, TodoAction> = fromReducerOnDraft(
+	todoStateReducerOnDraft,
+);
