@@ -7,7 +7,7 @@ export enum RefTag {
 }
 
 /** Root object to keep track of the changes on a draft. */
-export interface Tracked<T> {
+export interface Root<T> {
 	/** True if and only if revoked. */
 	_finished: boolean;
 	/** Original value. */
@@ -20,13 +20,13 @@ export interface Tracked<T> {
 	readonly _track?: boolean;
 }
 
-export interface HasCurrent<T> extends Tracked<T> {
+export interface HasCurrent<T> extends Root<T> {
 	readonly _track: true;
 	_curr: T;
 }
 
 export interface TrackedRef<T> {
-	readonly _root: Tracked<T>;
+	readonly _root: Root<T>;
 	readonly _path: Path;
 	/** Tag for a copy/move/swap operation */
 	readonly _tag?: RefTag;

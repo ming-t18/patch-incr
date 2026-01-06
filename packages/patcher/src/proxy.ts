@@ -11,7 +11,7 @@ import {
 	METHOD_HANDLERS,
 	NON_MUTATING_ARRAY_METHODS,
 } from "./methods";
-import type { Tracked, TrackedRef } from "./types";
+import type { Root, TrackedRef } from "./types";
 
 export const originalRoot = <T = unknown>(value: T): T | undefined =>
 	isTrackedRef(value) ? (value[GetTarget]._root._orig as T) : undefined;
@@ -231,11 +231,11 @@ export const HANDLER: ProxyHandler<TrackedRef<unknown>> = {
 	},
 };
 
-const makeRef = <T>(root: Tracked<T>, path: Path) =>
+const makeRef = <T>(root: Root<T>, path: Path) =>
 	new Proxy({ _root: root, _path: path }, HANDLER);
 
 export const createDraft = <T>(target: T, track = true) => {
-	const root: Tracked<T> = {
+	const root: Root<T> = {
 		_finished: false,
 		_orig: target,
 		_curr: target,
