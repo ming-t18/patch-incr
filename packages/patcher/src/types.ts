@@ -25,7 +25,7 @@ export interface HasCurrent<T> extends Root<T> {
 	_curr: T;
 }
 
-export interface TrackedRef<T> {
+export interface Ref<T> {
 	readonly _root: Root<T>;
 	readonly _path: Path;
 	/** Tag for a copy/move/swap operation */
@@ -42,11 +42,7 @@ export type HandlerReturn = { value: unknown } | { path: Path };
 export interface HandlerSpec<T> {
 	mutating: boolean;
 	numArgs?: undefined | number | { min: number; max?: number };
-	handler: (
-		target: TrackedRef<T>,
-		prefix: Path,
-		args: unknown[],
-	) => HandlerReturn;
+	handler: (target: Ref<T>, prefix: Path, args: unknown[]) => HandlerReturn;
 }
 
 /**

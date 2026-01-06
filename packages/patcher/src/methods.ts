@@ -1,10 +1,10 @@
 import * as ap from "patch-incr/builder/array/helpers/arrayPatch";
 import { applyGet, PatchOp, type Path } from "patch-incr/patch";
 import { doPatch, toKey, unwrapTracked } from "./helpers";
-import type { MethodHandlers, TrackedRef } from "./types";
+import type { MethodHandlers, Ref } from "./types";
 
 /* Precondition: is tracked */
-const _current = <T>(target: TrackedRef<T>, path: Path) =>
+const _current = <T>(target: Ref<T>, path: Path) =>
 	applyGet(target._root._curr, path) as T;
 
 export const checkNumArgs = (

@@ -4,7 +4,7 @@ import {
 	type Patches,
 	type Path,
 } from "patch-incr/patch";
-import type { Root, TrackedRef } from "./types";
+import type { Ref, Root } from "./types";
 
 /**
  * Given a path element, converts it to a number if it is a
@@ -34,7 +34,7 @@ export const GetTarget = Symbol.for("patcher-GetTarget");
 
 export function isTrackedRef<T = unknown>(
 	value: unknown,
-): value is { [GetTarget]: TrackedRef<T> } {
+): value is { [GetTarget]: Ref<T> } {
 	// @ts-expect-error Accessing [GetTarget]
 	return value !== null && typeof value === "object" && !!value[GetTarget];
 }

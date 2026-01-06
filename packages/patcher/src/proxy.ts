@@ -11,7 +11,7 @@ import {
 	METHOD_HANDLERS,
 	NON_MUTATING_ARRAY_METHODS,
 } from "./methods";
-import type { Root, TrackedRef } from "./types";
+import type { Ref, Root } from "./types";
 
 export const originalRoot = <T = unknown>(value: T): T | undefined =>
 	isTrackedRef(value) ? (value[GetTarget]._root._orig as T) : undefined;
@@ -27,7 +27,7 @@ export const original = <T = unknown>(value: T): T | undefined => {
 		: undefined;
 };
 
-const currentFromRef = <T = unknown>(ref: TrackedRef<T>): T => {
+const currentFromRef = <T = unknown>(ref: Ref<T>): T => {
 	const { _path: path, _root: root } = ref;
 	return applyGet(root._track ? (root._curr as T) : undefined, path);
 };
@@ -59,7 +59,7 @@ export const isTracked = <T = unknown>(value: T): boolean =>
 export type AnyFunc = (...args: any[]) => any;
 
 const makeMethodHandler = <T = unknown>(
-	target: TrackedRef<T>,
+	target: Ref<T>,
 	parent: T,
 	_actualFunc: AnyFunc,
 	methodName: string,
@@ -89,12 +89,12 @@ const makeMethodHandler = <T = unknown>(
 	};
 };
 
-const _getRef = <T = unknown>(target: TrackedRef<T>, key: string) => {
+const _getRef = <T = unknown>(target: Ref<T>, key: string) => {
 	const path1 = [...target._path, toKey(key)];
 	return makeRef(target._root, path1);
 };
 
-export const HANDLER: ProxyHandler<TrackedRef<unknown>> = {
+export const HANDLER: ProxyHandler<Ref<unknown>> = {
 	get(target, key, receiver) {
 		if (key === GetTarget) {
 			return target;
