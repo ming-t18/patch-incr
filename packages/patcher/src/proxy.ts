@@ -61,7 +61,7 @@ export type AnyFunc = (...args: any[]) => any;
 const makeMethodHandler = <T = unknown>(
 	target: TrackedRef<T>,
 	parent: T,
-	actualFunc: AnyFunc,
+	_actualFunc: AnyFunc,
 	methodName: string,
 ): AnyFunc => {
 	const method = METHOD_HANDLERS[methodName];
@@ -71,11 +71,9 @@ const makeMethodHandler = <T = unknown>(
 				`apply: Cannot call mutating array method ${methodName}`,
 			);
 		}
-		const bound = actualFunc.bind(parent);
-		return (...args: unknown[]) => {
-			// @ts-expect-error Passing ...args
-			return bound.apply(...args);
-		};
+		// @ts-expect-error Getting bound function
+		const bound: AnyFunc = parent[methodName];
+		return bound;
 	}
 
 	return (...args: unknown[]) => {
@@ -137,6 +135,15 @@ export const HANDLER: ProxyHandler<TrackedRef<unknown>> = {
 			throw new Error("set: symbols are not supported");
 		}
 
+		if (target._root._track) {
+			const prevValue = applyGet(target._root._curr, [
+				...target._path,
+				toKey(key),
+			]);
+			if (Object.is(prevValue, value)) {
+				return true;
+			}
+		}
 		doPatch(target._root, [
 			{
 				op: PatchOp.Replace,

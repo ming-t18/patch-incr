@@ -185,6 +185,17 @@ describe("tracked mode", () => {
 						.build(),
 				);
 			});
+
+			it("should not generate patches for assigning into original value", () => {
+				const list = [2];
+				const draft1 = createDraft({ x: 1, y: list, z: NaN });
+				draft1.x = 1;
+				draft1.y = list;
+				draft1.z = 0.0 / 0.0;
+
+				// no change for these assignments
+				expect(patchesOnRoot(draft1)).toStrictEqual([]);
+			});
 		});
 	});
 
