@@ -264,7 +264,11 @@ export const record = <Ts extends Record<string, unknown>>(
 			return keys.find((k1) => k1 === path[0]) !== undefined;
 		}
 
-		return gens[path[0]].isValidPatchEntry(
+		const key = path[0];
+		if (!gens[key]) {
+			return false;
+		}
+		return gens[key].isValidPatchEntry(
 			value[path[0]] as never,
 			{
 				...entry,
