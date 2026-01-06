@@ -1,7 +1,7 @@
 import * as ap from "patch-incr/builder/array/helpers/arrayPatch";
 import { applyGet, PatchOp, type Path } from "patch-incr/patch";
 import { doPatch, toKey, unwrapTracked } from "./helpers";
-import type { MethodHandlers, Ref } from "./types";
+import type { HandlerSpecMap, MethodHandlers, Ref } from "./types";
 
 /* Precondition: is tracked */
 const _current = <T>(target: Ref<T>, path: Path) =>
@@ -28,7 +28,8 @@ export const checkNumArgs = (
 const convertNegativeIndex = (index: number, length: number) =>
 	index < 0 ? length - index : index;
 
-export const MAP_HANDLERS: MethodHandlers<Map<unknown, unknown>> = {
+// TODO support getOrInsert, getOrInsertComputed
+export const MAP_SPECS: HandlerSpecMap<Map<unknown, unknown>> = {
 	get: {
 		numArgs: 1,
 		mutating: false,
@@ -65,7 +66,7 @@ export const MAP_HANDLERS: MethodHandlers<Map<unknown, unknown>> = {
 	},
 };
 
-export const ARRAY_HANDLERS: MethodHandlers<unknown[]> = {
+export const ARRAY_SPECS: HandlerSpecMap<unknown[]> = {
 	push: {
 		numArgs: undefined,
 		mutating: true,
@@ -219,7 +220,7 @@ export const ARRAY_HANDLERS: MethodHandlers<unknown[]> = {
 	},
 };
 
-export const NON_MUTATING_ARRAY_METHODS = new Set([
+const NON_MUTATING_ARRAY_METHODS = new Set([
 	"concat",
 	"every",
 	"filter",
@@ -243,7 +244,20 @@ export const NON_MUTATING_ARRAY_METHODS = new Set([
 	"reduceRight",
 ]);
 
-export const METHOD_HANDLERS: MethodHandlers<unknown> = {
-	...MAP_HANDLERS,
-	...ARRAY_HANDLERS,
-} as never;
+const NON_MUTATING_MAP_METHODS = new Set([
+	"keys",
+	"values",
+	"entries",
+	"forEach",
+	"set",
+]);
+
+export const ARRAY_HANDLERS: MethodHandlers<unknown[]> = {
+	handlers: ARRAY_SPECS,
+	original: NON_MUTATING_ARRAY_METHODS,
+};
+
+export const MAP_HANDLERS: MethodHandlers<Map<unknown, unknown>> = {
+	handlers: MAP_SPECS,
+	original: NON_MUTATING_MAP_METHODS,
+};

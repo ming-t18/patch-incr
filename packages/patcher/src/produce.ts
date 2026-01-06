@@ -9,7 +9,7 @@ import {
 
 export const NOTHING = Symbol.for("immer-nothing");
 
-type Void = void;
+type Void = undefined;
 export type Recipe1<T, Args extends unknown[] = []> = (
 	draft: T,
 	...args: Args

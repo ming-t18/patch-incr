@@ -6,12 +6,8 @@ import {
 	toKey,
 	unwrapTracked,
 } from "./helpers";
-import {
-	checkNumArgs,
-	METHOD_HANDLERS,
-	NON_MUTATING_ARRAY_METHODS,
-} from "./methods";
-import type { Ref, Root } from "./types";
+import { ARRAY_HANDLERS, checkNumArgs, MAP_HANDLERS } from "./methods";
+import type { MethodHandlers, Ref, Root } from "./types";
 
 export const originalRoot = <T = unknown>(value: T): T | undefined =>
 	isTrackedRef(value) ? (value[GetTarget]._root._orig as T) : undefined;
@@ -64,12 +60,22 @@ const makeMethodHandler = <T = unknown>(
 	_actualFunc: AnyFunc,
 	methodName: string,
 ): AnyFunc => {
-	const method = METHOD_HANDLERS[methodName];
+	let handlers: MethodHandlers<T> | undefined;
+	if (parent instanceof Map) {
+		handlers = MAP_HANDLERS as never;
+	} else if (Array.isArray(parent)) {
+		handlers = ARRAY_HANDLERS as never;
+	}
+
+	// TODO support Set handlers
+	if (!handlers) {
+		throw new TypeError(`apply: No supported method handlers: ${methodName}`);
+	}
+
+	const method = handlers.handlers[methodName];
 	if (!method) {
-		if (Array.isArray(parent) && !NON_MUTATING_ARRAY_METHODS.has(methodName)) {
-			throw new TypeError(
-				`apply: Cannot call mutating array method ${methodName}`,
-			);
+		if (!handlers.original.has(methodName)) {
+			throw new TypeError(`apply: Unsupported method: ${methodName}`);
 		}
 		// @ts-expect-error Getting bound function
 		const bound: AnyFunc = parent[methodName];

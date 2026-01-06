@@ -47,7 +47,12 @@ export interface HandlerSpec<T> {
 	handler: (target: Ref<T>, prefix: Path, args: unknown[]) => HandlerReturn;
 }
 
+export type HandlerSpecMap<T> = Record<string, HandlerSpec<T>>;
+
 /**
  * Contains handlers for collection methods such as `push` and `pop` for arrays.
  */
-export type MethodHandlers<T> = Record<string, HandlerSpec<T>>;
+export interface MethodHandlers<T> {
+	handlers: HandlerSpecMap<T>;
+	original: Set<string>;
+}
