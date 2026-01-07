@@ -239,10 +239,21 @@ describe("tracked mode", () => {
 		// Different from Immer's behavior
 		it("should reference by path not by value", () => {
 			const ref = draft.c[0]!;
-			draft.c[0] = { x: 5, y: [50] };
-			expect(ref.x).toBe(5);
-			expect(ref.y!.length).toBe(1);
-			expect(ref.y[0]).toBe(50);
+			draft.c[0] = { x: 5, y: [50, 55] };
+			expect(current(ref)).toStrictEqual({ x: 5, y: [50, 55] });
+		});
+
+		it("should be affected by aliased reference changing", () => {
+			const ref = draft.c[0]!;
+			const value = { x: 5, y: [50, 55] };
+			draft.c[0] = value;
+			draft.c[1] = value;
+			draft.c[1].x = 1;
+			expect(current(ref)).toStrictEqual({ x: 5, y: [50, 55] });
+			expect(current(draft.c)).toStrictEqual([
+				{ x: 5, y: [50, 55] },
+				{ x: 1, y: [50, 55] },
+			]);
 		});
 	});
 
