@@ -6,13 +6,19 @@ import type { CreateDraftOptions, MethodHandlers, Ref, Root } from "./types";
 export const originalRoot = <T = unknown>(value: T): T | undefined =>
 	isRef(value) ? (value[GetTarget]._root._orig as T) : undefined;
 
+/**
+ * Gets the original value of a draft, or undefined if the value is not a draft.
+ *
+ * A draft holds the path to a value and it is possible for the value to no longer
+ * exist. In that case an exception would be thrown.
+ */
 export const original = <T = unknown>(value: T): T | undefined => {
 	if (!isRef(value)) {
 		return undefined;
 	}
 
 	const target = value[GetTarget];
-	return isRef(value) ? applyGet(target._root._orig, target._path) : undefined;
+	return applyGet(target._root._orig, target._path);
 };
 
 const currentFromRef = <T = unknown>(ref: Ref<T>): T => {
@@ -20,25 +26,26 @@ const currentFromRef = <T = unknown>(ref: Ref<T>): T => {
 	return applyGet(root._track ? (root._curr as T) : undefined, path);
 };
 
+/**
+ * Gets the current value of a draft, or undefined if the value is not a draft.
+ *
+ * A draft holds the path to a value and it is possible for the value to no longer
+ * exist. In that case an exception would be thrown.
+ */
 export const current = <T = unknown>(value: T): T | undefined =>
 	isRef<T>(value) ? currentFromRef<T>(value[GetTarget]) : undefined;
 
+/** Gets the path to a draft, or undefined if it not a draft. */
 export const currentPath = <T = unknown>(value: T): Path | undefined =>
 	isRef<T>(value) ? value[GetTarget]._path : undefined;
 
+/** Determines if a value is a valid and not finished draft. */
 export const isDraft = <T = unknown>(value: T): boolean =>
 	isRef<T>(value) ? !value[GetTarget]._root._finished : false;
 
-export const patchesOnRoot = <T = unknown>(
-	value: T,
-): Patches<T> | undefined => {
-	if (!isRef(value)) {
-		return undefined;
-	}
-
-	const root = value[GetTarget]._root;
-	return root._patches as Patches<T>;
-};
+/** Given a draft, gets the patches applied on the *root object* of this draft. */
+export const patchesOnRoot = <T = unknown>(value: T): Patches<T> | undefined =>
+	isRef(value) ? (value[GetTarget]._root._patches as Patches<T>) : undefined;
 
 export const isTracked = <T = unknown>(value: T): boolean =>
 	isRef(value) ? (value[GetTarget]._root._track ?? false) : false;

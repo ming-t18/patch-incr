@@ -9,6 +9,7 @@ export {
 	current,
 	currentPath,
 	finishDraft,
+	isDraft,
 	original,
 	originalRoot,
 	patchesOnRoot,
