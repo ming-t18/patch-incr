@@ -1,5 +1,11 @@
 import { applyGet, type Patches, PatchOp, type Path } from "patch-incr/patch";
-import { doPatch, GetTarget, isRef, toKey, unwrapTracked } from "./helpers";
+import {
+	applyPatchesOnRoot,
+	GetTarget,
+	isRef,
+	toKey,
+	unwrapTracked,
+} from "./helpers";
 import { ARRAY_HANDLERS, checkNumArgs, MAP_HANDLERS } from "./methods";
 import type { CreateDraftOptions, MethodHandlers, Ref, Root } from "./types";
 
@@ -167,7 +173,7 @@ export const HANDLER: ProxyHandler<Ref<unknown>> = {
 			}
 		}
 
-		doPatch(target._root, [
+		applyPatchesOnRoot(target, [
 			{
 				op: PatchOp.Replace,
 				path: [...target._path, toKey(key)],
@@ -181,7 +187,7 @@ export const HANDLER: ProxyHandler<Ref<unknown>> = {
 			throw new Error("symbols are not supported");
 		}
 
-		doPatch(target._root, [
+		applyPatchesOnRoot(target, [
 			{ op: PatchOp.Remove, path: [...target._path, toKey(key)] },
 		]);
 		return true;

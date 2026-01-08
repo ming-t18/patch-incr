@@ -1,6 +1,6 @@
 import * as ap from "patch-incr/builder/array/helpers/arrayPatch";
 import { applyGet, PatchOp, type Path } from "patch-incr/patch";
-import { doPatch, toKey, unwrapTracked } from "./helpers";
+import { applyPatchesOnRoot, toKey, unwrapTracked } from "./helpers";
 import type { HandlerSpecMap, MethodHandlers, Ref } from "./types";
 
 /* Precondition: is tracked */
@@ -53,7 +53,7 @@ export const MAP_SPECS: HandlerSpecMap<Map<unknown, unknown>> = {
 		numArgs: 2,
 		mutating: true,
 		handler: (target, path, [key, value]) => {
-			doPatch(target._root, [
+			applyPatchesOnRoot(target, [
 				{
 					op: PatchOp.Replace,
 					path: [...path, toKey(key as never)],
@@ -71,8 +71,8 @@ export const ARRAY_SPECS: HandlerSpecMap<unknown[]> = {
 		numArgs: undefined,
 		mutating: true,
 		handler: (target, path, values) => {
-			doPatch(
-				target._root,
+			applyPatchesOnRoot(
+				target,
 				values.toReversed().map((value) => ({
 					op: PatchOp.Add,
 					path: [...path, "-"],
@@ -90,7 +90,7 @@ export const ARRAY_SPECS: HandlerSpecMap<unknown[]> = {
 			if (arr.length === 0) {
 				return { value: undefined };
 			}
-			doPatch(target._root, [
+			applyPatchesOnRoot(target, [
 				{
 					op: PatchOp.Remove,
 					path: [...path, 0],
@@ -104,8 +104,8 @@ export const ARRAY_SPECS: HandlerSpecMap<unknown[]> = {
 		mutating: true,
 		handler: (target, path, values) => {
 			const arr = _current<unknown[]>(target, path);
-			doPatch(
-				target._root,
+			applyPatchesOnRoot(
+				target,
 				values.toReversed().map((value) => ({
 					op: PatchOp.Add,
 					path: [...path, 0],
@@ -126,7 +126,9 @@ export const ARRAY_SPECS: HandlerSpecMap<unknown[]> = {
 
 			const idx = arr.length - 1;
 			const last = arr[idx];
-			doPatch(target._root, [{ op: PatchOp.Remove, path: [...path, idx] }]);
+			applyPatchesOnRoot(target, [
+				{ op: PatchOp.Remove, path: [...path, idx] },
+			]);
 			return { value: last };
 		},
 	},
@@ -152,8 +154,8 @@ export const ARRAY_SPECS: HandlerSpecMap<unknown[]> = {
 			}
 
 			const toAdd = args.slice(2);
-			doPatch(
-				target._root,
+			applyPatchesOnRoot(
+				target,
 				ap
 					.splice(start, deleteCount, toAdd)
 					.map((e) => ({ ...e, path: [...path, ...e.path] })),
@@ -168,7 +170,7 @@ export const ARRAY_SPECS: HandlerSpecMap<unknown[]> = {
 		handler: (target, path, _) => {
 			const arr = _current<unknown[]>(target, path);
 			const reversed = arr.toReversed();
-			doPatch(target._root, [
+			applyPatchesOnRoot(target, [
 				{
 					op: PatchOp.Replace,
 					path: path,
@@ -184,7 +186,7 @@ export const ARRAY_SPECS: HandlerSpecMap<unknown[]> = {
 		handler: (target, path, args) => {
 			const arr = _current<unknown[]>(target, path);
 			const sorted = arr.toSorted(...(args as never[]));
-			doPatch(target._root, [
+			applyPatchesOnRoot(target, [
 				{
 					op: PatchOp.Replace,
 					path: path,

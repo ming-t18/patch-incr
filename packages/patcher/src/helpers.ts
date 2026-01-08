@@ -4,7 +4,7 @@ import {
 	type Patches,
 	type Path,
 } from "patch-incr/patch";
-import type { Ref, Root } from "./types";
+import type { Ref } from "./types";
 
 /**
  * Given a path element, converts it to a number if it is a
@@ -21,7 +21,10 @@ export const toKey = (key: string): Path[number] => {
 	return key;
 };
 
-export const doPatch = <T>(root: Root<T>, patches: Patches<T>) => {
+export const applyPatchesOnRoot = <T>(
+	{ _root: root }: Ref<T>,
+	patches: Patches<T>,
+) => {
 	root._patches.push(...patches);
 	if (!root._track) {
 		return;
