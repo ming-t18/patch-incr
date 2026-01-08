@@ -56,3 +56,7 @@ export interface MethodHandlers<T> {
 	handlers: HandlerSpecMap<T>;
 	original: Set<string>;
 }
+
+export interface CreateDraftOptions {
+	track?: boolean;
+}

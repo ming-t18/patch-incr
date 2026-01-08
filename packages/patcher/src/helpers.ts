@@ -22,11 +22,11 @@ export const toKey = (key: string): Path[number] => {
 };
 
 export const doPatch = <T>(root: Root<T>, patches: Patches<T>) => {
+	root._patches.push(...patches);
 	if (!root._track) {
 		return;
 	}
 
-	root._patches.push(...patches);
 	root._curr = applyPatches(root._curr, patches, root._alreadyCopied);
 };
 

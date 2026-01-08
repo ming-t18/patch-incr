@@ -1,7 +1,7 @@
 import { applyGet, type Patches, PatchOp, type Path } from "patch-incr/patch";
 import { doPatch, GetTarget, isRef, toKey, unwrapTracked } from "./helpers";
 import { ARRAY_HANDLERS, checkNumArgs, MAP_HANDLERS } from "./methods";
-import type { MethodHandlers, Ref, Root } from "./types";
+import type { CreateDraftOptions, MethodHandlers, Ref, Root } from "./types";
 
 export const originalRoot = <T = unknown>(value: T): T | undefined =>
 	isRef(value) ? (value[GetTarget]._root._orig as T) : undefined;
@@ -37,7 +37,7 @@ export const patchesOnRoot = <T = unknown>(
 	}
 
 	const root = value[GetTarget]._root;
-	return root._track ? (root._patches as Patches<T>) : undefined;
+	return root._patches as Patches<T>;
 };
 
 export const isTracked = <T = unknown>(value: T): boolean =>
@@ -251,7 +251,8 @@ export const HANDLER: ProxyHandler<Ref<unknown>> = {
 const makeRef = <T>(root: Root<T>, path: Path) =>
 	new Proxy({ _root: root, _path: path }, HANDLER);
 
-export const createDraft = <T>(target: T, track = true) => {
+export const createDraft = <T>(target: T, opts?: CreateDraftOptions) => {
+	const track = opts?.track ?? true;
 	const root: Root<T> = {
 		_finished: false,
 		_orig: target,
