@@ -1,4 +1,10 @@
-import { applyGet, type Patches, PatchOp, type Path } from "patch-incr/patch";
+import {
+	applyGet,
+	type Patches,
+	PatchOp,
+	type Path,
+	shallowCopy,
+} from "patch-incr/patch";
 import {
 	applyPatchesOnRoot,
 	GetTarget,
@@ -7,7 +13,13 @@ import {
 	unwrapTracked,
 } from "./helpers";
 import { ARRAY_HANDLERS, checkNumArgs, MAP_HANDLERS } from "./methods";
-import type { CreateDraftOptions, MethodHandlers, Ref, Root } from "./types";
+import {
+	type CreateDraftOptions,
+	type MethodHandlers,
+	type Ref,
+	RefTag,
+	type Root,
+} from "./types";
 
 export const originalRoot = <T = unknown>(value: T): T | undefined =>
 	isRef(value) ? (value[GetTarget]._root._orig as T) : undefined;
@@ -173,13 +185,7 @@ export const HANDLER: ProxyHandler<Ref<unknown>> = {
 			}
 		}
 
-		applyPatchesOnRoot(target, [
-			{
-				op: PatchOp.Replace,
-				path: [...target._path, toKey(key)],
-				value: unwrapTracked(value),
-			},
-		]);
+		handleSet(target, key, value);
 		return true;
 	},
 	deleteProperty(target, key) {
@@ -296,3 +302,61 @@ export const finishDraft = <T>(target: T) => {
 	delete root._curr;
 	return res;
 };
+
+function handleSet<T = unknown>(target: Ref<T>, key: string, value: unknown) {
+	const assigneeTarget = isRef(value) ? value[GetTarget] : undefined;
+	const tag = assigneeTarget?._tag;
+	const path = [...target._path, toKey(key)];
+	if (!tag) {
+		applyPatchesOnRoot(target, [
+			{
+				op: PatchOp.Replace,
+				path,
+				value: unwrapTracked(value),
+			},
+		]);
+		return;
+	}
+
+	if (!target._root._track) {
+		throw new Error("must be tracked to copy/move/swap");
+	}
+
+	if (tag === RefTag.Copy) {
+		applyPatchesOnRoot(target, [
+			{
+				op: PatchOp.Replace,
+				path,
+				value: shallowCopy(unwrapTracked(value)),
+			},
+		]);
+	} else if (tag === RefTag.Move) {
+		const deleted = unwrapTracked(value);
+		applyPatchesOnRoot(target, [
+			{
+				op: PatchOp.Remove,
+				path: assigneeTarget._path,
+			},
+			{
+				op: PatchOp.Add,
+				path,
+				value: deleted,
+			},
+		]);
+	} else if (tag === RefTag.Swap) {
+		const a = unwrapTracked(value);
+		const b = applyGet(target._root._curr, path);
+		applyPatchesOnRoot(target, [
+			{
+				op: PatchOp.Replace,
+				path,
+				value: a,
+			},
+			{
+				op: PatchOp.Replace,
+				path: assigneeTarget._path,
+				value: b,
+			},
+		]);
+	}
+}

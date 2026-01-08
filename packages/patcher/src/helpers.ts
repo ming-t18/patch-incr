@@ -21,7 +21,7 @@ export const toKey = (key: string): Path[number] => {
 	return key;
 };
 
-export const applyPatchesOnRoot = <T>(
+export const applyPatchesOnRoot = <T = unknown>(
 	{ _root: root }: Ref<T>,
 	patches: Patches<T>,
 ) => {
@@ -53,3 +53,5 @@ export const unwrapTracked = (value: unknown): unknown => {
 
 	return value;
 };
+
+export const getRefTag = <T = unknown>({ _tag: tag }: Ref<T>) => tag;
