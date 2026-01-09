@@ -271,7 +271,8 @@ const makeRef = <T>(root: Root<T>, path: Path) =>
 	new Proxy({ _root: root, _path: path }, HANDLER);
 
 export const createDraft = <T>(target: T, opts?: CreateDraftOptions) => {
-	const track = opts?.track ?? true;
+	// TODO support noCopy and extended
+	const track = !(opts?.untracked ?? false);
 	const root: Root<T> = {
 		_finished: false,
 		_orig: target,

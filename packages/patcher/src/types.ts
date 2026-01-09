@@ -57,6 +57,14 @@ export interface MethodHandlers<T> {
 	original: Set<string>;
 }
 
+/**
+ * Options provided to `produceWithPatches` and `createDraft`.
+ */
 export interface CreateDraftOptions {
-	track?: boolean;
+	/** Track the changes applied on the object. Defualt false. */
+	untracked?: boolean;
+	/** Don't shallow copy before assigning. Default false. */
+	noCopy?: boolean;
+	/** Generate extended patches for move/copy/swap. Default false. */
+	extended?: boolean;
 }
