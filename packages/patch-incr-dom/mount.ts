@@ -90,14 +90,15 @@ export class DOMRoot<State, Action> {
 
 	initialize(): DOMConstruction {
 		const sd: StateDispatch<State, Action> = this.#sd();
-		this.#domc = this.render.evaluate(sd);
+		const domc = this.render.evaluate(sd);
+		this.#domc = domc;
 		if (this.debug) {
 			console.log("First Render ---", {
 				state: this.#state,
-				domc: this.#domc,
+				domc,
 			});
 		}
-		renderDOM(this.root, this.#domc);
-		return this.#domc;
+		renderDOM(this.root, domc);
+		return domc;
 	}
 }
