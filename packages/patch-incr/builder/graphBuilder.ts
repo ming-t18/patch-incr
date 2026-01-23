@@ -1,4 +1,4 @@
-import { liftPatch, PatchBuilder, type Patches } from "../patch";
+import { liftPatches, PatchBuilder, type Patches } from "../patch";
 import type { IF } from "../types";
 
 export type DepsList = number[];
@@ -40,13 +40,13 @@ export const fromGraph = <
 				const fromDeps = deps.map((i) => output[i]);
 				const input1 = [input, ...fromDeps];
 				const changes1 = PatchBuilder.empty();
-				changes1.concat(liftPatch(0, changes));
+				changes1.concat(liftPatches(0, changes));
 				for (const iDep of deps) {
-					changes1.concat(liftPatch(iDep + 1, depChanges[iDep]));
+					changes1.concat(liftPatches(iDep + 1, depChanges[iDep]));
 				}
 				const newDepChanges = func.forward(input1, changes1.build(), output[i]);
 				depChanges.push(newDepChanges);
-				patches.concat(liftPatch(i, newDepChanges));
+				patches.concat(liftPatches(i, newDepChanges));
 				i++;
 			}
 			return patches.build();

@@ -1,4 +1,9 @@
-import { applyPatches, liftPatch, type Patches, replacePatch } from "../patch";
+import {
+	applyPatches,
+	liftPatches,
+	type Patches,
+	replacePatches,
+} from "../patch";
 import * as ps from "../patchSchema";
 import type { PatchSchema } from "../patchSchema/types";
 import type {
@@ -44,16 +49,16 @@ export const cond = <Input, A, B, DInput = Patches<Input>>(
 			const nextBranch = cond(next);
 			if (nextBranch === branch) {
 				return branch
-					? liftPatch(1 as const, left.forward(input, change, out))
-					: liftPatch(1 as const, right.forward(input, change, out));
+					? liftPatches(1 as const, left.forward(input, change, out))
+					: liftPatches(1 as const, right.forward(input, change, out));
 			}
 
 			return nextBranch
-				? replacePatch([false, left.evaluate(next)] as never as CondOutput<
+				? replacePatches([false, left.evaluate(next)] as never as CondOutput<
 						A,
 						B
 					>)
-				: replacePatch([true, right.evaluate(next)] as never as CondOutput<
+				: replacePatches([true, right.evaluate(next)] as never as CondOutput<
 						A,
 						B
 					>);

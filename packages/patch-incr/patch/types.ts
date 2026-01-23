@@ -56,6 +56,7 @@ export interface PatchSwap<P extends Path = Path, From extends Path = Path> {
 
 export type Targeted<T> = HasTypes<"patchTarget", T>;
 
+// TODO rename PatchEntry -> Patch
 // biome-ignore lint/suspicious/noExplicitAny: intentional
 export type PatchEntry<Target = any, P extends Path = Path> = (
 	| PatchRemove<P>

@@ -7,7 +7,7 @@ export {
 export { applyPatches, canApplyPatches } from "./apply";
 export { ApplyPatchesError } from "./error";
 export {
-	addPatch,
+	addPatches,
 	combinePatches,
 	consPath,
 	InvalidPatchEntry,
@@ -15,14 +15,14 @@ export {
 	isEmptyPatches,
 	isReplaceRoot,
 	isReplaceRootEntry,
-	liftPatch,
+	liftPatches,
 	makeReplaceRootEntry,
 	PatchBuilder,
-	removePatch,
-	replacePatch,
+	removePatches,
+	replacePatches,
 	tryDeconsPath,
-	unliftPatch,
 	unliftPatchEntry,
+	unliftPatches,
 } from "./helpers";
 export type { ReduceEntry } from "./reduce";
 export {

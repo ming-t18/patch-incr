@@ -1,11 +1,13 @@
 import type { PatchEntry, Patches, PatchReplace, Path } from "./types";
 import { PatchOp } from "./types";
 
+// TODO rename PatchEntry -> Patch
+
 export const isEmptyPatches = (entry: Patches) => {
 	return entry.length === 0;
 };
 
-export const removePatch = <Target>(path = [] as Path): Patches<Target> => [
+export const removePatches = <Target>(path = [] as Path): Patches<Target> => [
 	{
 		op: PatchOp.Remove,
 		path,
@@ -18,7 +20,7 @@ export interface AddPatchFunc {
 	<Value, Target>(value: Value, path: Path): Patches<Target>;
 }
 
-export const addPatch: AddPatchFunc = <Value, Target>(
+export const addPatches: AddPatchFunc = <Value, Target>(
 	value: Value,
 	path = [] as Path,
 ): Patches<Target> => [
@@ -29,7 +31,7 @@ export const addPatch: AddPatchFunc = <Value, Target>(
 	},
 ];
 
-export const replacePatch: AddPatchFunc = <Value, Target>(
+export const replacePatches: AddPatchFunc = <Value, Target>(
 	value: Value,
 	path = [] as Path,
 ): Patches<Target> => [
@@ -53,7 +55,7 @@ export const tryDeconsPath = (path: Path): [string | number, Path] | null => {
 };
 
 /** Given a list of patches for `x`, returns the patches for `{ [key]: x }` */
-export const liftPatch = <Out>(
+export const liftPatches = <Out>(
 	prefix: string | number | Path,
 	patches: Patches,
 ): Patches<Out> => {
@@ -75,7 +77,7 @@ export const unliftPatchEntry = <Out>(
 	{ path, ...rest }: PatchEntry,
 ): PatchEntry<Out> => {
 	if (path.length === 0 || path[0] !== prefix) {
-		throw new Error("unliftPatch: invalid prefix");
+		throw new Error("unliftPatches: invalid prefix");
 	}
 	return {
 		...rest,
@@ -83,7 +85,7 @@ export const unliftPatchEntry = <Out>(
 	};
 };
 
-export const unliftPatch = <Out>(
+export const unliftPatches = <Out>(
 	prefix: string | number,
 	patches: Patches,
 ): Patches<Out> => patches.map((entry) => unliftPatchEntry(prefix, entry));
@@ -95,9 +97,9 @@ export const combinePatches = (a: Patches, b: Patches): Patches => [...a, ...b];
  * derived from the original `patches`,
  * or `null` of the patches affect the root.
  *
- * Opposite of `liftPatch`.
+ * Opposite of `liftPatches`.
  */
-export const projectPatch = <Target>(
+export const projectPatches = <Target>(
 	key: string | number,
 	patches: Patches,
 ): Patches<Target> | null => {

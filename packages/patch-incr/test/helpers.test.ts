@@ -1,6 +1,6 @@
 import fc from "fast-check";
-import { applyPatches, liftPatch } from "../patch";
-import { projectPatch } from "../patch/helpers";
+import { applyPatches, liftPatches } from "../patch";
+import { projectPatches } from "../patch/helpers";
 import * as ps from "../patchSchema";
 import * as gp from "./helpers/genPatched.test";
 
@@ -14,12 +14,12 @@ const gpArr = gp.array(gp.record({ value: gp.integer() }));
 const gpObj = gp.record({ bool: gp.boolean() });
 const gpRoot = gp.record({ arr: gpArr, str: gpStr, obj: gpObj });
 
-describe("liftPatch", () => {
+describe("liftPatches", () => {
 	it("should lift atomic value", () => {
 		fc.assert(
 			fc.property(gpStr.arb(), ({ value: str, patches: dStr }) => {
 				expect(applyPatches(str, dStr)).toEqual(
-					applyPatches({ str }, liftPatch("str", dStr)).str,
+					applyPatches({ str }, liftPatches("str", dStr)).str,
 				);
 			}),
 		);
@@ -29,7 +29,7 @@ describe("liftPatch", () => {
 		fc.assert(
 			fc.property(gpObj.arb(), ({ value: obj, patches: dObj }) => {
 				expect(applyPatches(obj, dObj)).toEqual(
-					applyPatches({ obj }, liftPatch("obj", dObj)).obj,
+					applyPatches({ obj }, liftPatches("obj", dObj)).obj,
 				);
 			}),
 		);
@@ -39,19 +39,19 @@ describe("liftPatch", () => {
 		fc.assert(
 			fc.property(gpArr.arb(), ({ value: arr, patches: dArr }) => {
 				expect(applyPatches(arr, dArr)).toEqual(
-					applyPatches({ arr }, liftPatch("arr", dArr)).arr,
+					applyPatches({ arr }, liftPatches("arr", dArr)).arr,
 				);
 			}),
 		);
 	});
 });
 
-describe("projectPatch", () => {
+describe("projectPatches", () => {
 	const arbKey = fc.constantFrom("arr", "str", "obj");
 	it("should return null if and only if the patch acts on root", () => {
 		fc.assert(
 			fc.property(arbKey, gpRoot.arb(), (key, { patches: dx }) => {
-				expect(projectPatch(key, dx) === null).toBe(
+				expect(projectPatches(key, dx) === null).toBe(
 					dx.findIndex((e) => e.path.length === 0) !== -1,
 				);
 			}),
@@ -61,7 +61,7 @@ describe("projectPatch", () => {
 	it("should not increase patch length", () => {
 		fc.assert(
 			fc.property(arbKey, gpRoot.arb(), (key, { patches: dx }) => {
-				const res = projectPatch(key, dx);
+				const res = projectPatches(key, dx);
 				fc.pre(res !== null);
 				return res.length <= dx.length;
 			}),
@@ -71,7 +71,7 @@ describe("projectPatch", () => {
 	it("should act on the target value", () => {
 		fc.assert(
 			fc.property(arbKey, gpRoot.arb(), (key, { value: x, patches: dx }) => {
-				const res = projectPatch(key, dx);
+				const res = projectPatches(key, dx);
 				fc.pre(res !== null);
 				// @ts-expect-error "any" type for [key]
 				const expected = applyPatches(x, dx)[key];

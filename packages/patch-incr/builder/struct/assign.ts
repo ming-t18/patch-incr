@@ -3,7 +3,7 @@ import {
 	applyPatches,
 	type Patches,
 	type Path,
-	replacePatch,
+	replacePatches,
 } from "../../patch";
 import type { IF } from "../../types";
 
@@ -16,7 +16,7 @@ export const assign = <Input, Output>(
 		for (const { path, getValue } of changes) {
 			value = applyPatches(
 				value,
-				replacePatch(getValue.evaluate(input), path),
+				replacePatches(getValue.evaluate(input), path),
 			) as never;
 		}
 		return value;

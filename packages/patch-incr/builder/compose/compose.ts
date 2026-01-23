@@ -1,5 +1,5 @@
 import { isReplaceOnly } from "../../algebra/replaceOnly";
-import { applyPatches, type Patches, replacePatch } from "../../patch";
+import { applyPatches, type Patches, replacePatches } from "../../patch";
 import * as ps from "../../patchSchema";
 import type { IF } from "../../types";
 
@@ -70,7 +70,7 @@ export const composePair1 = <Input, InputPassed, Interm, Output>(
 		}
 
 		if (isReplaceOnly(res)) {
-			return replacePatch(evaluateCompose(applyPatches(input, change)));
+			return replacePatches(evaluateCompose(applyPatches(input, change)));
 		}
 
 		const dx = res[0]?.inner ?? pairSchema.$[0].empty;
@@ -121,7 +121,7 @@ export const composePair2 = <Input, Interm, IntermSaved, Output>(
 		}
 
 		if (isReplaceOnly(res)) {
-			return replacePatch(evaluateCompose(applyPatches(input, change)));
+			return replacePatches(evaluateCompose(applyPatches(input, change)));
 		}
 
 		const dInterm = res[0]?.inner ?? pairSchema.$[0].empty;

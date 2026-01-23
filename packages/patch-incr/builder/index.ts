@@ -1,10 +1,10 @@
 import {
 	applyPatches,
-	liftPatch,
+	liftPatches,
 	type PatchEntry,
 	type Patches,
 	PatchOp,
-	replacePatch,
+	replacePatches,
 	type Targeted,
 } from "../patch";
 import type { Evaluate, IF, IFInv, NoForwardOutput } from "../types";
@@ -57,7 +57,7 @@ export const atomicFunc = <Input, Output>(
 		if (Object.is(newOutput, output)) {
 			return [];
 		}
-		return replacePatch(newOutput);
+		return replacePatches(newOutput);
 	};
 	return {
 		evaluate,
@@ -98,11 +98,11 @@ export const patchesBuilder: StructuralChangeBuilder<any, Patches> = {
 	liftIndex: <T, I extends number = number>(
 		index: I,
 		p: Patches<T>,
-	): Patches<Record<I, T>> => liftPatch(index, p),
+	): Patches<Record<I, T>> => liftPatches(index, p),
 	liftKey: <T, K extends string = string>(
 		key: K,
 		p: Patches<T>,
-	): Patches<Record<K, T>> => liftPatch(key, p),
+	): Patches<Record<K, T>> => liftPatches(key, p),
 };
 
 export { recurse } from "./recurse";

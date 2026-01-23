@@ -1,5 +1,5 @@
 import { getReplaceOnly, isReplaceOnly } from "../algebra/replaceOnly";
-import { applyPatches, type Patches, replacePatch } from "../patch";
+import { applyPatches, type Patches, replacePatches } from "../patch";
 import * as ps from "../patchSchema";
 import type { IF, NoForwardOutput } from "../types";
 
@@ -39,7 +39,7 @@ export const memoInterm = <Input extends WeakKey, Output, Interm>(
 			const y1 = pair1[0];
 			const x1 = applyPatches(x, dx);
 			memo.set(x1, pair1);
-			return replacePatch(y1);
+			return replacePatches(y1);
 		}
 
 		const res = pairSchema.analyze(dPair);

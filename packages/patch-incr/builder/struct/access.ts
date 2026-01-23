@@ -3,9 +3,9 @@ import {
 	applyPatches,
 	type Patches,
 	type Path,
-	replacePatch,
+	replacePatches,
 } from "../../patch";
-import { projectPatch } from "../../patch/helpers";
+import { projectPatches } from "../../patch/helpers";
 import type {
 	InferTypeFromRecordConstruction,
 	InferTypeFromTupleConstruction,
@@ -104,7 +104,7 @@ export const access = <
 		change: Patches<Input>,
 		_ignored?: Output,
 	): Patches<Output> => {
-		const res: Patches<Output> | null = projectPatch(key, change);
+		const res: Patches<Output> | null = projectPatches(key, change);
 		if (res !== null) {
 			return res;
 		}
@@ -112,7 +112,7 @@ export const access = <
 			const { path } = entry;
 			if (path.length === 0) {
 				const updated = applyPatches(input, change);
-				return replacePatch(evaluateAccess(updated));
+				return replacePatches(evaluateAccess(updated));
 			}
 		}
 		return [];

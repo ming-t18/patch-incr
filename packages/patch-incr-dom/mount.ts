@@ -1,4 +1,4 @@
-import { applyPatches, liftPatch, type Patches } from "patch-incr/patch";
+import { applyPatches, liftPatches, type Patches } from "patch-incr/patch";
 import type { IF, NoForwardOutput } from "patch-incr/types";
 import { patchDOM, renderDOM } from "./patch";
 import type { RenderIF, StateDispatch } from "./render";
@@ -73,7 +73,7 @@ export class DOMRoot<State, Action> {
 
 	#getPatches(actions: Action[]) {
 		const dState: Patches<State> = this.reducer.forward(this.#state, actions);
-		const dSD: Patches<StateDispatch<State, Action>> = liftPatch(
+		const dSD: Patches<StateDispatch<State, Action>> = liftPatches(
 			"state",
 			dState,
 		);

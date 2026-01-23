@@ -1,9 +1,9 @@
 import {
-	addPatch,
+	addPatches,
 	applyPatches,
 	type Patches,
-	removePatch,
-	replacePatch,
+	removePatches,
+	replacePatches,
 } from "patch-incr/patch";
 import { IndexEnd } from "patch-incr/patchSchema/types";
 import { elem, elem0, elemEvents } from "../construct";
@@ -35,46 +35,46 @@ if (shouldSkip) {
 		it("should change attribute", () => {
 			domPatchCoherent(
 				elem("div", { id: "id1" }),
-				replacePatch("id2", ["attrs", "id"]),
+				replacePatches("id2", ["attrs", "id"]),
 			);
 		});
 
 		it("should add attribute with Replace patch", () => {
 			domPatchCoherent(
 				elem("div", { id: "id1" }),
-				replacePatch("cls1", ["attrs", "class"]),
+				replacePatches("cls1", ["attrs", "class"]),
 			);
 		});
 
 		it("should add attribute with Add patch", () => {
 			domPatchCoherent(
 				elem("div", { id: "id1" }),
-				addPatch("cls1", ["attrs", "class"]),
+				addPatches("cls1", ["attrs", "class"]),
 			);
 		});
 
 		it("should remove attribute with Remove patch", () => {
 			domPatchCoherent(
 				elem("div", { id: "id1" }),
-				removePatch(["attrs", "id"]),
+				removePatches(["attrs", "id"]),
 			);
 		});
 
 		it("should do nothing when removing absent attribute", () => {
-			domPatchCoherent(elem("div", {}), removePatch(["attrs", "id"]));
+			domPatchCoherent(elem("div", {}), removePatches(["attrs", "id"]));
 		});
 
 		it("should delete all attributes", () => {
 			domPatchCoherent(
 				elem("div", { id: "id1", class: "cls1 cls2", style: "color: green;" }),
-				removePatch(["attrs"]),
+				removePatches(["attrs"]),
 			);
 		});
 
 		it("should add all attributes", () => {
 			domPatchCoherent(
 				elem("div"),
-				replacePatch(
+				replacePatches(
 					{
 						id: "id2",
 						"aria-hidden": "true",
@@ -87,7 +87,7 @@ if (shouldSkip) {
 		it("should replace all attributes", () => {
 			domPatchCoherent(
 				elem("div", { id: "id1", class: "cls1 cls2" }),
-				replacePatch(
+				replacePatches(
 					{
 						id: "id2",
 						"aria-hidden": "true",
@@ -125,7 +125,7 @@ if (shouldSkip) {
 			expect(onClick1).toHaveBeenCalledTimes(0);
 			expect(onKeyDown1).toHaveBeenCalledTimes(0);
 
-			patchDOM(root, domc, addPatch(onKeyDown1, ["events", "keydown"]));
+			patchDOM(root, domc, addPatches(onKeyDown1, ["events", "keydown"]));
 			root.firstChild?.dispatchEvent(new Event("keydown"));
 			expect(onClick1).toHaveBeenCalledTimes(0);
 			expect(onKeyDown1).toHaveBeenCalledTimes(1);
@@ -140,7 +140,7 @@ if (shouldSkip) {
 			expect(onClick1).toHaveBeenCalledTimes(1);
 			expect(onClick2).toHaveBeenCalledTimes(0);
 
-			patchDOM(root, domc, replacePatch(onClick2, ["events", "click"]));
+			patchDOM(root, domc, replacePatches(onClick2, ["events", "click"]));
 			root.firstChild?.dispatchEvent(new Event("click"));
 			expect(onClick1).toHaveBeenCalledTimes(1);
 			expect(onClick2).toHaveBeenCalledTimes(1);
@@ -151,7 +151,7 @@ if (shouldSkip) {
 			expect(onClick1).toHaveBeenCalledTimes(1);
 			expect(onClick2).toHaveBeenCalledTimes(0);
 
-			patchDOM(root, domc, removePatch(["events", "click"]));
+			patchDOM(root, domc, removePatches(["events", "click"]));
 			root.firstChild?.dispatchEvent(new Event("click"));
 			expect(onClick1).toHaveBeenCalledTimes(1);
 			expect(onClick2).toHaveBeenCalledTimes(0);
@@ -162,12 +162,12 @@ if (shouldSkip) {
 		it("should replace all children", () => {
 			domPatchCoherent(
 				elem("div", { id: "id1" }, ["text1"]),
-				replacePatch([elem0("em", ["updated"])], ["children"]),
+				replacePatches([elem0("em", ["updated"])], ["children"]),
 			);
 		});
 
 		it("should remove all children", () => {
-			domPatchCoherent(elem("div", { id: "id1" }), removePatch(["children"]));
+			domPatchCoherent(elem("div", { id: "id1" }), removePatches(["children"]));
 		});
 
 		describe("children is a list of elements", () => {
@@ -180,21 +180,21 @@ if (shouldSkip) {
 			describe("should insert new child", () => {
 				const newChild = elem0("li", ["newChild"]);
 				it("in the beginning", () => {
-					domPatchCoherent(listElem, addPatch(newChild, ["children", 0]));
+					domPatchCoherent(listElem, addPatches(newChild, ["children", 0]));
 				});
 
 				it("in the middle", () => {
-					domPatchCoherent(listElem, addPatch(newChild, ["children", 1]));
+					domPatchCoherent(listElem, addPatches(newChild, ["children", 1]));
 				});
 
 				it("in the end by index", () => {
-					domPatchCoherent(listElem, addPatch(newChild, ["children", 2]));
+					domPatchCoherent(listElem, addPatches(newChild, ["children", 2]));
 				});
 
 				it(`in the end by ${IndexEnd} path`, () => {
 					domPatchCoherent(
 						listElem,
-						addPatch(newChild, ["children", IndexEnd]),
+						addPatches(newChild, ["children", IndexEnd]),
 					);
 				});
 			});
@@ -204,36 +204,36 @@ if (shouldSkip) {
 				it("in the beginning", () => {
 					domPatchCoherent(
 						listElem,
-						replacePatch(replacedChild, ["children", 0]),
+						replacePatches(replacedChild, ["children", 0]),
 					);
 				});
 
 				it("in the middle", () => {
 					domPatchCoherent(
 						listElem,
-						replacePatch(replacedChild, ["children", 1]),
+						replacePatches(replacedChild, ["children", 1]),
 					);
 				});
 
 				it("in the end", () => {
 					domPatchCoherent(
 						listElem,
-						replacePatch(replacedChild, ["children", 2]),
+						replacePatches(replacedChild, ["children", 2]),
 					);
 				});
 			});
 
 			describe("should remove child", () => {
 				it("in the beginning", () => {
-					domPatchCoherent(listElem, removePatch(["children", 0]));
+					domPatchCoherent(listElem, removePatches(["children", 0]));
 				});
 
 				it("in the middle", () => {
-					domPatchCoherent(listElem, removePatch(["children", 1]));
+					domPatchCoherent(listElem, removePatches(["children", 1]));
 				});
 
 				it("in the end", () => {
-					domPatchCoherent(listElem, removePatch(["children", 2]));
+					domPatchCoherent(listElem, removePatches(["children", 2]));
 				});
 			});
 		});
@@ -262,37 +262,40 @@ if (shouldSkip) {
 				for (const { label, child } of newChilds) {
 					describe(`should insert new ${label} child`, () => {
 						it("in the beginning", () => {
-							domPatchCoherent(parent, addPatch(child, ["children", 0]));
+							domPatchCoherent(parent, addPatches(child, ["children", 0]));
 						});
 
 						it("in the middle 1", () => {
-							domPatchCoherent(parent, addPatch(child, ["children", 1]));
+							domPatchCoherent(parent, addPatches(child, ["children", 1]));
 						});
 
 						it("in the middle 2", () => {
-							domPatchCoherent(parent, addPatch(child, ["children", 2]));
+							domPatchCoherent(parent, addPatches(child, ["children", 2]));
 						});
 
 						it("in the end by index", () => {
-							domPatchCoherent(parent, addPatch(child, ["children", 3]));
+							domPatchCoherent(parent, addPatches(child, ["children", 3]));
 						});
 
 						it(`in the end by ${IndexEnd}`, () => {
-							domPatchCoherent(parent, addPatch(child, ["children", IndexEnd]));
+							domPatchCoherent(
+								parent,
+								addPatches(child, ["children", IndexEnd]),
+							);
 						});
 					});
 
 					describe("should replace existing child", () => {
 						it("in the beginning", () => {
-							domPatchCoherent(parent, replacePatch(child, ["children", 0]));
+							domPatchCoherent(parent, replacePatches(child, ["children", 0]));
 						});
 
 						it("in the middle 1", () => {
-							domPatchCoherent(parent, replacePatch(child, ["children", 1]));
+							domPatchCoherent(parent, replacePatches(child, ["children", 1]));
 						});
 
 						it("in the middle 2", () => {
-							domPatchCoherent(parent, replacePatch(child, ["children", 2]));
+							domPatchCoherent(parent, replacePatches(child, ["children", 2]));
 						});
 					});
 				}

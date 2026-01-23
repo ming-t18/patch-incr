@@ -8,7 +8,7 @@ import {
 	isAtomicValue,
 	PatchBuilder,
 	type Path,
-	replacePatch,
+	replacePatches,
 } from "../patch";
 import type { IF } from "../types";
 import * as gp from "./helpers/genPatched.test";
@@ -444,6 +444,6 @@ describe("GraphBuilder", () => {
 		const input = 5;
 		const _res = testCompose.evaluate(input);
 		// console.log(res);
-		ensurePatchCoherent(input, replacePatch<number>(15), testCompose);
+		ensurePatchCoherent(input, replacePatches<number>(15), testCompose);
 	});
 });

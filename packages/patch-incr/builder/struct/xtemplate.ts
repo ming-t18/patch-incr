@@ -1,6 +1,6 @@
 import {
 	applyPatches,
-	liftPatch,
+	liftPatches,
 	type Patches,
 	PatchOp,
 	type Path,
@@ -145,7 +145,7 @@ export function xtemplate<Input extends WeakKey, Output>(
 		dx: Patches<Input>,
 	): Patches<Output> =>
 		collected.flatMap(([path, func, memo]) =>
-			liftPatch(path, func.forward(input, dx, memo.get(input))),
+			liftPatches(path, func.forward(input, dx, memo.get(input))),
 		);
 
 	return {

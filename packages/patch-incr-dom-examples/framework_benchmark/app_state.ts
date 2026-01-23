@@ -1,8 +1,8 @@
 import {
 	PatchBuilder,
 	type Patches,
-	removePatch,
-	replacePatch,
+	removePatches,
+	replacePatches,
 } from "patch-incr/patch";
 import {
 	fromReducerReturningPatches,
@@ -131,9 +131,9 @@ export const getPatchesOnAppState = (
 	const patches = PatchBuilder.empty<AppState>();
 	switch (action.type) {
 		case ActionType.RUN:
-			return replacePatch({ data: buildData(1000), selected: 0 });
+			return replacePatches({ data: buildData(1000), selected: 0 });
 		case ActionType.RUN_LOTS:
-			return replacePatch({ data: buildData(10000), selected: 0 });
+			return replacePatches({ data: buildData(10000), selected: 0 });
 		case ActionType.ADD: {
 			for (const value of buildData(1000)) {
 				patches.add(["data", "-"], value);
@@ -148,7 +148,7 @@ export const getPatchesOnAppState = (
 			return patches.build();
 		}
 		case ActionType.CLEAR:
-			return replacePatch({ data: [], selected: 0 } as AppState);
+			return replacePatches({ data: [], selected: 0 } as AppState);
 		case ActionType.SWAP_ROWS: {
 			if (data.length <= 998) {
 				return patches.build();
@@ -161,10 +161,10 @@ export const getPatchesOnAppState = (
 		}
 		case ActionType.REMOVE: {
 			const idx = data.findIndex((d) => d.id === action.id);
-			return removePatch(["data", idx]);
+			return removePatches(["data", idx]);
 		}
 		case ActionType.SELECT: {
-			return replacePatch(action.id, ["selected"]);
+			return replacePatches(action.id, ["selected"]);
 		}
 	}
 

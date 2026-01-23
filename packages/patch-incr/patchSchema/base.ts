@@ -6,7 +6,7 @@ import {
 	type PatchEntry,
 	type Patches,
 	reduceReplaceRoot,
-	replacePatch,
+	replacePatches,
 } from "../patch";
 import type { PatchSchema } from "./types";
 
@@ -53,7 +53,7 @@ export class BasePatchSchema<T> implements PatchSchema<T> {
 	}
 
 	fromReplace(value: T) {
-		return replacePatch<T, never>(value, EMPTY as never);
+		return replacePatches<T, never>(value, EMPTY as never);
 	}
 
 	isEmpty(patches: Patches<T>) {
