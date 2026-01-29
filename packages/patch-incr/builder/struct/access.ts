@@ -120,6 +120,7 @@ export const access = <
 	return {
 		evaluate: evaluateAccess,
 		forward: forwardAccess,
+		isTrivial: true,
 	};
 };
 

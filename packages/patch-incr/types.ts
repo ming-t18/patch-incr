@@ -30,6 +30,20 @@ export type Forward<
 	? (input: Input, change: InputChange, output?: Output) => OutputChange
 	: (input: Input, change: InputChange, output: Output) => OutputChange;
 
+/**
+ * A patch-based incremental function.
+ *
+ * An `IF`, or `IncrementalFunction`, is a single-argument function
+ * that can convert incremental changes on `Input` into incremental
+ * changes on `Output` after evaluating it.
+ *
+ * @param Input The input type of the function
+ * @param Output The output type of the function
+ * @param InputChange The change type of the input, defaults to `Patches<Input>`
+ * @param OutputChange The change type of the output, defaults to `Patches<Output>`
+ * @param ForwardOutput A boolean determines whether the `forward` depends on the output.
+ * Set to `NoForwardOutput` if not, or `HasForwardOutput` (default) otherwise.
+ */
 export interface IncrementalFunction<
 	Input,
 	Output,
@@ -39,6 +53,14 @@ export interface IncrementalFunction<
 > {
 	evaluate: Evaluate<Input, Output>;
 	forward: Forward<Input, Output, InputChange, OutputChange, ForwardOutput>;
+	/**
+	 * Default false.
+	 *
+	 * Guides the memoing optimization of `IF` composition functions.
+	 * True to avoid memoing the results of `evaluate` and instead re-evaluate
+	 * the function in `forward` implementations.
+	 */
+	isTrivial?: boolean;
 	[TypesKey]?: {
 		input: Input;
 		output: Output;
@@ -47,6 +69,7 @@ export interface IncrementalFunction<
 	};
 }
 
+/** @see rementalFunction */
 export type IF<
 	Input,
 	Output,

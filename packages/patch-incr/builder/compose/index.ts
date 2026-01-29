@@ -49,3 +49,4 @@ export {
 	type Pipe,
 } from "./memo";
 export { composeWithInv as composeNoInterm } from "./noInterm";
+export { composeReeval } from "./reeval";

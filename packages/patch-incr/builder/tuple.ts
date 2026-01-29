@@ -32,6 +32,7 @@ export const comm = <A, B>(): IFInv<[A, B], [B, A]> => {
 
 				throw new InvalidPatchEntry("comm:", entry);
 			}),
+		isTrivial: true,
 	};
 };
 
@@ -101,6 +102,7 @@ export const assocRight = <A, B, C>(): IFInv<[[A, B], C], [A, [B, C]]> => {
 			}
 			return res as Patches<[A, [B, C]]>;
 		},
+		isTrivial: true,
 	};
 };
 
@@ -162,5 +164,6 @@ export const assocLeft = <A, B, C>(): IFInv<[A, [B, C]], [[A, B], C]> => {
 			}
 			return res as Patches<[[A, B], C]>;
 		},
+		isTrivial: true,
 	};
 };

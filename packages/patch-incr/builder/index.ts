@@ -21,6 +21,7 @@ export const identity = <Input, Change = Patches<Input>>(): IFInv<
 		evaluate: _identity,
 		inverseEvaluate: _identity,
 		forward: (_1, d) => d,
+		isTrivial: true,
 	};
 };
 
@@ -37,6 +38,7 @@ export const constant = <
 	return {
 		evaluate: (_: Input) => value,
 		forward: forwardConstant,
+		isTrivial: true,
 	};
 };
 

@@ -3,6 +3,7 @@ import type { Patches } from "../../patch";
 import type { IF } from "../../types";
 import { identity } from "..";
 
+// TOOD take isTrivial into account and avoid memoing
 export const composeMemoL = <
 	Input extends WeakKey,
 	Interm,
@@ -16,14 +17,16 @@ export const composeMemoL = <
 	memo0?: WeakMap<Input, Interm>,
 ): IF<Input, Output, InputChange, OutputChange> => {
 	const memo = memo0 ?? new WeakMap<Input, Interm>();
-	const evaluate1 = (x: Input): Interm => {
-		if (memo.has(x)) {
-			return memo.get(x) as Interm;
-		}
-		const v = f1.evaluate(x);
-		memo.set(x, v);
-		return v;
-	};
+	const evaluate1 = f1.isTrivial
+		? f1.evaluate
+		: (x: Input): Interm => {
+				if (memo.has(x)) {
+					return memo.get(x) as Interm;
+				}
+				const v = f1.evaluate(x);
+				memo.set(x, v);
+				return v;
+			};
 	return {
 		evaluate: (x: Input): Output => f2.evaluate(evaluate1(x)),
 		forward: (input: Input, change: InputChange, y: Output): OutputChange => {
