@@ -29,6 +29,9 @@ export type AnyTuple = any[];
 // biome-ignore lint/complexity/noBannedTypes: needed for type constraints
 export type AnyRecord = {};
 
+// biome-ignore lint/suspicious/noExplicitAny: needed for type constraints
+export type AnyArray = any[];
+
 export type InnerPatches<Object, Key extends keyof Object> = {
 	[key in Key]?: { path: [key]; inner: Patches<Object[key]> };
 };

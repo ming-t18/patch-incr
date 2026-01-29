@@ -1,0 +1,16 @@
+{
+  "name": "patch-incr-dual",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "patch-incr": "*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "patch-incr": "workspace:*"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
