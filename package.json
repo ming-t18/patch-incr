@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "workspaces": [
     "packages/patch-incr",
+    "packages/patch-incr-ijq",
     "packages/patcher",
     "packages/patch-incr-dual",
     "packages/patch-incr-dom",

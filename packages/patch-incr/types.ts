@@ -1,5 +1,6 @@
 import type { Apply, ApplyCombine } from "./algebra";
 import type { AccessTypes, TypesKey } from "./builder/typeHelpers";
+import type { HasHints } from "./hints";
 import type { Patches } from "./patch";
 
 export type { Apply } from "./algebra";
@@ -50,17 +51,9 @@ export interface IncrementalFunction<
 	InputChange = Patches<Input>,
 	OutputChange = Patches<Output>,
 	ForwardOutput extends boolean = HasForwardOutput,
-> {
+> extends HasHints {
 	evaluate: Evaluate<Input, Output>;
 	forward: Forward<Input, Output, InputChange, OutputChange, ForwardOutput>;
-	/**
-	 * Default false.
-	 *
-	 * Guides the memoing optimization of `IF` composition functions.
-	 * True to avoid memoing the results of `evaluate` and instead re-evaluate
-	 * the function in `forward` implementations.
-	 */
-	isTrivial?: boolean;
 	[TypesKey]?: {
 		input: Input;
 		output: Output;

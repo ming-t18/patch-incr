@@ -1,4 +1,5 @@
 import { MultiWeakMap } from "../../cache/weak_map";
+import { isTrivial } from "../../hints";
 import type { Patches } from "../../patch";
 import type { IF } from "../../types";
 import { identity } from "..";
@@ -17,7 +18,7 @@ export const composeMemoL = <
 	memo0?: WeakMap<Input, Interm>,
 ): IF<Input, Output, InputChange, OutputChange> => {
 	const memo = memo0 ?? new WeakMap<Input, Interm>();
-	const evaluate1 = f1.isTrivial
+	const evaluate1 = isTrivial(f1)
 		? f1.evaluate
 		: (x: Input): Interm => {
 				if (memo.has(x)) {

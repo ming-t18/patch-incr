@@ -1,3 +1,4 @@
+import { HINT_CONSTANT, HINT_IDENTITY, HINT_TRIVIAL } from "../hints";
 import {
 	applyPatches,
 	liftPatches,
@@ -21,7 +22,7 @@ export const identity = <Input, Change = Patches<Input>>(): IFInv<
 		evaluate: _identity,
 		inverseEvaluate: _identity,
 		forward: (_1, d) => d,
-		isTrivial: true,
+		hints: HINT_IDENTITY | HINT_TRIVIAL,
 	};
 };
 
@@ -38,7 +39,7 @@ export const constant = <
 	return {
 		evaluate: (_: Input) => value,
 		forward: forwardConstant,
-		isTrivial: true,
+		hints: HINT_CONSTANT | HINT_TRIVIAL,
 	};
 };
 

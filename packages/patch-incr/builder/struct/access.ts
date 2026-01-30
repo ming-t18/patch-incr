@@ -1,4 +1,5 @@
 import { getReplaceOnly, isReplaceOnly } from "../../algebra/replaceOnly";
+import { HINT_TRIVIAL } from "../../hints";
 import {
 	applyPatches,
 	type Patches,
@@ -120,7 +121,7 @@ export const access = <
 	return {
 		evaluate: evaluateAccess,
 		forward: forwardAccess,
-		isTrivial: true,
+		hints: HINT_TRIVIAL,
 	};
 };
 
