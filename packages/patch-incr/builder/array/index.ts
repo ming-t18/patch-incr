@@ -1,3 +1,4 @@
+export { cartesian, cartesianR } from "./cartesian";
 export { concat } from "./concat";
 export { filter } from "./filter";
 export { flatMap } from "./flatMap";
