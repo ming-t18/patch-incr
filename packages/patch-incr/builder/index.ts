@@ -10,6 +10,15 @@ import {
 } from "../patch";
 import type { Evaluate, IF, IFInv, NoForwardOutput } from "../types";
 
+/**
+ * Placeholder for type checking by checking the inferred type params. Throws an exception when called.
+ *
+ * Similar to the `_` expression for type checking holes.
+ */
+export const hole = <Input, Output>(): IF<Input, Output> => {
+	throw new Error("error: hole");
+};
+
 const _identity = <T>(x: T) => x;
 
 export const identity = <Input, Change = Patches<Input>>(): IFInv<
