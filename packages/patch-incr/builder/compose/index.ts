@@ -48,5 +48,10 @@ export {
 	MemoComposer,
 	type Pipe,
 } from "./memo";
-export { composeWithInv as composeNoInterm } from "./noInterm";
+export {
+	composeIFInv,
+	composeIFInv3,
+	composeIFInv4,
+	composeWithInv as composeNoInterm,
+} from "./noInterm";
 export { composeReeval } from "./reeval";

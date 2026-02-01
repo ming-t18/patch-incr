@@ -19,6 +19,10 @@ export const hole = <Input, Output>(): IF<Input, Output> => {
 	throw new Error("error: hole");
 };
 
+export const holeInv = <Input, Output>(): IFInv<Input, Output> => {
+	throw new Error("error: holeInv");
+};
+
 const _identity = <T>(x: T) => x;
 
 export const identity = <Input, Change = Patches<Input>>(): IFInv<
