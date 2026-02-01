@@ -1,4 +1,4 @@
-import { applyPatches, type Patches } from "patch-incr/patch";
+import { applyPatches } from "patch-incr/patch";
 import { create, createReplace, GetD, GetV } from "./dv";
 import type { BiDF, DF, DV } from "./types";
 
