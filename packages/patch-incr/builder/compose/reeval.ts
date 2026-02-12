@@ -1,6 +1,11 @@
 import type { Patches } from "../../patch";
 import type { IF } from "../../types";
 
+/**
+ * Composes two functions, re-evaluating the first function
+ * @param f1 The first function, will be re-evaluated in forward
+ * @param f2 The second function
+ */
 export const composeReeval = <
 	Input,
 	Interm,

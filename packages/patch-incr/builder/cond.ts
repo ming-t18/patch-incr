@@ -66,6 +66,51 @@ export const cond = <Input, A, B, DInput = Patches<Input>>(
 	};
 };
 
+export const condSingle = <
+	Input,
+	A,
+	B = A,
+	InputTrue extends Input = Input,
+	InputFalse extends Input = Input,
+	DInput = Patches<Input>,
+	DInputTrue = Patches<InputTrue>,
+	DInputFalse = Patches<InputFalse>,
+>(
+	cond: (value: Input) => boolean,
+	left: IF<InputTrue, A, DInputTrue>,
+	right: IF<InputFalse, B, DInputFalse>,
+	apply = applyPatches as (input: Input, change: DInput) => Input,
+): IF<Input, A | B, DInput> => {
+	const evaluate = (x: Input): A | B =>
+		cond(x) ? left.evaluate(x as InputTrue) : right.evaluate(x as InputFalse);
+
+	return {
+		evaluate,
+		forward: (input: Input, change: DInput, output: A | B): Patches<A | B> => {
+			const branch = cond(input);
+			const next = apply(input, change);
+			const nextBranch = cond(next);
+			if (nextBranch === branch) {
+				return branch
+					? left.forward(
+							input as InputTrue,
+							change as Patches as DInputTrue,
+							output as A,
+						)
+					: right.forward(
+							input as InputFalse,
+							change as Patches as DInputFalse,
+							output as B,
+						);
+			}
+
+			return nextBranch
+				? replacePatches(left.evaluate(next as InputTrue))
+				: replacePatches(right.evaluate(next as InputFalse));
+		},
+	};
+};
+
 export const switchCase = <
 	Case,
 	Input,

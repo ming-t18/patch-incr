@@ -1,4 +1,4 @@
-import type { AnyIF, IF, IFInv } from "../types";
+import type { IF, IFInv } from "../types";
 import { identity } from ".";
 import { composeReeval } from "./compose";
 import { access, tupleFor } from "./struct";
@@ -12,9 +12,13 @@ export const snd = <A, B>(): IF<[A, B], B> => access<B, 1, [A, B]>(1);
 export const pair = <I, A, B>(f1: IF<I, A>, f2: IF<I, B>): IF<I, [A, B]> =>
 	tupleFor<I>()(f1, f2);
 
-const _dup: AnyIF = pair(identity(), identity());
+const _dup = {
+	...pair(identity<any>(), identity<any>()),
+	inverseEvaluate: ([a, _]: [any, any]): any => a,
+};
+
 /** Similar to Arrow or Bifunctor `split` */
-export const dup = <A>(): IF<A, [A, A]> => _dup;
+export const dup = <A>(): IFInv<A, [A, A]> => _dup as never;
 
 /** Similar to Arrow or Bifunctor `(***)` */
 export const firstSecond = <A, B, A1, B1>(
