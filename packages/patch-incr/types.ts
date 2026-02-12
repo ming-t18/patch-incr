@@ -81,6 +81,20 @@ export interface InverseEvaluate<Input, Output> {
 	inverseEvaluate: (output: Output) => Input;
 }
 
+/**
+ * Incremental Function with Inverse Evaluate.
+ *
+ * An `IF` from `Input` to `Output` with an `inverseEvaluate` method
+ * for recovering the `Input` given `Output`.
+ *
+ * This interface exists allows an `IF` to be composed with an `IFInv`
+ * without a memo in the return value.
+ *
+ * `IFInv` is technically not an isomorphism in `IF` due to the lack of
+ * the inverse of `forward`.
+ *
+ * @see composeWthInv
+ */
 export type IFInv<
 	Input,
 	Output,
