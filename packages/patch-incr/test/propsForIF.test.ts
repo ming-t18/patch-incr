@@ -1,7 +1,8 @@
 import fc from "fast-check";
 import { atomicFunc, constant, identity } from "../builder";
 import { concat, map } from "../builder/array";
-import { compose, composeNoInterm } from "../builder/compose";
+import { compose } from "../builder/compose";
+import { composeWithInv } from "../builder/compose/noInterm";
 import { comm } from "../builder/tuple";
 import type { IF } from "../types";
 import * as gp from "./helpers/genPatched.test";
@@ -157,16 +158,16 @@ describe("atomicFunc", () => {
 	);
 });
 
-describe("composeNoInterm", () => {
+describe("composeWithInv", () => {
 	describe("comm . comm", () => {
 		forEachArb([["arbTupleIntStr", arbTupleIntStr]], (arb) =>
-			propsForIF(it, arb, () => composeNoInterm(comm(), comm())),
+			propsForIF(it, arb, () => composeWithInv(comm(), comm())),
 		);
 
 		forEachArb([["arbTupleIntStr", arbTupleIntStr]], (arb) =>
 			propIsIdentity(
 				it,
-				() => composeNoInterm(comm<number, string>(), comm()),
+				() => composeWithInv(comm<number, string>(), comm()),
 				arb,
 			),
 		);

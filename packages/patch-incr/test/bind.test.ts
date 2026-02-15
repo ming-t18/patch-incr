@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { isReplaceOnly } from "../algebra/replaceOnly";
 import { filter } from "../builder/array";
 import { bind } from "../builder/bind";
-import { compose, composeNoInterm } from "../builder/compose";
+import { compose, composeWithInv } from "../builder/compose";
 import { access } from "../builder/struct";
 import { assocRight } from "../builder/tuple";
 import * as ps from "../patchSchema";
@@ -29,7 +29,7 @@ describe("bind", () => {
 	describe("bind on filtering function", () => {
 		const getBind = () => {
 			return bind(access<number, "min", Record>("min"), (min) =>
-				composeNoInterm(
+				composeWithInv(
 					compose(
 						access<number[], "array", Record>("array"),
 						filter((x) => x >= min),

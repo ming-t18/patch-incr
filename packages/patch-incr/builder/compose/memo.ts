@@ -3,7 +3,6 @@ import type { Patches } from "../../patch";
 import type { IF } from "../../types";
 import { identity } from "..";
 
-// TOOD take isTrivial into account and avoid memoing
 export const composeMemoL = <
 	Input extends WeakKey,
 	Interm,

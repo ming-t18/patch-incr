@@ -52,6 +52,6 @@ export {
 	composeIFInv,
 	composeIFInv3,
 	composeIFInv4,
-	composeWithInv as composeNoInterm,
+	composeWithInv,
 } from "./noInterm";
 export { composeReeval } from "./reeval";
