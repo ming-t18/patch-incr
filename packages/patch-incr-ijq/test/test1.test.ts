@@ -1,10 +1,13 @@
 import { applyPatches, PatchBuilder } from "patch-incr/patch";
 import * as Arr from "../src/array";
 import * as A from "../src/arrow";
+import * as Stream from "../src/arrow";
 import * as C from "../src/context";
 import * as AP from "../src/pair";
 import { Pipe } from "../src/pipe";
+import * as R from "../src/recurse";
 import type { EmptyCtx } from "../src/type";
+import { propIjqPatchCoherentNoCtx } from "./helpers";
 
 interface Item {
 	done: boolean;
@@ -95,9 +98,9 @@ describe("Array", () => {
 		expect(
 			A.apply(
 				Arr.collectMany<I, number>(
-					A.of(1, 2, 3),
-					A.of(10, 20, 30),
-					A.constant(40),
+					Stream.of(1, 2, 3),
+					Stream.of(10, 20, 30),
+					Stream.constant(40),
 				),
 				{} as I,
 				{} as EmptyCtx,

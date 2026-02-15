@@ -15,7 +15,9 @@ const singleton = <A, B>(func: IF<A, B>): IF<A, B[]> =>
 	// Casting from [B] -> B[]
 	Tup.tupleFor<A>()(func) as never;
 
-// TODO spread arguments
+/**
+ * JQ: `[FUNC]`
+ */
 export const collect = <A, B, Ctx extends {} = EmptyCtx>(
 	gen: Ijq<A, B, Ctx>,
 ): Ijq<A, B[], Ctx> => {
@@ -34,6 +36,9 @@ export const collect = <A, B, Ctx extends {} = EmptyCtx>(
 	errorKind(gen);
 };
 
+/**
+ * JQ: `[FUNC1, ...]`
+ */
 export const collectMany = <A, B, Ctx extends {} = EmptyCtx>(
 	...gens: Ijq<A, B, Ctx>[]
 ): Ijq<A, B[], Ctx> => {

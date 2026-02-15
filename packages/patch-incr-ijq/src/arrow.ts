@@ -160,6 +160,12 @@ export const identity = <A, Ctx extends {} = EmptyCtx>(): Ijq<A, A, Ctx> => ({
 	func: Pair.fst(),
 });
 
+/** JQ: `empty` */
+export const empty = <A, B, Ctx extends {} = EmptyCtx>(): Ijq<A, B, Ctx> => ({
+	kind: FuncKind.Multiple,
+	func: constant_([] as B[]),
+});
+
 export const constant = <A, C, Ctx extends {} = EmptyCtx>(
 	value: C,
 ): Ijq<A, C, Ctx> => ({
@@ -169,14 +175,21 @@ export const constant = <A, C, Ctx extends {} = EmptyCtx>(
 
 export const constantMulti = <A, C, Ctx extends {} = EmptyCtx>(
 	values: C[],
-): Ijq<A, C, Ctx> => ({
-	kind: FuncKind.Multiple,
-	func: constant_(values),
-});
+): Ijq<A, C, Ctx> => {
+	if (values.length === 0) {
+		return empty();
+	}
+	if (values.length === 1) {
+		return constant(values[0] as C);
+	}
 
+	return {
+		kind: FuncKind.Multiple,
+		func: constant_(values),
+	};
+};
+
+/** Create a stream based on the constants in the parameters. */
 export const of = <A, C, Ctx extends {} = EmptyCtx>(
 	...values: C[]
-): Ijq<A, C, Ctx> => ({
-	kind: FuncKind.Multiple,
-	func: constant_(values),
-});
+): Ijq<A, C, Ctx> => constantMulti(values);
