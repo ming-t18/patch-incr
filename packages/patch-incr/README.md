@@ -205,7 +205,7 @@ returning the intermediate value and instead re-compute it every time.
 compose1 : <A, B, C>(g: IF<A, B>, f: IF<B, C>): IF<A, C>
 ```
 
-### Memoing the intermediate value: `composeMemoL`, `composeMemoR`
+### Memoing the intermediate value: `composeMemo`
 
 Another way to avoid returning the intermediate value is to memoize the first function `g`.
 

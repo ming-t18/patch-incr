@@ -43,7 +43,7 @@
 export { compose } from "./compose";
 export {
 	composeMemoL as composeMemoLeft,
-	composeMemoR as composeMemo,
+	composeMemoL as composeMemo,
 	composer,
 	MemoComposer,
 	type Pipe,
