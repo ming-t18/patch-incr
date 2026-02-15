@@ -2,8 +2,8 @@ import { constant } from "patch-incr/builder";
 import * as Arr from "patch-incr/builder/array";
 import { distr } from "patch-incr/builder/array/dist";
 import { composeMemoLeft as compose2 } from "patch-incr/builder/compose";
-import { cond } from "patch-incr/builder/cond";
-import { fst, snd } from "patch-incr/builder/pair";
+import { condSingle } from "patch-incr/builder/cond";
+import { fst } from "patch-incr/builder/pair";
 import * as Tup from "patch-incr/builder/struct";
 import type { IF } from "patch-incr/types";
 import * as A from "./arrow";
@@ -93,13 +93,10 @@ export const select = <A, Ctx extends {} = EmptyCtx>(
 ): Ijq<A, A, Ctx> => {
 	return {
 		kind: FuncKind.Multiple,
-		func: compose2(
-			cond<[A, Ctx], A[], A[]>(
-				([a, b]: [A, Ctx]) => pred(a, b),
-				singleton(fst()),
-				constant([] as A[]),
-			),
-			snd(),
+		func: condSingle<[A, Ctx], A[], A[]>(
+			([a, b]: [A, Ctx]) => pred(a, b),
+			singleton(fst()),
+			constant([] as A[]),
 		),
 	};
 };
