@@ -1,8 +1,7 @@
 import { atomicFunc, constant, recurse } from "patch-incr/builder";
 import { map } from "patch-incr/builder/array";
 import { bindMemo } from "patch-incr/builder/bind";
-import { composeMemo } from "patch-incr/builder/compose";
-import { composeMemoL, composer } from "patch-incr/builder/compose/memo";
+import { composeMemo, composer } from "patch-incr/builder/compose/memo";
 import { switchCase } from "patch-incr/builder/cond";
 import { template, template0 } from "patch-incr/builder/struct";
 import { accessWith, accessWithFor } from "patch-incr/builder/struct/access";
@@ -215,7 +214,7 @@ const getRenderValue = (
 					({ valueClass, value }) => <div class={valueClass}>{value}</div>,
 				);
 
-				return composeMemoL(
+				return composeMemo(
 					getValue,
 					switchCase(getKind, (kind) => {
 						if (kind === KindArray)

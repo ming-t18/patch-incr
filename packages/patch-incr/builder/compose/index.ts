@@ -24,7 +24,7 @@
  * as part of the result.
  *
  * ```typescript
- * composeMemoLeft : (f1: IF<X, V>, f2: IF<V, Y>) => IF<X, Y>
+ * composeMemo : (f1: IF<X, V>, f2: IF<V, Y>) => IF<X, Y>
  *   where X extends WeakKey
  * composeMemo : (f1: IF<X, V>, f2: IF<V, Y>) => IF<X, Y>
  *   where Y extends WeakKey
@@ -42,8 +42,7 @@
 
 export { compose } from "./compose";
 export {
-	composeMemoL as composeMemoLeft,
-	composeMemoL as composeMemo,
+	composeMemo,
 	composer,
 	MemoComposer,
 	type Pipe,

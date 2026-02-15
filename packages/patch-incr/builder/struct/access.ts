@@ -16,7 +16,7 @@ import type {
 	TupleConstruction,
 } from "../../patchSchema/types";
 import type { IF, NoForwardOutput } from "../../types";
-import { composeMemoL } from "../compose/memo";
+import { composeMemo } from "../compose/memo";
 import type { AccessPath } from "../typeHelpers";
 import { getTrackedPath, trackedProxy } from "./pathTracker";
 
@@ -146,7 +146,7 @@ export const accessPath = <Output, Input extends WeakKey>(
 	}
 
 	// @ts-expect-error Can't be checked
-	return composeMemoL(access(path[0]), accessPath(path.slice(1)));
+	return composeMemo(access(path[0]), accessPath(path.slice(1)));
 };
 
 export const accessPathFor = <Input>(): (<

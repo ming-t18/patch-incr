@@ -1,7 +1,7 @@
 import { atomicFunc } from "patch-incr/builder";
 import { filter, map } from "patch-incr/builder/array";
 import { bind, bindMemo } from "patch-incr/builder/bind";
-import { composeMemoL, composer } from "patch-incr/builder/compose/memo";
+import { composeMemo, composer } from "patch-incr/builder/compose/memo";
 import { template, tupleFor } from "patch-incr/builder/struct";
 import { accessFor, accessWithFor } from "patch-incr/builder/struct/access";
 import type { IF } from "patch-incr/types";
@@ -136,7 +136,7 @@ const getRenderTodoApp = (dispatch: Dispatch<TodoAction>) => {
 	>(
 		template(
 			{
-				liClass: composeMemoL(
+				liClass: composeMemo(
 					getPair,
 					atomicFunc(([editing, completed]: [boolean, boolean]) =>
 						!editing && !completed
@@ -144,25 +144,25 @@ const getRenderTodoApp = (dispatch: Dispatch<TodoAction>) => {
 							: `${editing ? "editing" : ""} ${completed ? "completed" : ""}`,
 					),
 				),
-				checked: composeMemoL(
+				checked: composeMemo(
 					accessItemDone,
 					atomicFunc((x: boolean) => x || undefined),
 				),
 				text: accessItemText,
-				dispatchStartEditing: composeMemoL(
+				dispatchStartEditing: composeMemo(
 					accessItemId,
 					atomicFunc(
 						(id: string) => () =>
 							dispatch({ type: TodoActionType.StartEditing, id }),
 					),
 				),
-				dispatchRemove: composeMemoL(
+				dispatchRemove: composeMemo(
 					accessItemId,
 					atomicFunc(
 						(id: string) => () => dispatch({ type: TodoActionType.Remove, id }),
 					),
 				),
-				dispatchSetDone: composeMemoL(
+				dispatchSetDone: composeMemo(
 					accessItemId,
 					atomicFunc((id: string) => (e: KeyboardEvent) => {
 						dispatch({
@@ -207,22 +207,22 @@ const getRenderTodoApp = (dispatch: Dispatch<TodoAction>) => {
 
 	const renderTodoItems = template(
 		{
-			list: composeMemoL(getFilteredItems, mapTodoItems),
+			list: composeMemo(getFilteredItems, mapTodoItems),
 		},
 		({ list }) => elem("ul", { class: "todo-list" }, list),
 	);
 
 	const renderFiltersMenu = template(
 		{
-			allClass: composeMemoL(
+			allClass: composeMemo(
 				accessViewFilter,
 				atomicFunc((x) => (x === ViewFilter.All ? "selected" : "")),
 			),
-			activeClass: composeMemoL(
+			activeClass: composeMemo(
 				accessViewFilter,
 				atomicFunc((x) => (x === ViewFilter.Active ? "selected" : "")),
 			),
-			completedClass: composeMemoL(
+			completedClass: composeMemo(
 				accessViewFilter,
 				atomicFunc((x) => (x === ViewFilter.Completed ? "selected" : "")),
 			),

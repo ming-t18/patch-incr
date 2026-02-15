@@ -3,7 +3,7 @@ import type { Patches } from "../../patch";
 import type { IF } from "../../types";
 import { identity } from "..";
 
-export const composeMemoL = <
+export const composeMemo = <
 	Input extends WeakKey,
 	Interm,
 	Output,
@@ -94,7 +94,7 @@ export class MemoComposer<A extends WeakKey, B = A> {
 		let f = this.func;
 		for (const arg of args) {
 			// @ts-expect-error Can't be checked
-			f = f ? composeMemoL(f, arg) : arg;
+			f = f ? composeMemo(f, arg) : arg;
 		}
 
 		return new MemoComposer(f) as never;

@@ -7,7 +7,7 @@ import {
 	patchableEntries,
 } from "../../patch";
 import type { AnyIF, IF } from "../../types";
-import { composeMemoL } from "../compose/memo";
+import { composeMemo } from "../compose/memo";
 import { accessPath } from "./access";
 import { getTrackedPath, isPathTracker, trackedProxy } from "./pathTracker";
 
@@ -50,7 +50,7 @@ export interface XTemplate<Input extends WeakKey, Output>
 const defaultUse = (arg1: unknown, arg2?: AnyIF) => {
 	const path = getTrackedPath(arg1);
 	const fn = path ? accessPath(path as Path) : xtemplate(() => arg1);
-	return new UsePlaceholder(arg2 ? composeMemoL(fn, arg2) : fn);
+	return new UsePlaceholder(arg2 ? composeMemo(fn, arg2) : fn);
 };
 
 const ANTI_CAPTURE_MESSAGE = `xtemplate: anti-capture: The use-callback has been revoked. Do not call the use-callback inside a callback.`;

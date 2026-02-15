@@ -1,7 +1,7 @@
 import { constant } from "patch-incr/builder";
 import * as Arr from "patch-incr/builder/array";
 import { distr } from "patch-incr/builder/array/dist";
-import { composeMemoLeft as compose2 } from "patch-incr/builder/compose";
+import { composeMemo as compose2 } from "patch-incr/builder/compose";
 import { condSingle } from "patch-incr/builder/cond";
 import { fst } from "patch-incr/builder/pair";
 import * as Tup from "patch-incr/builder/struct";
