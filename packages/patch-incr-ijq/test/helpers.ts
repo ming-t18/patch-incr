@@ -14,5 +14,22 @@ export const propIjqPatchCoherentNoCtx = <Input extends WeakKey, Output>(
 	const y1Actual = applyPatches(y, dy);
 	const y1Expected = func.evaluate(x1);
 	expect(y1Actual).toStrictEqual(y1Expected);
-	// console.log({ x, x1, y1Actual, y1Expected });
+};
+
+export const propIjqPatchCoherent = <
+	Input extends WeakKey,
+	Output,
+	Ctx extends {} = EmptyCtx,
+>(
+	x: [Input, Ctx],
+	dx: Patches<[Input, Ctx]>,
+	f: Ijq<Input, Output, Ctx>,
+) => {
+	const func = A.toIF(f);
+	const x1 = applyPatches(x, dx);
+	const y = func.evaluate(x);
+	const dy = func.forward(x, dx, y);
+	const y1Actual = applyPatches(y, dy);
+	const y1Expected = func.evaluate(x1);
+	expect(y1Actual).toStrictEqual(y1Expected);
 };

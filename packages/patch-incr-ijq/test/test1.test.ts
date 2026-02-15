@@ -1,11 +1,10 @@
-import { applyPatches, PatchBuilder } from "patch-incr/patch";
+import { PatchBuilder } from "patch-incr/patch";
 import * as Arr from "../src/array";
 import * as A from "../src/arrow";
 import * as Stream from "../src/arrow";
 import * as C from "../src/context";
 import * as AP from "../src/pair";
 import { Pipe } from "../src/pipe";
-import * as R from "../src/recurse";
 import type { EmptyCtx } from "../src/type";
 import { propIjqPatchCoherentNoCtx } from "./helpers";
 
@@ -24,14 +23,17 @@ const items: Item[] = [
 	{ done: false, id: 50, text: "Item 5" },
 	{ done: true, id: 60, text: "Item 6" },
 ];
-const filterIsDone = C.assignCtx<Input>()("isDone", AP.snd())(
+
+// equivalent to `piped` below
+const _filterIsDone = C.assignCtx<Input>()("isDone", AP.snd())(
 	A.compose(
 		AP.fst(),
 		Arr.collect(Arr.map(Arr.select(({ done }, { isDone }) => done === isDone))),
 	),
 );
+
 // jq code: .[1] as $isDone | [.[0] | map(select(.done == $isDone))]
-const piped = new Pipe<[Item[], boolean]>()
+const piped = new Pipe<Input>()
 	.$("isDone", AP.snd())
 	.pipe(AP.fst())
 	.stream()
@@ -39,37 +41,54 @@ const piped = new Pipe<[Item[], boolean]>()
 	.collect()
 	.build();
 
-describe("Arrow", () => {
-	it("test1", () => {
-		const fn = A.toIF(filterIsDone);
-		const input1: Input = [items, true];
-		console.log(JSON.stringify(input1));
-		const pair1: [Input, EmptyCtx] = [input1, {} as EmptyCtx];
-		const y = fn.evaluate(pair1);
-		console.log(y);
-		const dPair1 = PatchBuilder.empty<typeof pair1>()
-			.replace([0, 1], false)
-			.build();
-		const dy1 = fn.forward(pair1, dPair1, y);
-		const y2 = applyPatches(y, dy1);
-		console.log(y2);
-	});
+describe("piped filter example", () => {
+	const input1: Input = [items, true];
+	const pair1: [Input, EmptyCtx] = [input1, {} as EmptyCtx];
 
-	it("test1 using builder", () => {
+	it("should return correct value", () => {
 		const fn = A.toIF(piped);
-		const input1: Input = [items, true];
-		console.log(JSON.stringify(input1));
-		const pair1: [Input, EmptyCtx] = [input1, {} as EmptyCtx];
 		const y = fn.evaluate(pair1);
-		console.log(y);
-		const dPair1 = PatchBuilder.empty<typeof pair1>()
-			.replace([0, 1], false)
-			.build();
-		const dy1 = fn.forward(pair1, dPair1, y);
-		const y2 = applyPatches(y, dy1);
-		console.log(y2);
+		// stream with only 1 element
+		expect(y).toStrictEqual([[items[1], items[2], items[5]]]);
 	});
 
+	describe("patch coherent", () => {
+		it("add item is done", () => {
+			const dPair1 = PatchBuilder.empty<Input>()
+				.add([0, 1], { done: true, id: 50, text: "Added" } as Item)
+				.build();
+			propIjqPatchCoherentNoCtx([items, true] as Input, dPair1, piped);
+		});
+
+		it("add item is not done", () => {
+			const dPair1 = PatchBuilder.empty<Input>()
+				.add([0, 1], { done: false, id: 50, text: "Added" } as Item)
+				.build();
+			propIjqPatchCoherentNoCtx([items, true] as Input, dPair1, piped);
+		});
+
+		it("change item is done to false", () => {
+			const dPair1 = PatchBuilder.empty<Input>()
+				.add([0, 1, "done"], false)
+				.build();
+			propIjqPatchCoherentNoCtx([items, true] as Input, dPair1, piped);
+		});
+
+		it("change item is done to true", () => {
+			const dPair1 = PatchBuilder.empty<Input>()
+				.add([0, 3, "done"], true)
+				.build();
+			propIjqPatchCoherentNoCtx([items, true] as Input, dPair1, piped);
+		});
+
+		it("isDone filter change", () => {
+			const dPair1 = PatchBuilder.empty<Input>().replace([0, 1], false).build();
+			propIjqPatchCoherentNoCtx([items, true] as Input, dPair1, piped);
+		});
+	});
+});
+
+describe("Pair", () => {
 	it("pair performs Cartesian product", () => {
 		type I = WeakKey;
 		expect(
