@@ -12,6 +12,7 @@
 		"typescript": "^5.7.3"
 	},
 	"dependencies": {
+		"lodash-es": "^4.17.23",
 		"patch-incr": "*"
 	}
 }

@@ -30,6 +30,7 @@
     "packages/patch-incr-dom": {
       "name": "patch-incr-dom",
       "dependencies": {
+        "lodash-es": "^4.17.23",
         "patch-incr": "*",
       },
       "devDependencies": {
@@ -44,8 +45,10 @@
     "packages/patch-incr-dom-examples": {
       "name": "patch-incr-dom-examples",
       "dependencies": {
+        "immer": "^11.1.4",
         "patch-incr": "*",
         "patch-incr-dom": "*",
+        "patch-incr-ijq": "*",
         "patcher": "*",
       },
       "devDependencies": {
@@ -53,6 +56,7 @@
         "@types/jest": "^30.0.0",
         "patch-incr": "workspace:*",
         "patch-incr-dom": "workspace:*",
+        "patch-incr-ijq": "workspace:*",
         "patcher": "workspace:*",
       },
       "peerDependencies": {
@@ -257,5 +261,7 @@
     "chalk/ansi-styles": ["ansi-styles@4.3.0", "", { "dependencies": { "color-convert": "^2.0.1" } }, "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg=="],
 
     "micromatch/picomatch": ["picomatch@2.3.1", "", {}, "sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA=="],
+
+    "patch-incr-dom-examples/immer": ["immer@11.1.4", "", {}, "sha512-XREFCPo6ksxVzP4E0ekD5aMdf8WMwmdNaz6vuvxgI40UaEiu6q3p8X52aU6GdyvLY3XXX/8R7JOTXStz/nBbRw=="],
   }
 }

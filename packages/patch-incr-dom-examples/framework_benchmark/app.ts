@@ -3,13 +3,24 @@ import { map } from "patch-incr/builder/array";
 import { distAssign } from "patch-incr/builder/array/dist";
 import { bindMemo } from "patch-incr/builder/bind";
 import { composeMemo, composer } from "patch-incr/builder/compose";
-import { record, template, tupleFor } from "patch-incr/builder/struct";
-import { accessWithFor } from "patch-incr/builder/struct/access";
+import {
+	record,
+	template,
+	template0,
+	tupleFor,
+} from "patch-incr/builder/struct";
+import {
+	access,
+	accessWith,
+	accessWithFor,
+} from "patch-incr/builder/struct/access";
 import type { IF } from "patch-incr/types";
 import { tags } from "patch-incr-dom/construct/vanjs";
 import { type Dispatch, DOMRoot } from "patch-incr-dom/mount";
 import type { RenderIF, StateDispatch } from "patch-incr-dom/render";
 import type { ElementConstruction } from "patch-incr-dom/types";
+import { _get, Arrow, Pipe } from "patch-incr-ijq/src";
+import type { Ijq } from "patch-incr-ijq/src/type";
 import {
 	ActionType,
 	type AppAction,
@@ -47,29 +58,49 @@ const _getItemSelected_NonIncr = ({
 //   | { id, label, isSelected: $selected == .id }
 
 // incremental version
-const getItemSelected: IF<AppState, ItemWithIsSelected[]> = composer<AppState>()
-	.pipe(
-		tupleFor<AppState>()(
-			_S((x) => x.data),
-			_S((x) => x.selected),
-		),
-		distAssign("selected"),
-		map(
-			record({
-				id: _I((x) => x.id),
-				label: _I((x) => x.label),
-				isSelected: composer(
-					tupleFor<ItemWithSelected>()(
-						_I((x) => x.selected),
-						_I((x) => x.id),
-					),
-				)
-					.pipe(atomicFunc(([selected, id]) => selected === id))
-					.build(),
-			}),
-		),
-	)
-	.build();
+const _getItemSelected: IF<AppState, ItemWithIsSelected[]> =
+	composer<AppState>()
+		.pipe(
+			tupleFor<AppState>()(
+				_S((x) => x.data),
+				_S((x) => x.selected),
+			),
+			distAssign("selected"),
+			map(
+				record({
+					id: _I((x) => x.id),
+					label: _I((x) => x.label),
+					isSelected: composer(
+						tupleFor<ItemWithSelected>()(
+							_I((x) => x.selected),
+							_I((x) => x.id),
+						),
+					)
+						.pipe(atomicFunc(([selected, id]) => selected === id))
+						.build(),
+				}),
+			),
+		)
+		.build();
+
+// Ijq version (has issues)
+const _AP = accessWithFor<[Item, { selected: number }]>();
+const mapping: Ijq<Item, ItemWithIsSelected, { selected: number }> =
+	Arrow.singleWithCtx<Item, ItemWithIsSelected, { selected: number }>(
+		record({
+			id: _AP((x) => x[0].id),
+			label: _AP((x) => x[0].label),
+			isSelected: atomicFunc<[Item, { selected: number }], boolean>(
+				([{ id }, { selected }]) => id === selected,
+			),
+		}),
+	);
+const getItemSelected: IF<AppState, ItemWithIsSelected[]> = new Pipe<AppState>()
+	.$("selected", _get<AppState>()("selected"))
+	._("data")
+	.stream()
+	.pipe(mapping)
+	.buildIFNoCtx();
 
 const _IS = accessWithFor<ItemWithIsSelected>();
 
