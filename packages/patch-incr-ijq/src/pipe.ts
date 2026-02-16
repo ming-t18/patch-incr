@@ -48,6 +48,12 @@ export class Pipe<
 		return this._composer();
 	}
 
+	buildIFNoCtx<In extends WeakKey, Out, Ctx1 extends {}>(
+		this: Pipe<In, Out, EmptyCtx, Ctx1>,
+	): IF<In, Out[]> {
+		return A.toIFNoCtx(this.build());
+	}
+
 	/**
 	 * JQ: `CUR | FUNC | NEXT`
 	 */
@@ -142,6 +148,14 @@ export class Pipe<
 		return this.$(key, A.single(access(key))) as never;
 	}
 }
+
+export const _get =
+	<Input extends {}>() =>
+	<Key extends keyof Input, Output extends Input[Key] = Input[Key]>(
+		key: Key,
+	): Ijq<Input, Output, EmptyCtx> =>
+		// @ts-expect-error
+		new Pipe<Input>()._(key as Key).build();
 
 export const pipe = <In extends WeakKey, Ctx extends {} = EmptyCtx>(): Pipe<
 	In,

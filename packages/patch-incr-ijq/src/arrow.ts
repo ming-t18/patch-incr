@@ -35,11 +35,25 @@ export const single = <A, B, Ctx extends {} = EmptyCtx>(
 	func: ignoringCtx(func),
 });
 
+export const singleWithCtx = <A, B, Ctx extends {} = EmptyCtx>(
+	func: IF<[A, Ctx], B>,
+): IjqSingle<A, B, Ctx> => ({
+	kind: FuncKind.Single,
+	func,
+});
+
 export const multi = <A, B, Ctx extends {} = EmptyCtx>(
 	func: IF<A, B[]>,
 ): IjqMultiple<A, B, Ctx> => ({
 	kind: FuncKind.Multiple,
 	func: ignoringCtx(func),
+});
+
+export const multiWithCtx = <A, B, Ctx extends {} = EmptyCtx>(
+	func: IF<[A, Ctx], B[]>,
+): IjqMultiple<A, B, Ctx> => ({
+	kind: FuncKind.Multiple,
+	func,
 });
 
 export const compose = <A extends WeakKey, B, C, Ctx extends {} = EmptyCtx>(
