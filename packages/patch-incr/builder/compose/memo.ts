@@ -1,5 +1,7 @@
 import { isTrivial } from "../../hints";
 import type { Patches } from "../../patch";
+import * as ps from "../../patchSchema";
+import type { AnyPatchSchema, PatchSchema } from "../../patchSchema/types";
 import type { IF } from "../../types";
 import { identity } from "..";
 
@@ -14,6 +16,14 @@ export const composeMemo = <
 	f1: IF<Input, Interm, InputChange, IntermChange>,
 	f2: IF<Interm, Output, IntermChange, OutputChange>,
 	memo0?: WeakMap<Input, Interm>,
+	inputSchema = ps.atomic() as AnyPatchSchema as PatchSchema<
+		Input,
+		InputChange
+	>,
+	outputSchema = ps.atomic() as AnyPatchSchema as PatchSchema<
+		Output,
+		OutputChange
+	>,
 ): IF<Input, Output, InputChange, OutputChange> => {
 	const memo = memo0 ?? new WeakMap<Input, Interm>();
 	const evaluate1 = isTrivial(f1)
@@ -26,13 +36,23 @@ export const composeMemo = <
 				memo.set(x, v);
 				return v;
 			};
+	const evaluateMemo = (x: Input): Output => f2.evaluate(evaluate1(x));
+	const forwardMemo = (
+		input: Input,
+		change: InputChange,
+		y: Output,
+	): OutputChange => {
+		if (inputSchema.isEmpty(change)) {
+			return outputSchema.empty;
+		}
+		const v = evaluate1(input);
+		const dv = f1.forward(input, change, v);
+		const dv1 = f2.forward(v, dv, y);
+		return dv1;
+	};
 	return {
-		evaluate: (x: Input): Output => f2.evaluate(evaluate1(x)),
-		forward: (input: Input, change: InputChange, y: Output): OutputChange => {
-			const v = evaluate1(input);
-			const dv = f1.forward(input, change, v);
-			return f2.forward(v, dv, y);
-		},
+		evaluate: evaluateMemo,
+		forward: forwardMemo,
 	};
 };
 

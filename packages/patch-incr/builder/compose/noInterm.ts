@@ -12,13 +12,19 @@ export const composeWithInv = <
 	f1: IF<Input, Interm, InputChange, IntermChange>,
 	f2: IFInv<Interm, Output, IntermChange, OutputChange>,
 ): IF<Input, Output, InputChange, OutputChange> => {
+	const evaluateComposeWithInv = (x: Input) => f2.evaluate(f1.evaluate(x));
+	const forwardComposeWithInv = (
+		input: Input,
+		change: InputChange,
+		y: Output,
+	): OutputChange => {
+		const v: Interm = f2.inverseEvaluate(y);
+		const dv = f1.forward(input, change, v);
+		return f2.forward(v, dv);
+	};
 	return {
-		evaluate: (x) => f2.evaluate(f1.evaluate(x)),
-		forward: (input: Input, change: InputChange, y: Output): OutputChange => {
-			const v: Interm = f2.inverseEvaluate(y);
-			const dv = f1.forward(input, change, v);
-			return f2.forward(v, dv);
-		},
+		evaluate: evaluateComposeWithInv,
+		forward: forwardComposeWithInv,
 	};
 };
 
@@ -33,14 +39,22 @@ export const composeIFInv = <
 	f1: IFInv<Input, Interm, InputChange, IntermChange>,
 	f2: IFInv<Interm, Output, IntermChange, OutputChange>,
 ): IFInv<Input, Output, InputChange, OutputChange> => {
+	const evaluateComposeIFInv = (x: Input) => f2.evaluate(f1.evaluate(x));
+	const inverseEvaluateComposeIFInv = (y: Output) =>
+		f1.inverseEvaluate(f2.inverseEvaluate(y));
+	const forwardComposeIFInv = (
+		input: Input,
+		change: InputChange,
+		y: Output,
+	): OutputChange => {
+		const v: Interm = f2.inverseEvaluate(y);
+		const dv = f1.forward(input, change, v);
+		return f2.forward(v, dv);
+	};
 	return {
-		evaluate: (x) => f2.evaluate(f1.evaluate(x)),
-		inverseEvaluate: (y) => f1.inverseEvaluate(f2.inverseEvaluate(y)),
-		forward: (input: Input, change: InputChange, y: Output): OutputChange => {
-			const v: Interm = f2.inverseEvaluate(y);
-			const dv = f1.forward(input, change, v);
-			return f2.forward(v, dv);
-		},
+		evaluate: evaluateComposeIFInv,
+		inverseEvaluate: inverseEvaluateComposeIFInv,
+		forward: forwardComposeIFInv,
 	} as IFInv<Input, Output, InputChange, OutputChange>;
 };
 
