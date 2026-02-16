@@ -22,7 +22,11 @@ const HANDLER: ProxyHandler<PathTracker<unknown>> = {
 			return target;
 		}
 
-		const path1 = [...target._path, key];
+		const intKey = typeof key === "string" ? Number.parseInt(key, 10) : -1;
+		const path1 = [
+			...target._path,
+			Number.isInteger(intKey) && intKey >= 0 ? intKey : key,
+		];
 		return trackedProxy(path1);
 	},
 	set(_target, _key, _value, _receiver) {
