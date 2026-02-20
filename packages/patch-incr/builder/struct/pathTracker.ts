@@ -1,6 +1,6 @@
-const GetTracked = Symbol.for("patch-tracker-GetTracked");
+export const GetTracked = Symbol.for("patch-tracker-GetTracked");
 
-export interface PathTracker<T> {
+export interface PathTracker<T = unknown> {
 	_path: unknown[];
 	_target?: T;
 }
@@ -8,18 +8,49 @@ export interface PathTracker<T> {
 export function isPathTracker<T = unknown>(
 	x: unknown,
 ): x is { [GetTracked]: PathTracker<T> } {
-	// @ts-expect-error Accessing GetTracked
-	return x !== null && typeof x === "object" && !!x[GetTracked];
+	return (
+		x !== null &&
+		(typeof x === "object" || typeof x === "function") &&
+		// @ts-expect-error Accessing GetTracked
+		!!x[GetTracked]
+	);
 }
 
 export const getTrackedPath = <T>(x: T): unknown[] | null =>
 	// @ts-expect-error Can't be checked
 	x[GetTracked]?._path ?? null;
 
-const HANDLER: ProxyHandler<PathTracker<unknown>> = {
+export type OnGetSymbol = (
+	target: unknown,
+	key: symbol,
+) =>
+	| { type: "value"; result: unknown }
+	| { type: "callable"; invoke: (...args: unknown[]) => unknown };
+
+const makeHandler = (
+	onGetSymbol?: OnGetSymbol,
+): ProxyHandler<PathTracker<unknown>> => ({
 	get(target, key, _receiver) {
 		if (key === GetTracked) {
 			return target;
+		}
+
+		if (typeof key === "symbol") {
+			if (!onGetSymbol) {
+				throw new TypeError("cannot get symbol key");
+			}
+
+			const res = onGetSymbol(target, key);
+			if (res.type === "callable") {
+				const invoke = res.invoke;
+				return (...args: unknown[]) => {
+					const path1 = [...target._path, invoke(...args)];
+					return trackedProxy(path1, onGetSymbol);
+				};
+			} else {
+				const path1 = [...target._path, res.result];
+				return trackedProxy(path1, onGetSymbol);
+			}
 		}
 
 		const intKey = typeof key === "string" ? Number.parseInt(key, 10) : -1;
@@ -27,7 +58,7 @@ const HANDLER: ProxyHandler<PathTracker<unknown>> = {
 			...target._path,
 			Number.isInteger(intKey) && intKey >= 0 ? intKey : key,
 		];
-		return trackedProxy(path1);
+		return trackedProxy(path1, onGetSymbol);
 	},
 	set(_target, _key, _value, _receiver) {
 		throw new TypeError("cannot set");
@@ -62,7 +93,7 @@ const HANDLER: ProxyHandler<PathTracker<unknown>> = {
 		throw new TypeError("cannot getOwnPropertyDescriptor");
 	},
 	getPrototypeOf(_target) {
-		throw new TypeError("cannot getPrototypeOf");
+		return Reflect.getPrototypeOf(_target);
 	},
 	setPrototypeOf(_target, _proto) {
 		throw new TypeError("cannot setPrototypeOf");
@@ -74,7 +105,7 @@ const HANDLER: ProxyHandler<PathTracker<unknown>> = {
 			args.length === 1
 		) {
 			const path1 = target._path.slice(0, target._path.length - 1);
-			return trackedProxy([...path1, args[0]]);
+			return trackedProxy([...path1, args[0]], onGetSymbol);
 		}
 
 		throw new TypeError("cannot apply except get(name)");
@@ -82,10 +113,13 @@ const HANDLER: ProxyHandler<PathTracker<unknown>> = {
 	construct() {
 		throw new TypeError("cannot construct");
 	},
-};
+});
 
-export const trackedProxy = <T>(path = [] as unknown[]): T => {
-	const f = () => {};
-	f._path = path;
-	return new Proxy(f, HANDLER) as never;
+export const trackedProxy = <T>(
+	path = [] as unknown[],
+	onGetSymbol?: OnGetSymbol,
+): T => {
+	const _trackedProxyCallable = () => {};
+	_trackedProxyCallable._path = path;
+	return new Proxy(_trackedProxyCallable, makeHandler(onGetSymbol)) as never;
 };

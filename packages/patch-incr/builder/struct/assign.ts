@@ -7,6 +7,14 @@ import {
 } from "../../patch";
 import type { IF } from "../../types";
 
+/**
+ * Given an initial object and a mapping of changes,
+ * returns `I` with the list of changes applied.
+ *
+ * @param getInitial the function to generate the initial value.
+ * @param changes the list of changes. An array from path
+ * to the `IF` to evaluate the result.
+ */
 export const assign = <Input, Output>(
 	getInitial: () => Output,
 	changes: { path: Path; getValue: IF<Input, unknown> }[],
