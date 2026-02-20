@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { applyPatches, liftPatches, type Patches } from "../patch";
+import { applyPatches, liftPatches, type Patches, PatchOp } from "../patch";
 import {
 	analyzeDisplacement,
 	PatchBuilder,
@@ -200,6 +200,30 @@ describe("analyzeDisplacement", () => {
 			);
 		});
 
+		it("should treat prefix parent changes as displacements", () => {
+			fc.assert(
+				fc.property(
+					fc.boolean(),
+					fc.constantFrom(
+						{ op: PatchOp.Replace, path: [], value: { a: { b: { c: [] } } } },
+						{ op: PatchOp.Replace, path: ["a"], value: { b: { c: [] } } },
+						{ op: PatchOp.Replace, path: ["a", "b"], value: { c: [] } },
+					),
+					genArray.arb(),
+					(order, pre, { patches }) => {
+						expect(
+							analyzeDisplacement(
+								order
+									? [pre, ...liftPatches(prefix, patches)]
+									: [...liftPatches(prefix, patches), pre],
+								prefix,
+							),
+						).toBe(-1);
+					},
+				),
+			);
+		});
+
 		it("should ignore non-matching prefixes", () => {
 			fc.assert(
 				fc.property(
@@ -220,6 +244,50 @@ describe("analyzeDisplacement", () => {
 					({ patchesOrig, patchesCombined }) => {
 						expect(analyzeDisplacement(patchesOrig)).toBe(
 							analyzeDisplacement(patchesCombined, prefix),
+						);
+					},
+				),
+			);
+		});
+
+		it("commute non displaced property", () => {
+			fc.assert(
+				fc.property(
+					fc.array(
+						fc.record({
+							op: fc.constantFrom(PatchOp.Replace),
+							path: fc.tuple(
+								fc.constantFrom("a"),
+								fc.constantFrom("b"),
+								fc.constantFrom("c"),
+								fc.integer(),
+							),
+							value: fc.record({ a: fc.integer() }),
+						}),
+						{ minLength: 1, maxLength: 2 },
+					),
+					genArray.arb(),
+					(commutedReplaces, { value: arr, patches }) => {
+						fc.pre(commutedReplaces.length > 0);
+						const maxIndex = commutedReplaces.reduce(
+							(i, { path }) => Math.max(i, path[3]),
+							0,
+						);
+						const lifted = liftPatches(prefix, patches);
+						const res = analyzeDisplacement(lifted, prefix);
+						fc.pre(typeof res === "number" && maxIndex < res);
+						const liftedFiltered = liftPatches(
+							prefix,
+							patches.filter((p) =>
+								typeof p.path[0] === "number" ? p.path[0] >= res : true,
+							),
+						);
+
+						const value1 = { a: { b: { c: arr } } };
+						expect(
+							applyPatches(value1, [...commutedReplaces, ...liftedFiltered]),
+						).toStrictEqual(
+							applyPatches(value1, [...liftedFiltered, ...commutedReplaces]),
 						);
 					},
 				),

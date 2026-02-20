@@ -110,12 +110,26 @@ const pathIsPrefix = (a: Path, b: Path) => {
 };
 
 /**
- * Given patches on an array, determine the minimum index where the elements are displaced.
+ * Given patches on an array at a given path,
+ * determine the minimum index (or null) where the elements are displaced.
  *
  * Example: An insertion or deletion at index 2 results in a return value of 2,
  * which means all elements after 2 are displaced.
+ *
+ * ## Property (commute non displaced)
+ * Let `p1` be only replace patches on `[...prefix, index]``
+ * Let `p2` be patches where `res = analyzeDisplacement(p2, prefix)`
+ * If `res === null`, it is treated as infinity instead.
+ * Let `p3` be `p2` with patches filtered out on `[...prefix, index1]` where `index1 < res`
+ * If all `index` in `p1` are `< res`, then p1 commutes with p3.
+ *
  * @param patches the patches to analayze
- * @param prefix the path prefix of the patches to analyze
+ * @param prefix the path to the array
+ * @returns
+ * * `null` if there is no displacement to take into account.
+ * * If the is displacement, an integer indicating the min. index (inclusive) that could be
+ * affected by displacement.
+ * * If the entire array was be replaced, `-1`. This is also considered a displacement.
  */
 export const analyzeDisplacement = (
 	patches: Patches,
@@ -124,12 +138,14 @@ export const analyzeDisplacement = (
 	const filteredPatches: { op: PatchOp; index: number }[] = [];
 	for (const entry of patches) {
 		const { path, op } = entry;
+		if (path.length <= prefix.length) {
+			if (pathIsPrefix(path, prefix)) {
+				// obj[[prefix]] is displaced due to parent change
+				return -1;
+			}
+		}
 		if (op === PatchOp.Replace) {
 			continue;
-		}
-		if (path.length <= prefix.length) {
-			// Displaced due to parent change
-			return null;
 		}
 		if (path.length !== prefix.length + 1) {
 			continue;
