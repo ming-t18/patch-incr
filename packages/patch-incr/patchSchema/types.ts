@@ -24,7 +24,13 @@ export interface PatchSchema<Value, Change = Patches<Value>>
 export type AnyPatchSchema = PatchSchema<any, any>;
 
 // biome-ignore lint/suspicious/noExplicitAny: needed for type constraints
-export type AnyTuple = any[];
+export type AnyTuple = [] | [any, ...any[]];
+
+// The following `satisfies` constraints
+// const _a = [1, "test"] satisfies AnyTuple;
+// const _b = ["test"] satisfies AnyTuple;
+// const _c = [] satisfies AnyTuple;
+// const _d = ["test"] as string[] /* satisfies AnyTuple fails */;
 
 // biome-ignore lint/complexity/noBannedTypes: needed for type constraints
 export type AnyRecord = {};

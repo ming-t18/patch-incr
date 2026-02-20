@@ -1,3 +1,4 @@
+import { filter } from "../builder/array";
 import type { PatchEntry, Patches, PatchReplace, Path } from "./types";
 import { PatchOp } from "./types";
 
@@ -92,6 +93,75 @@ export const unliftPatches = <Out>(
 
 export const combinePatches = (a: Patches, b: Patches): Patches => [...a, ...b];
 
+const pathIsPrefix = (a: Path, b: Path) => {
+	if (a === b) {
+		return true;
+	}
+	if (a.length > b.length) {
+		return false;
+	}
+	const n = a.length;
+	for (let i = 0; i < n; i++) {
+		if (a[i] !== b[i]) {
+			return false;
+		}
+	}
+	return true;
+};
+
+/**
+ * Given patches on an array, determine the minimum index where the elements are displaced.
+ *
+ * Example: An insertion or deletion at index 2 results in a return value of 2,
+ * which means all elements after 2 are displaced.
+ * @param patches the patches to analayze
+ * @param prefix the path prefix of the patches to analyze
+ */
+export const analyzeDisplacement = (
+	patches: Patches,
+	prefix = [] as Path,
+): number | null => {
+	const filteredPatches: { op: PatchOp; index: number }[] = [];
+	for (const entry of patches) {
+		const { path, op } = entry;
+		if (op === PatchOp.Replace) {
+			continue;
+		}
+		if (path.length <= prefix.length) {
+			// Displaced due to parent change
+			return null;
+		}
+		if (path.length !== prefix.length + 1) {
+			continue;
+		}
+
+		if (!pathIsPrefix(prefix, path)) {
+			continue;
+		}
+
+		const index = path[prefix.length];
+		if (typeof index !== "number") {
+			continue;
+		}
+		filteredPatches.push({ op, index });
+	}
+
+	let minDisp = null as number | null;
+	for (let i = 0; i < filteredPatches.length; i++) {
+		const { op, index } = filteredPatches[i];
+		if (op === PatchOp.Replace) {
+			continue;
+		}
+		if (minDisp === null) {
+			minDisp = index;
+		}
+		if (index < minDisp) {
+			minDisp = index;
+		}
+	}
+	return minDisp;
+};
+
 /** Given a `key` and a list of `patches`,
  * returns a new list of patches that only act on `target[key]`
  * derived from the original `patches`,
@@ -103,13 +173,21 @@ export const projectPatches = <Target>(
 	key: string | number,
 	patches: Patches,
 ): Patches<Target> | null => {
+	// TODO if key is number perform displacement analysis
 	const res = [] as Patches<Target>;
+	let minDisp = null;
+	if (typeof key === "number") {
+		minDisp = analyzeDisplacement(patches, []);
+	}
 	for (const entry of patches) {
 		const { path } = entry;
 		if (path.length === 0) {
 			return null;
 		}
 		const [head, ...rest] = path;
+		if (minDisp !== null && typeof head === "number" && head >= minDisp) {
+			return null;
+		}
 		if (head === key) {
 			res.push({
 				...entry,
