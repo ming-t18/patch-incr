@@ -1,4 +1,3 @@
-import { filter } from "../builder/array";
 import type { PatchEntry, Patches, PatchReplace, Path } from "./types";
 import { PatchOp } from "./types";
 
@@ -93,7 +92,9 @@ export const unliftPatches = <Out>(
 
 export const combinePatches = (a: Patches, b: Patches): Patches => [...a, ...b];
 
-const pathIsPrefix = (a: Path, b: Path) => {
+const pathIsPrefix = (shorter: Path, longer: Path) => {
+	const a = shorter;
+	const b = longer;
 	if (a === b) {
 		return true;
 	}
@@ -110,52 +111,22 @@ const pathIsPrefix = (a: Path, b: Path) => {
 };
 
 /**
- * Given patches on an array at a given path,
+ * Given patches on an array,
  * determine the minimum index (or null) where the elements are displaced.
- *
- * Example: An insertion or deletion at index 2 results in a return value of 2,
- * which means all elements after 2 are displaced.
- *
- * ## Property (commute non displaced)
- * Let `p1` be only replace patches on `[...prefix, index]``
- * Let `p2` be patches where `res = analyzeDisplacement(p2, prefix)`
- * If `res === null`, it is treated as infinity instead.
- * Let `p3` be `p2` with patches filtered out on `[...prefix, index1]` where `index1 < res`
- * If all `index` in `p1` are `< res`, then p1 commutes with p3.
- *
- * @param patches the patches to analayze
- * @param prefix the path to the array
- * @returns
- * * `null` if there is no displacement to take into account.
- * * If the is displacement, an integer indicating the min. index (inclusive) that could be
- * affected by displacement.
- * * If the entire array was be replaced, `-1`. This is also considered a displacement.
  */
-export const analyzeDisplacement = (
-	patches: Patches,
-	prefix = [] as Path,
-): number | null => {
+export const analyzeDisplacement = (patches: Patches): number | null => {
 	const filteredPatches: { op: PatchOp; index: number }[] = [];
 	for (const entry of patches) {
 		const { path, op } = entry;
-		if (path.length <= prefix.length) {
-			if (pathIsPrefix(path, prefix)) {
-				// obj[[prefix]] is displaced due to parent change
-				return -1;
-			}
+		if (path.length === 0) {
+			return -1;
 		}
+
 		if (op === PatchOp.Replace) {
 			continue;
 		}
-		if (path.length !== prefix.length + 1) {
-			continue;
-		}
 
-		if (!pathIsPrefix(prefix, path)) {
-			continue;
-		}
-
-		const index = path[prefix.length];
+		const index = path[0];
 		if (typeof index !== "number") {
 			continue;
 		}
@@ -178,14 +149,7 @@ export const analyzeDisplacement = (
 	return minDisp;
 };
 
-/** Given a `key` and a list of `patches`,
- * returns a new list of patches that only act on `target[key]`
- * derived from the original `patches`,
- * or `null` of the patches affect the root.
- *
- * Opposite of `liftPatches`.
- */
-export const projectPatches = <Target>(
+export const projectPatchesSingle = <Target>(
 	key: string | number,
 	patches: Patches,
 ): Patches<Target> | null => {
@@ -193,7 +157,7 @@ export const projectPatches = <Target>(
 	const res = [] as Patches<Target>;
 	let minDisp = null;
 	if (typeof key === "number") {
-		minDisp = analyzeDisplacement(patches, []);
+		minDisp = analyzeDisplacement(patches);
 	}
 	for (const entry of patches) {
 		const { path } = entry;
@@ -213,6 +177,89 @@ export const projectPatches = <Target>(
 	}
 
 	return res;
+};
+
+export const projectPatchesMulti = <Target>(
+	prefix: Path,
+	patches: Patches,
+): Patches<Target> | null => {
+	if (prefix.length === 0 || patches.length === 0) {
+		return patches;
+	}
+
+	const n = prefix.length;
+	const results: Patches<Target> = [];
+	for (const entry of patches) {
+		const { path } = entry;
+		if (path.length === 0) {
+			// root is replaced, return null due to displacement
+			return null;
+		}
+
+		if (path.length <= prefix.length) {
+			const last = path[path.length - 1];
+			if (typeof last === "number") {
+				const i: number = last;
+				const j = prefix[path.length - 1];
+				const before: Path = path.slice(0, path.length - 1);
+				if (pathIsPrefix(before, prefix) && typeof j === "number") {
+					if (path.length === prefix.length) {
+						// path = [...before, i]
+						// prefix = [...before, j]
+						const { op } = entry;
+						if (i <= j && op !== PatchOp.Replace) {
+							return null;
+						}
+					} else if (i <= j) {
+						// path = [...before, i]
+						// prefix = [...before, j, ...after]
+						// a parent of root is displaced
+						return null;
+					}
+				}
+			}
+		}
+
+		if (pathIsPrefix(path, prefix)) {
+			// prefix = [...path, ...extras]
+			return null;
+		}
+
+		if (!pathIsPrefix(prefix, path)) {
+			continue;
+		}
+
+		// path = [...prefix, ...extras]
+		results.push({
+			...entry,
+			path: entry.path.slice(n),
+		});
+	}
+
+	return results;
+};
+
+/**
+ * Given a `prefix` (key or path) and a list of `patches`,
+ * returns a new list of patches that only act on `target[key]`
+ * derived from the original `patches`,
+ * or `null` if not possible.
+ *
+ * Opposite of `liftPatches`.
+ *
+ * ## Property (see test/helpers.test.ts)
+ * Given `projected = projectPatches(prefix, patches)` and `projected !== null`:
+ *
+ * `value[[prefix]] @ projected = (value @ patches)[[prefix]]`
+ */
+export const projectPatches = <Target>(
+	key: string | number | Path,
+	patches: Patches,
+): Patches<Target> | null => {
+	if (Array.isArray(key)) {
+		return projectPatchesMulti(key, patches);
+	}
+	return projectPatchesSingle(key, patches);
 };
 
 /**
