@@ -105,20 +105,18 @@ export const access = <
 	const forwardAccess = (
 		input: Input,
 		change: Patches<Input>,
-		_ignored?: Output,
+		prevValueOpt?: Output,
 	): Patches<Output> => {
 		const res: Patches<Output> | null = projectPatches(key, change);
 		if (res !== null) {
 			return res;
 		}
-		for (const entry of change) {
-			const { path } = entry;
-			if (path.length === 0) {
-				const updated = applyPatches(input, change);
-				return replacePatches(evaluateAccess(updated));
-			}
+		const newValue = evaluateAccess(applyPatches(input, change));
+		if (prevValueOpt !== undefined && Object.is(prevValueOpt, newValue)) {
+			return [];
 		}
-		return [];
+
+		return replacePatches(newValue);
 	};
 	return {
 		evaluate: evaluateAccess,
