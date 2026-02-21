@@ -2,6 +2,8 @@ export { cartesian, cartesianR } from "./cartesian";
 export { concat } from "./concat";
 export { filter } from "./filter";
 export { flatMap } from "./flatMap";
+export { last } from "./last";
+export { length } from "./length";
 export { map } from "./map";
 export { scan } from "./scan";
 export { seq } from "./seq";
