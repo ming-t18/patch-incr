@@ -1,15 +1,10 @@
 import fc from "fast-check";
-import { iif } from "../builder/iif";
-import * as ps from "../patchSchema";
-import type { IF } from "../types";
+import { type IIF, iif } from "../builder/iif";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 
-const propEval = <A, B>(
-	schema: gp.GenWithPatches<A>,
-	ifunc: IF<A, B>,
-	func: (input: A) => B,
-) => {
+const propEval = <A, B>(schema: gp.GenWithPatches<A>, ifunc: IIF<A, B>) => {
+	const func = ifunc.original;
 	it("should evaluate correctly", () => {
 		fc.assert(
 			fc.property(schema.arb(), ({ value }) =>
@@ -19,7 +14,7 @@ const propEval = <A, B>(
 	});
 };
 describe("iif", () => {
-	const schema = gp.record({
+	const arbRecord = gp.record({
 		str: gp.string(),
 		arr1: gp.array(
 			gp.record({
@@ -36,25 +31,25 @@ describe("iif", () => {
 			arr: gp.array(gp.string()),
 		}),
 	});
-	type Item = gp.InferArbValue<typeof schema>;
+	type Item = gp.InferArbValue<typeof arbRecord>;
 
 	describe("returning access expression", () => {
 		describe("identity function from iif", () => {
-			const id1: IF<Item, Item> = iif((x: Item): Item => x);
-			propEval(schema, id1, (x) => x);
-			propsForIF(it, schema, () => id1);
+			const id1: IIF<Item, Item> = iif((x: Item): Item => x);
+			propEval(arbRecord, id1);
+			propsForIF(it, arbRecord, () => id1);
 		});
 
 		describe("access str from iif", () => {
-			const getStr: IF<Item, string> = iif((x: Item) => x.str);
-			propEval(schema, getStr, (x) => x.str);
-			propsForIF(it, schema, () => getStr);
+			const getStr: IIF<Item, string> = iif((x: Item) => x.str);
+			propEval(arbRecord, getStr);
+			propsForIF(it, arbRecord, () => getStr);
 		});
 
 		describe("access nested field from iif", () => {
-			const getNested: IF<Item, boolean> = iif((x: Item) => x.nested.bool);
-			propEval(schema, getNested, (x) => x.nested.bool);
-			propsForIF(it, schema, () => getNested);
+			const getNested: IIF<Item, boolean> = iif((x: Item) => x.nested.bool);
+			propEval(arbRecord, getNested);
+			propsForIF(it, arbRecord, () => getNested);
 		});
 	});
 
@@ -64,12 +59,8 @@ describe("iif", () => {
 			str1: x.str,
 			nested: { arr: x.arr1, str2: x.str },
 		}));
-		propEval(schema, ifunc, (x) => ({
-			bool: x.nested.bool,
-			str1: x.str,
-			nested: { arr: x.arr1, str2: x.str },
-		}));
-		propsForIF(it, schema, () => ifunc);
+		propEval(arbRecord, ifunc);
+		propsForIF(it, arbRecord, () => ifunc);
 	});
 
 	// bail out
@@ -81,20 +72,20 @@ describe("iif", () => {
 	describe.skip("array ops", () => {
 		describe("getting array length", () => {
 			const ifunc = iif((x: Item) => x.arr1.length);
-			propEval(schema, ifunc, (x) => x.arr1.length);
-			propsForIF(it, schema, () => ifunc);
+			propEval(arbRecord, ifunc);
+			propsForIF(it, arbRecord, () => ifunc);
 		});
 
 		describe("performing array map", () => {
 			const ifunc = iif((x: Item) => x.arr1.map((x) => x.id));
-			propEval(schema, ifunc, (x) => x.arr1.map((x) => x.id));
-			propsForIF(it, schema, () => ifunc);
+			propEval(arbRecord, ifunc);
+			propsForIF(it, arbRecord, () => ifunc);
 		});
 
 		describe("performing array filter", () => {
 			const ifunc = iif((x: Item) => x.arr1.filter((x) => x.done));
-			propEval(schema, ifunc, (x: Item) => x.arr1.filter((x) => x.done));
-			propsForIF(it, schema, () => ifunc);
+			propEval(arbRecord, ifunc);
+			propsForIF(it, arbRecord, () => ifunc);
 		});
 	});
 });
