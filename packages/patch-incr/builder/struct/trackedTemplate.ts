@@ -1,12 +1,12 @@
 import { type Path, patchableEntries } from "../../patch";
-import type { IF } from "../../types";
-import { assign } from "./assign";
 import {
 	GetTracked,
 	isPathTracker,
 	type PathTracker,
 	trackedProxy,
-} from "./pathTracker";
+} from "../../tracked";
+import type { IF } from "../../types";
+import { assign } from "./assign";
 
 function* findTrackedPaths(
 	obj: unknown,

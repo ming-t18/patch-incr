@@ -1,7 +1,4 @@
-import {
-	type OnGetSymbol,
-	trackedProxy,
-} from "patch-incr/builder/struct/pathTracker";
+import { type OnGetSymbol, trackedProxy } from "patch-incr/tracked";
 import type { EmptyCtx, Ijq } from "@/type";
 import * as S from "./symbol";
 import type { IjqBuilder, IjqSlot } from "./types";

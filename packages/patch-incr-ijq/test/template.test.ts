@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: for testing */
-import { getTrackedPath } from "patch-incr/builder/struct/pathTracker";
+import { getTrackedPath } from "patch-incr/tracked";
 import { type IjqSlot, makeSlot, S, type ToTemplateValue } from "@/template";
 import type { EmptyCtx } from "./type";
 

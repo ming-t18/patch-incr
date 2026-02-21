@@ -1,9 +1,6 @@
-export const GetTracked = Symbol.for("patch-tracker-GetTracked");
+import type { OnGetSymbol, PathTracker } from "./types";
 
-export interface PathTracker<T = unknown> {
-	_path: unknown[];
-	_target?: T;
-}
+export const GetTracked = Symbol.for("patch-tracker-GetTracked");
 
 export function isPathTracker<T = unknown>(
 	x: unknown,
@@ -19,13 +16,6 @@ export function isPathTracker<T = unknown>(
 export const getTrackedPath = <T>(x: T): unknown[] | null =>
 	// @ts-expect-error Can't be checked
 	x[GetTracked]?._path ?? null;
-
-export type OnGetSymbol = (
-	target: unknown,
-	key: symbol,
-) =>
-	| { type: "value"; result: unknown }
-	| { type: "callable"; invoke: (...args: unknown[]) => unknown };
 
 const makeHandler = (
 	onGetSymbol?: OnGetSymbol,

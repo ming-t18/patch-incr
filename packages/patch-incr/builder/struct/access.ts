@@ -17,10 +17,10 @@ import type {
 	RecordConstruction,
 	TupleConstruction,
 } from "../../patchSchema/types";
+import { getTrackedPath, trackedProxy } from "../../tracked";
 import type { AnyIF, IF, NoForwardOutput } from "../../types";
 import { identity } from "..";
 import type { AccessPath } from "../typeHelpers";
-import { getTrackedPath, trackedProxy } from "./pathTracker";
 
 export const accessRecord = <
 	C extends RecordConstruction,
