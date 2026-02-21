@@ -78,7 +78,7 @@ export const get = <T, Result = unknown>(
 			}
 		} else {
 			throw new ApplyPatchesError(
-				"Cannot get field on an array. Only number indexes are supported.",
+				`Cannot get field on an array. Only number indexes are supported. Key: ${key}`,
 			);
 		}
 	}
@@ -100,6 +100,17 @@ export const getOpt = <T, Result = unknown>(
 		return undefined;
 	}
 
+	if (Array.isArray(value)) {
+		if (typeof key === "number") {
+			if (key >= 0 && key < value.length) {
+				return value[key];
+			}
+			return undefined;
+		} else {
+			return undefined;
+		}
+	}
+
 	// @ts-expect-error can't be checked
 	return value instanceof Map ? value.get(key) : value[key];
 };
@@ -119,7 +130,7 @@ export const applyGetOpt = <T, Result = unknown>(
 	let value1: unknown | undefined = value;
 	for (let i = 0; i < path.length; i++) {
 		if (value === null || typeof value !== "object") {
-			break;
+			return undefined;
 		}
 		value1 = getOpt(value1, path[i]);
 	}
