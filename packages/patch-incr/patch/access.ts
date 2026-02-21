@@ -71,6 +71,17 @@ export const get = <T, Result = unknown>(
 		return value[Applier].get(value, key) as never;
 	}
 
+	if (Array.isArray(value)) {
+		if (typeof key === "number") {
+			if (key < 0 || key >= value.length) {
+				throw new ApplyPatchesError("Array index out of bounds.");
+			}
+		}
+		// throw new ApplyPatchesError(
+		// 	"Cannot get field on an array. Only number indexes are supported.",
+		// );
+	}
+
 	ensureObject(value);
 	// @ts-expect-error can't be checked
 	return value instanceof Map ? value.get(key) : value[key];
