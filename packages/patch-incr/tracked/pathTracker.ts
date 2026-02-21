@@ -1,4 +1,4 @@
-import type { OnGetSymbol, PathTracker } from "./types";
+import type { PathTracker, TrackedParams } from "./types";
 
 export const GetTracked = Symbol.for("patch-tracker-GetTracked");
 
@@ -18,7 +18,7 @@ export const getTrackedPath = <T>(x: T): unknown[] | null =>
 	x[GetTracked]?._path ?? null;
 
 const makeHandler = (
-	onGetSymbol?: OnGetSymbol,
+	params?: TrackedParams,
 ): ProxyHandler<PathTracker<unknown>> => ({
 	get(target, key, _receiver) {
 		if (key === GetTracked) {
@@ -26,20 +26,20 @@ const makeHandler = (
 		}
 
 		if (typeof key === "symbol") {
-			if (!onGetSymbol) {
+			if (!params?.onGetSymbol) {
 				throw new TypeError("cannot get symbol key");
 			}
 
-			const res = onGetSymbol(target, key);
+			const res = params.onGetSymbol(target, key);
 			if (res.type === "callable") {
 				const invoke = res.invoke;
 				return (...args: unknown[]) => {
 					const path1 = [...target._path, invoke(...args)];
-					return trackedProxy(path1, onGetSymbol);
+					return trackedProxy(path1, params);
 				};
 			} else {
 				const path1 = [...target._path, res.result];
-				return trackedProxy(path1, onGetSymbol);
+				return trackedProxy(path1, params);
 			}
 		}
 
@@ -48,7 +48,7 @@ const makeHandler = (
 			...target._path,
 			Number.isInteger(intKey) && intKey >= 0 ? intKey : key,
 		];
-		return trackedProxy(path1, onGetSymbol);
+		return trackedProxy(path1, params);
 	},
 	set(_target, _key, _value, _receiver) {
 		throw new TypeError("cannot set");
@@ -89,16 +89,38 @@ const makeHandler = (
 		throw new TypeError("cannot setPrototypeOf");
 	},
 	apply(target, _this, args) {
-		if (
-			target._path.length > 0 &&
-			target._path[target._path.length - 1] === "get" &&
-			args.length === 1
-		) {
-			const path1 = target._path.slice(0, target._path.length - 1);
-			return trackedProxy([...path1, args[0]], onGetSymbol);
+		const path = target._path;
+		if (path.length === 0) {
+			throw new Error("cannot apply on root");
+		}
+		const path1 = target._path.slice(0, target._path.length - 1);
+		const name = path[path.length - 1];
+
+		if (typeof name !== "string") {
+			throw new TypeError("cannot apply: method name is not a string");
 		}
 
-		throw new TypeError("cannot apply except get(name)");
+		if (params?.onApply) {
+			const path1 = target._path.slice(0, target._path.length - 1);
+			const res = params.onApply(target, path1, name, args);
+			if (!res) {
+				return;
+			}
+
+			if (res.type === "value") {
+				return res.result;
+			}
+
+			if (res.type === "path") {
+				return trackedProxy(res.result, params);
+			}
+		} else {
+			if (name === "get" && args.length === 1) {
+				return trackedProxy([...path1, args[0]], params);
+			}
+		}
+
+		throw new TypeError("cannot apply");
 	},
 	construct() {
 		throw new TypeError("cannot construct");
@@ -107,9 +129,9 @@ const makeHandler = (
 
 export const trackedProxy = <T>(
 	path = [] as unknown[],
-	onGetSymbol?: OnGetSymbol,
+	params?: TrackedParams,
 ): T => {
 	const _trackedProxyCallable = () => {};
 	_trackedProxyCallable._path = path;
-	return new Proxy(_trackedProxyCallable, makeHandler(onGetSymbol)) as never;
+	return new Proxy(_trackedProxyCallable, makeHandler(params)) as never;
 };

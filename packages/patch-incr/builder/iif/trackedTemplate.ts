@@ -1,12 +1,8 @@
 import { type Path, patchableEntries } from "../../patch";
-import {
-	GetTracked,
-	isPathTracker,
-	type PathTracker,
-	trackedProxy,
-} from "../../tracked";
+import { GetTracked, isPathTracker, type PathTracker } from "../../tracked";
 import type { IF } from "../../types";
-import { assign } from "./assign";
+import { assign } from "../struct";
+import { makeNode } from "./node";
 
 function* findTrackedPaths(
 	obj: unknown,
@@ -37,12 +33,11 @@ export const makeTrackedTemplate = <Input = unknown, Output = unknown>(
 	getInitial: (input: Input) => Output,
 	makeIF: (trackedPath: unknown[]) => IF<Input, unknown>,
 ): IF<Input, Output> => {
-	const tracker = trackedProxy();
-	const obj = getInitial(tracker as never);
+	const obj = getInitial(makeNode<Input>());
 	const changes: { path: Path; getValue: IF<Input, unknown> }[] = [];
 	for (const { path, value } of findTrackedPaths(obj)) {
 		changes.push({ path, getValue: makeIF(value[GetTracked]._path) });
 	}
 
-	return assign(() => getInitial(trackedProxy()), changes);
+	return assign(() => getInitial(makeNode<Input>()), changes);
 };

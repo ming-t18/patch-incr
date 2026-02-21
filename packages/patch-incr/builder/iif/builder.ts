@@ -1,8 +1,32 @@
+import type { Path } from "@/patch";
 import type { AnyIF, IF } from "../../types";
-import { identity } from "..";
+import { constant, identity } from "..";
+import { composeMemo } from "../compose";
 import { access, accessPath } from "../struct";
-import { makeTrackedTemplate } from "../struct/trackedTemplate";
-import type { IIF } from "./types";
+import { analyzePath, isApplyElem, isConstElem } from "./node";
+import { makeTrackedTemplate } from "./trackedTemplate";
+import {
+	APPLY,
+	type ApplyElem,
+	CONST,
+	type ConstElem,
+	type IIF,
+} from "./types";
+
+const elemToIF = (e: ConstElem | ApplyElem | Path): AnyIF => {
+	if (isConstElem(e)) {
+		return constant(e[CONST]);
+	}
+	if (isApplyElem(e)) {
+		return e[APPLY];
+	}
+
+	return e.length === 0
+		? identity()
+		: e.length === 1
+			? access(e[0])
+			: accessPath(e);
+};
 
 const pathToIF = <Input extends WeakKey>(
 	path: unknown[],
@@ -10,13 +34,13 @@ const pathToIF = <Input extends WeakKey>(
 	if (path.length === 0) {
 		return identity() as AnyIF;
 	}
-	if (path.length === 1) {
-		if (!(typeof path[0] === "string" || typeof path[0] === "number")) {
-			throw new Error("pathToIF: invalid path element");
-		}
-		return access(path[0]) as AnyIF;
+
+	const parts = analyzePath(path);
+	let composed: AnyIF = elemToIF(parts[0]);
+	for (let i = 1; i < parts.length; i++) {
+		composed = composeMemo(composed, elemToIF(parts[i]));
 	}
-	return accessPath(path as never);
+	return composed;
 };
 
 /**

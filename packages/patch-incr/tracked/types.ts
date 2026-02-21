@@ -1,11 +1,28 @@
+export type TrackedPath = unknown[];
+
 export interface PathTracker<T = unknown> {
-	_path: unknown[];
+	_path: TrackedPath;
 	_target?: T;
 }
 
-export type OnGetSymbol = (
-	target: unknown,
+export type OnGetSymbol<T = unknown> = (
+	target: PathTracker<T>,
 	key: symbol,
 ) =>
 	| { type: "value"; result: unknown }
 	| { type: "callable"; invoke: (...args: unknown[]) => unknown };
+
+export type OnApply<T = unknown> = (
+	target: PathTracker<T>,
+	path: TrackedPath,
+	func: string,
+	args: unknown[],
+) =>
+	| { type: "value"; result: unknown }
+	| { type: "path"; result: TrackedPath }
+	| undefined;
+
+export interface TrackedParams<T = unknown> {
+	onGetSymbol?: OnGetSymbol<T>;
+	onApply?: OnApply<T>;
+}
