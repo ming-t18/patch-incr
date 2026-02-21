@@ -76,10 +76,11 @@ export const get = <T, Result = unknown>(
 			if (key < 0 || key >= value.length) {
 				throw new ApplyPatchesError("Array index out of bounds.");
 			}
+		} else {
+			throw new ApplyPatchesError(
+				"Cannot get field on an array. Only number indexes are supported.",
+			);
 		}
-		// throw new ApplyPatchesError(
-		// 	"Cannot get field on an array. Only number indexes are supported.",
-		// );
 	}
 
 	ensureObject(value);
