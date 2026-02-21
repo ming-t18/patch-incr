@@ -1,11 +1,17 @@
+import { identity } from "../builder";
+import { composeMemo } from "../builder/compose";
 import {
+	accessPath,
 	accessPathFor,
+	accessPathOptFor,
 	accessRecord,
 	accessWithFor,
 } from "../builder/struct/access";
+import type { Path } from "../patch";
 import * as ps from "../patchSchema";
+import type { AnyIF } from "../types";
 import * as gp from "./helpers/genPatched.test";
-import { propsForIF } from "./helpers/props.test";
+import { ensureIFEq, propsForIF } from "./helpers/props.test";
 
 const patchSchema = ps.record({
 	a: ps.array(ps.atomic<number>()),
@@ -50,20 +56,96 @@ describe("accessRecord", () => {
 
 describe("accessPath", () => {
 	const _A = accessPathFor<Target>();
-	const access1 = _A(["a"]);
-	const access2 = _A(["b"]);
-	const access3 = _A(["c"]);
-	const access4 = _A(["d"]);
-	const access5 = _A(["d", "e"]);
-	const access6 = _A(["d", "f", 0]);
-	const access7 = _A(["d", "f", 1]);
-	propsForIF(it, gen, () => access1);
-	propsForIF(it, gen, () => access2);
-	propsForIF(it, gen, () => access3);
-	propsForIF(it, gen, () => access4);
-	propsForIF(it, gen, () => access5);
-	propsForIF(it, gen, () => access6);
-	propsForIF(it, gen, () => access7);
+	describe("simple record type", () => {
+		describe.each<[Path]>([
+			[["a"]],
+			[["b"]],
+			[["c"]],
+			[["d"]],
+			[["d", "e"]],
+			[["d", "f", 0]],
+			[["d", "f", 1]],
+		])(`accessPath(%j)`, (path) => {
+			const access1 = _A(path);
+			propsForIF(it, gen, () => access1);
+		});
+	});
+
+	it("access empty path is identity", () => {
+		ensureIFEq(identity<Target>(), _A([]));
+	});
+
+	describe("composition of accessPath", () => {
+		it("[d], [f]", () => {
+			ensureIFEq<Target, Target["d"]["f"]>(
+				composeMemo(accessPath(["d"]), accessPath(["f"]) as AnyIF),
+				accessPath(["d", "f"]),
+			);
+		});
+
+		it("[d], [f, 1]", () => {
+			ensureIFEq<Target, Target["d"]["f"]>(
+				composeMemo(accessPath(["d"]), accessPath(["f", 1]) as AnyIF),
+				accessPath(["d", "f", 1]),
+			);
+		});
+	});
+});
+
+describe("accessPathOpt", () => {
+	const arbWithOpt = gp.record({
+		opt1: gp.oneof<{ a: number } | undefined>(
+			[
+				{ weight: 1, arbitrary: gp.constant(undefined) },
+				{ weight: 1, arbitrary: gp.record({ a: gp.integer() }) },
+			],
+			(x) => (x ? 1 : 0),
+		),
+	});
+	const arbArr2D = gp.array(
+		gp.array(gp.integer({ min: -5, max: 5 }), { maxLength: 5 }),
+		{ maxLength: 5 },
+	);
+	const arbArr2DObj = gp.array(
+		gp.array(gp.record({ x: gp.integer({ min: -5, max: 5 }) }), {
+			maxLength: 5,
+		}),
+		{ maxLength: 5 },
+	);
+	type Target = gp.InferArbValue<typeof arbWithOpt>;
+
+	describe("on nested object", () => {
+		const _A = accessPathOptFor<Target>();
+		const f1 = _A(["opt1", "a"]);
+		it("evaluate", () => {
+			expect(f1.evaluate({ opt1: { a: 1 } })).toBe(1);
+			expect(f1.evaluate({ opt1: undefined })).toBeUndefined();
+		});
+		propsForIF(it, arbWithOpt, () => f1);
+	});
+
+	describe("on array 2D of numbers", () => {
+		const _A = accessPathOptFor<number[][]>();
+		describe("[2, 1]", () => {
+			propsForIF(it, arbArr2D, () => _A([2, 1]));
+		});
+	});
+
+	describe("on array 2D of records", () => {
+		const _A = accessPathOptFor<{ x: number }[][]>();
+		describe("[0]", () => {
+			propsForIF(it, arbArr2DObj, () => _A([0]));
+		});
+		describe("[0, 0]", () => {
+			propsForIF(it, arbArr2DObj, () => _A([0, 0]));
+		});
+		describe("[2, 1]", () => {
+			propsForIF(it, arbArr2DObj, () => _A([2, 1]));
+		});
+		describe("[2, 1, x]", () => {
+			propsForIF(it, arbArr2DObj, () => _A([2, 1, "x"]));
+		});
+	});
 });
 
 describe("accessWith", () => {

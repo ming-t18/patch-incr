@@ -192,6 +192,10 @@ describe("projectPatches", () => {
 			[[2, 0]],
 			[[2, 1]],
 			[[2, 2]],
+			[[3, 0]],
+			[[3, 2]],
+			[[2, 3]],
+			[[0, 3]],
 		])("project property: %o", (prefix: Path) =>
 			projProjectPatches(genArray2D, prefix));
 	});
@@ -247,6 +251,10 @@ describe("projectPatches", () => {
 				[["arr1", 1, "arr2", 0, "str"]],
 				[["arr1", 0, "arr2", 1, "str"]],
 				[["arr1", 1, "arr2", 1, "str"]],
+				[["arr1", 2, "arr2", 0, "str"]],
+				[["arr1", 0, "arr2", 2, "str"]],
+				[["arr1", 1, "arr2", 2, "str"]],
+				[["arr1", 2, "arr2", 1, "str"]],
 			] as [Path][])("project property: %o", (prefix: Path) =>
 				projProjectPatches(genNestedArray, prefix));
 		});

@@ -1,11 +1,13 @@
 import { getReplaceOnly, isReplaceOnly } from "../../algebra/replaceOnly";
 import { HINT_TRIVIAL } from "../../hints";
 import {
+	applyGet,
 	applyPatches,
 	type Patches,
 	type Path,
 	replacePatches,
 } from "../../patch";
+import { applyGetOpt } from "../../patch/access";
 import { projectPatches } from "../../patch/helpers";
 import type {
 	InferTypeFromRecordConstruction,
@@ -15,8 +17,8 @@ import type {
 	RecordConstruction,
 	TupleConstruction,
 } from "../../patchSchema/types";
-import type { IF, NoForwardOutput } from "../../types";
-import { composeMemo } from "../compose/memo";
+import type { AnyIF, IF, NoForwardOutput } from "../../types";
+import { identity } from "..";
 import type { AccessPath } from "../typeHelpers";
 import { getTrackedPath, trackedProxy } from "./pathTracker";
 
@@ -137,16 +139,31 @@ export const accessPath = <Output, Input extends WeakKey>(
 	path: Path,
 ): IF<Input, Output> => {
 	if (path.length === 0) {
-		throw new Error("accessPath: cannot be empty path");
+		return identity() as AnyIF;
 	}
 
-	if (path.length === 1) {
-		// @ts-expect-error Can't be checked
-		return access(path[0]);
-	}
+	const evaluateAccessPath = (input: Input): Output => applyGet(input, path);
+	const forwardAccessPath = (
+		input: Input,
+		change: Patches<Input>,
+		prevValueOpt?: Output,
+	): Patches<Output> => {
+		const res: Patches<Output> | null = projectPatches(path, change);
+		if (res !== null) {
+			return res;
+		}
+		const newValue = evaluateAccessPath(applyPatches(input, change));
+		if (prevValueOpt !== undefined && Object.is(prevValueOpt, newValue)) {
+			return [];
+		}
 
-	// @ts-expect-error Can't be checked
-	return composeMemo(access(path[0]), accessPath(path.slice(1)));
+		return replacePatches(newValue);
+	};
+	return {
+		evaluate: evaluateAccessPath,
+		forward: forwardAccessPath,
+		hints: HINT_TRIVIAL,
+	};
 };
 
 export const accessPathFor = <Input>(): (<
@@ -156,6 +173,52 @@ export const accessPathFor = <Input>(): (<
 	path: Path,
 ) => IF<Input, Output, Patches<Input>, Patches<Output>, NoForwardOutput>) =>
 	accessPath as never;
+
+export const accessPathOpt = <Output, Input extends WeakKey>(
+	path: Path,
+): IF<Input, Output | undefined> => {
+	if (path.length === 0) {
+		return identity() as AnyIF;
+	}
+
+	const evaluateAccessPathOpt = (input: Input): Output | undefined =>
+		applyGetOpt(input, path);
+	const forwardAccessPathOpt = (
+		input: Input,
+		change: Patches<Input>,
+		_ignored?: Output | undefined,
+	): Patches<Output | undefined> => {
+		const prevValue = evaluateAccessPathOpt(input);
+		let res: Patches<Output | undefined> | null = null;
+		if (prevValue !== undefined) {
+			res = projectPatches(path, change);
+		}
+		if (res !== null) {
+			return res;
+		}
+
+		const nextValue = evaluateAccessPathOpt(applyPatches(input, change));
+		return Object.is(prevValue, nextValue) ? [] : replacePatches(nextValue);
+	};
+	return {
+		evaluate: evaluateAccessPathOpt,
+		forward: forwardAccessPathOpt,
+		hints: HINT_TRIVIAL,
+	};
+};
+
+export const accessPathOptFor = <Input>(): (<
+	P extends Path,
+	Output = AccessPath<Input, P>,
+>(
+	path: Path,
+) => IF<
+	Input,
+	Output | undefined,
+	Patches<Input>,
+	Patches<Output | undefined>,
+	NoForwardOutput
+>) => accessPathOpt as never;
 
 export const accessWith = <Output, Input extends WeakKey>(
 	pathBuilder: (input: Input) => Output,
