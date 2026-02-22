@@ -1,6 +1,14 @@
 import type { Path } from "@/patch";
-import { isPathTracker, trackedProxy } from "@/tracked";
-import type { AnyIF } from "@/types";
+import {
+	getTrackedPath,
+	isPathTracker,
+	type OnApplyReturn,
+	type PathTracker,
+	type TrackedParams,
+	type TrackedPath,
+	trackedProxy,
+} from "@/tracked";
+import type { AnyIF, IF } from "@/types";
 import {
 	APPLY,
 	type ApplyElem,
@@ -9,10 +17,40 @@ import {
 	type Node,
 } from "./types";
 
-export const makeNode = <Output = unknown>(): Output & Node<Output> =>
-	trackedProxy();
+export const METHOD_HANDLERS: Record<
+	string,
+	// biome-ignore lint/suspicious/noExplicitAny: avoid checking parameter variance
+	(...args: any[]) => (input: any) => unknown
+> = {};
 
-export const makeApplyNode = (func: AnyIF) => trackedProxy([[APPLY, func]]);
+const HANDLER: TrackedParams = {
+	onApply: (
+		_target: PathTracker<unknown>,
+		path: TrackedPath,
+		func: string,
+		args: unknown[],
+	): OnApplyReturn => {
+		if (func in METHOD_HANDLERS) {
+			const result = METHOD_HANDLERS[func](...args)(makeNode(path));
+			return { type: "value", result };
+		}
+		throw new Error(`apply: unsupported: ${func}`);
+	},
+};
+
+export const makeNode = <Output = unknown>(
+	path = [] as unknown[],
+): Output & Node<Output> => trackedProxy(path, HANDLER);
+
+export const makeApplyNode = <Input = unknown, Output = unknown>(
+	func: IF<Input, Output>,
+): Output & Node<Output> => trackedProxy([{ [APPLY]: func }], HANDLER);
+
+export const composeWith = <Input, Output>(
+	input: Node<Input>,
+	func: IF<Input, Output>,
+): Node<Output> =>
+	makeNode([...(getTrackedPath(input) ?? []), { [APPLY]: func }]);
 
 export function isConstElem<V = unknown>(
 	value: unknown,
@@ -52,7 +90,7 @@ export const analyzePath = (
 		}
 
 		const e = path[i];
-		if (e && (CONST in (e as ConstElem) || APPLY in (e as ApplyElem))) {
+		if (isApplyElem(e) || isConstElem(e)) {
 			res.push(e as ConstElem | ApplyElem);
 			i++;
 			continue;

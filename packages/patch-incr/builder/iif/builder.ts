@@ -3,6 +3,7 @@ import type { AnyIF, IF } from "../../types";
 import { constant, identity } from "..";
 import { composeMemo } from "../compose";
 import { access, accessPath } from "../struct";
+import { setCompile } from "./compile";
 import { analyzePath, isApplyElem, isConstElem } from "./node";
 import { makeTrackedTemplate } from "./trackedTemplate";
 import {
@@ -55,3 +56,5 @@ export const iif = <Input extends WeakKey, Output>(
 ): IIF<Input, Output> => {
 	return { ...makeTrackedTemplate(func, pathToIF), original: func };
 };
+
+setCompile(iif);

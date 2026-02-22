@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { type IIF, iif } from "../builder/iif";
+import { I, type IIF, iif } from "../builder/iif";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 
@@ -14,18 +14,20 @@ const propEval = <A, B>(schema: gp.GenWithPatches<A>, ifunc: IIF<A, B>) => {
 	});
 };
 describe("iif", () => {
-	const arbRecord = gp.record({
-		str: gp.string(),
-		arr1: gp.array(
+	const arbEntry = gp.record({
+		id: gp.integer(),
+		text: gp.string(),
+		done: gp.boolean(),
+		children: gp.array(
 			gp.record({
 				id: gp.integer(),
-				text: gp.string(),
-				done: gp.boolean(),
-				children: gp.record({
-					id: gp.integer(),
-				}),
 			}),
 		),
+	});
+	// type Entry = gp.InferArbValue<typeof arbEntry>;
+	const arbRecord = gp.record({
+		str: gp.string(),
+		arr1: gp.array(arbEntry),
 		nested: gp.record({
 			bool: gp.boolean(),
 			arr: gp.array(gp.string()),
@@ -63,15 +65,9 @@ describe("iif", () => {
 		propsForIF(it, arbRecord, () => ifunc);
 	});
 
-	// bail out
-	if (1 !== "test".length) {
-		return;
-	}
-
-	// TODO doesn't work
-	describe.skip("array ops", () => {
+	describe("array ops", () => {
 		describe("getting array length", () => {
-			const ifunc = iif((x: Item) => x.arr1.length);
+			const ifunc = iif((x: Item) => I.length(x.arr1));
 			propEval(arbRecord, ifunc);
 			propsForIF(it, arbRecord, () => ifunc);
 		});
@@ -86,6 +82,58 @@ describe("iif", () => {
 			const ifunc = iif((x: Item) => x.arr1.filter((x) => x.done));
 			propEval(arbRecord, ifunc);
 			propsForIF(it, arbRecord, () => ifunc);
+		});
+
+		describe("performing maps and filters", () => {
+			const ifunc = iif((x: Item) => ({
+				ids: x.arr1.map((x) => x.id),
+				notDone: x.arr1
+					.filter(({ done }) => done)
+					.map(({ done, text, children }) => ({
+						done,
+						text,
+						nChildren: I.length(children),
+					})),
+				done: x.arr1
+					.filter(({ done }) => done)
+					.map(({ done, text, children }) => ({
+						done,
+						text,
+						nChildren: I.length(children),
+					})),
+			}));
+			propEval(arbRecord, ifunc);
+			propsForIF(it, arbRecord, () => ifunc);
+		});
+
+		const arbExample = gp.record({
+			idToFind: gp.integer({ max: 5 }),
+			items: gp.array(
+				gp.record({
+					id: gp.integer({ max: 5 }),
+					text: gp.string(),
+				}),
+				{ maxLength: 10 },
+			),
+		});
+		type Input = gp.InferArbValue<typeof arbExample>;
+
+		describe("invalid constructions", () => {
+			it("should reject arithmetic operator due to [Symbol.toPrimitive] being used", () => {
+				expect(() => iif(({ items }: Input) => items.length + 1)).toThrow(
+					/\[Symbol\.toPrimitive\]/,
+				);
+			});
+
+			// The callback for the filter is bound, which makes the function invalid
+			// Currently there is no linting rule to check for that
+			describe.skip("filtering with dependent callback", () => {
+				const ifunc = iif(({ idToFind, items }: Input) =>
+					items.filter(({ id }) => id === idToFind),
+				);
+				propEval(arbExample, ifunc);
+				propsForIF(it, arbExample, () => ifunc);
+			});
 		});
 	});
 });

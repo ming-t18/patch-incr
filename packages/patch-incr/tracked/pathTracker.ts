@@ -17,12 +17,20 @@ export const getTrackedPath = <T>(x: T): unknown[] | null =>
 	// @ts-expect-error Can't be checked
 	x[GetTracked]?._path ?? null;
 
+const toPrimitiveNotAllowed = () => {
+	throw new TypeError("cannot call [Symbol.toPrimitive] on a PathTracker");
+};
+
 const makeHandler = (
 	params?: TrackedParams,
 ): ProxyHandler<PathTracker<unknown>> => ({
 	get(target, key, _receiver) {
 		if (key === GetTracked) {
 			return target;
+		}
+
+		if (key === Symbol.toPrimitive) {
+			return toPrimitiveNotAllowed;
 		}
 
 		if (typeof key === "symbol") {
