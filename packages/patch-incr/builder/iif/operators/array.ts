@@ -7,8 +7,9 @@ import { makeOpSingle } from "./builder";
 
 export const length = makeOpSingle(A.length);
 
-export const map = <Input, Output>(f: (value: Input) => Output) =>
-	makeOpSingle(() => A.map(compile(f)));
+export const map = <Input extends WeakKey, Output>(
+	f: (value: Input) => Output,
+) => makeOpSingle(() => A.map(compile(f)));
 
 export const filter = <Input>(f: (value: Input) => boolean) =>
 	makeOpSingle(() => composeMemo(A.filter(f), Pair.fst()));

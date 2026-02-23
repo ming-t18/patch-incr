@@ -2,24 +2,30 @@ import type { Path } from "@/patch";
 import type { AnyIF, IF } from "../../types";
 import { constant, identity } from "..";
 import { composeMemo } from "../compose";
-import { access, accessPath } from "../struct";
+import { access, accessPath, tupleFor } from "../struct";
 import { setCompile } from "./compile";
-import { analyzePath, isApplyElem, isConstElem } from "./node";
+import { analyzePath, isApplyElem, isConstElem, isForkElem } from "./node";
 import { makeTrackedTemplate } from "./trackedTemplate";
 import {
 	APPLY,
 	type ApplyElem,
 	CONST,
 	type ConstElem,
+	FORK,
+	type ForkElem,
 	type IIF,
 } from "./types";
 
-const elemToIF = (e: ConstElem | ApplyElem | Path): AnyIF => {
+const elemToIF = (e: ConstElem | ApplyElem | ForkElem | Path): AnyIF => {
 	if (isConstElem(e)) {
 		return constant(e[CONST]);
 	}
 	if (isApplyElem(e)) {
 		return e[APPLY];
+	}
+	if (isForkElem(e)) {
+		const fns = e[FORK].map(pathToIF);
+		return tupleFor()(...fns);
 	}
 
 	return e.length === 0

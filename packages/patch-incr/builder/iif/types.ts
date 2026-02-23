@@ -3,27 +3,15 @@ import type { AnyIF, IF } from "@/types";
 
 export const CONST = Symbol("iif-Const");
 export const APPLY = Symbol("iif-Apply");
+export const FORK = Symbol("iif-Fork");
 
 export interface IIF<Input, Output> extends IF<Input, Output> {
 	original: (input: Input) => Output;
 }
 
-export enum OpKind {
-	Single = "Single",
-	Multi = "Multi",
-}
-
-export interface OpSingle<Input, Output> {
-	opKind: OpKind.Single;
-	(input: Input): Output;
-	// compose: <T extends WeakKey>(input: IF<T, Input>) => IF<T, Output>;
-}
-
-export interface OpMulti<Inputs extends unknown[], Output> {
-	opKind: OpKind.Multi;
-	(input: Inputs): Output;
-	// compose: <T extends WeakKey>(input: IF<T, Inputs>) => IF<T, Output>;
-}
+export type Operator<Inputs extends unknown[], Output> = (
+	...inputs: Inputs
+) => Output;
 
 export interface Node<Output = unknown> {
 	[GetTracked]: PathTracker;
@@ -32,8 +20,9 @@ export interface Node<Output = unknown> {
 
 export type ConstElem<V = unknown> = { [CONST]: V };
 export type ApplyElem<F extends AnyIF = AnyIF> = { [APPLY]: F };
+export type ForkElem<Fs extends IIFPath[] = IIFPath[]> = { [FORK]: Fs };
 
-export type IIFPathElem = string | number | ApplyElem | ConstElem;
+export type IIFPathElem = string | number | ApplyElem | ConstElem | ForkElem;
 export type IIFPath = IIFPathElem[];
 
 export type Compile = <Input extends WeakKey, Output>(

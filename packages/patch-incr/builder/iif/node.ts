@@ -14,6 +14,8 @@ import {
 	type ApplyElem,
 	CONST,
 	type ConstElem,
+	FORK,
+	type ForkElem,
 	type Node,
 } from "./types";
 
@@ -52,6 +54,12 @@ export const composeWith = <Input, Output>(
 ): Node<Output> =>
 	makeNode([...(getTrackedPath(input) ?? []), { [APPLY]: func }]);
 
+export const makeFork = <Args extends unknown[]>(
+	...nodes: { [key in keyof Args]: Node<Args[key]> }
+): Node<Args> => {
+	return makeNode([{ [FORK]: nodes.map((n) => getTrackedPath(n) ?? []) }]);
+};
+
 export function isConstElem<V = unknown>(
 	value: unknown,
 ): value is ConstElem<V> {
@@ -64,6 +72,10 @@ export function isApplyElem<F extends AnyIF = AnyIF>(
 	return !!value && APPLY in (value as ApplyElem);
 }
 
+export function isForkElem(value: unknown): value is ForkElem {
+	return !!value && FORK in (value as ForkElem);
+}
+
 export function isNode<T>(value: unknown): value is T & Node<T> {
 	return isPathTracker(value);
 }
@@ -74,8 +86,8 @@ function isPathElem(value: unknown): value is string | number {
 
 export const analyzePath = (
 	path: unknown[],
-): (ConstElem | ApplyElem | Path)[] => {
-	const res: (ConstElem | ApplyElem | Path)[] = [];
+): (ConstElem | ApplyElem | ForkElem | Path)[] => {
+	const res: (ConstElem | ApplyElem | ForkElem | Path)[] = [];
 	const n = path.length;
 	let i = 0;
 	while (i < n) {
@@ -90,8 +102,8 @@ export const analyzePath = (
 		}
 
 		const e = path[i];
-		if (isApplyElem(e) || isConstElem(e)) {
-			res.push(e as ConstElem | ApplyElem);
+		if (isApplyElem(e) || isConstElem(e) || isForkElem(e)) {
+			res.push(e as ConstElem | ApplyElem | ForkElem);
 			i++;
 			continue;
 		}

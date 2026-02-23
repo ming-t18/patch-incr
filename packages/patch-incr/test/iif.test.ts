@@ -1,4 +1,5 @@
 import fc from "fast-check";
+import type { Operator } from "@/builder/iif/types";
 import { I, type IIF, iif } from "../builder/iif";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
@@ -13,6 +14,25 @@ const propEval = <A, B>(schema: gp.GenWithPatches<A>, ifunc: IIF<A, B>) => {
 		);
 	});
 };
+
+describe("operators", () => {
+	describe("arith", () => {
+		const arbPair = gp.record({ a: gp.integer(), b: gp.integer() });
+		type Pair = { a: number; b: number };
+
+		describe.each<[string, Operator<[number, number], number>]>([
+			["add", I.add],
+			["sub", I.sub],
+			["mult", I.mult],
+			["div", I.div],
+		])("%s", (_, op) => {
+			const id1: IIF<Pair, number> = iif(({ a, b }: Pair) => op(a, b));
+			propEval(arbPair, id1);
+			propsForIF(it, arbPair, () => id1);
+		});
+	});
+});
+
 describe("iif", () => {
 	const arbEntry = gp.record({
 		id: gp.integer(),
@@ -27,10 +47,10 @@ describe("iif", () => {
 	// type Entry = gp.InferArbValue<typeof arbEntry>;
 	const arbRecord = gp.record({
 		str: gp.string(),
-		arr1: gp.array(arbEntry),
+		arr1: gp.array(arbEntry, { maxLength: 5 }),
 		nested: gp.record({
 			bool: gp.boolean(),
-			arr: gp.array(gp.string()),
+			arr: gp.array(gp.string(), { maxLength: 5 }),
 		}),
 	});
 	type Item = gp.InferArbValue<typeof arbRecord>;
@@ -53,6 +73,14 @@ describe("iif", () => {
 			propEval(arbRecord, getNested);
 			propsForIF(it, arbRecord, () => getNested);
 		});
+	});
+
+	describe("using together with arith operators", () => {
+		const ifunc = iif((x: Item) => ({
+			mult: I.mult(I.length(x.arr1), I.length(x.nested.arr)),
+		}));
+		propEval(arbRecord, ifunc);
+		propsForIF(it, arbRecord, () => ifunc);
 	});
 
 	describe("returning nested objects", () => {
