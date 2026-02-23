@@ -51,6 +51,10 @@ export type PatchSchemaArrayEntry<Elem> =
 	| (PatchAdd<[number | IndexEnd], Elem> & Targeted<Elem[]>)
 	| (PatchReplace<[number], Elem> & Targeted<Elem[]>);
 
+export interface PatchSchemaReplaceOnly<Value> extends PatchSchema<Value> {
+	analyze: (patches: Patches<Value>) => DRO<Value>;
+}
+
 export interface PatchSchemaAtomic<Value> extends PatchSchema<Value> {
 	analyze: (patches: Patches<Value>) => DRO<Value> | { inner: Patches<Value> };
 }
@@ -100,6 +104,22 @@ export interface PatchSchemaRecord<
 		key: K,
 		change: Patches<Record[K]>,
 	) => Patches<Record>;
+}
+
+export interface PatchSchemaMapping<
+	Key extends string,
+	Value,
+	KS extends PatchSchema<Key> = PatchSchema<Key>,
+	VS extends PatchSchema<Value> = PatchSchema<Value>,
+> extends PatchSchema<Record<Key, Value>> {
+	readonly $key: KS;
+	readonly $value: VS;
+	analyze: (
+		patches: Patches<Record<Key, Value>>,
+	) => DRO<Record<Key, Value>> | InnerPatches<Record<Key, Value>, Key>;
+
+	liftKey: (key: Key, change: Patches<Value>) => Patches<Record<Key, Value>>;
+	// TODO remove patch handling
 }
 
 export interface PatchSchemaArray<

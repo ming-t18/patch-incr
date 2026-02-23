@@ -1,16 +1,23 @@
 import { PatchSchemaArrayImpl } from "./array";
 import { PatchSchemaAtomicImpl } from "./atomic";
+import { PatchSchemaMappingImpl } from "./mapping";
 import { PatchSchemaRecordImpl } from "./record";
 import { PatchSchemaTupleImpl } from "./tuple";
 import type {
 	AnyPatchSchema,
 	PatchSchema,
 	PatchSchemaArray,
+	PatchSchemaMapping,
 	PatchSchemaRecord,
+	PatchSchemaReplaceOnly,
 	PatchSchemaTuple,
 	RecordConstruction,
 	TupleConstruction,
 } from "./types";
+
+// TODO technically PatchSchemaReplaceOnlyImpl should exist
+export const replaceOnly = <T>(): PatchSchemaReplaceOnly<T> =>
+	PatchSchemaAtomicImpl.INSTANCE as PatchSchemaReplaceOnly<T>;
 
 export const atomic = <T>(): PatchSchema<T> =>
 	PatchSchemaAtomicImpl.INSTANCE as PatchSchema<T>;
@@ -23,3 +30,13 @@ export const tuple = <C extends TupleConstruction>(
 export const record = <C extends RecordConstruction>(
 	construction: C,
 ): PatchSchemaRecord<C> => new PatchSchemaRecordImpl(construction);
+export const mapping = <
+	Key extends string,
+	Value,
+	KS extends PatchSchemaReplaceOnly<Key> = PatchSchemaReplaceOnly<Key>,
+	VS extends PatchSchema<Value> = PatchSchema<Value>,
+>(
+	key: KS,
+	value: VS,
+): PatchSchemaMapping<Key, Value, KS, VS> =>
+	new PatchSchemaMappingImpl<Key, Value, KS, VS>(key, value);
