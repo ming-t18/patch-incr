@@ -1,6 +1,7 @@
 export { cartesian, cartesianR } from "./cartesian";
 export { concat } from "./concat";
 export { filter } from "./filter";
+export { findIndex, findLastIndex } from "./find";
 export { flatMap } from "./flatMap";
 export { last } from "./last";
 export { length } from "./length";
