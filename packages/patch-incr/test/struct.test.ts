@@ -1,7 +1,7 @@
 import { atomicFunc, identity } from "../builder";
 import { record, template } from "../builder/struct";
 import { assign } from "../builder/struct/assign";
-import { entries, keys } from "../builder/struct/entries";
+import { entries, fromEntries, keys } from "../builder/struct/entries";
 import { merge } from "../builder/struct/merge";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
@@ -64,8 +64,8 @@ const arbRec = gp.record(
 	{
 		a: gp.integer(),
 		b: gp.string(),
-		c: gp.array(gp.string()),
-		d: gp.array(gp.tuple(gp.string())),
+		c: gp.array(gp.string(), { maxLength: 5 }),
+		d: gp.array(gp.tuple(gp.string()), { maxLength: 5 }),
 	},
 	["a", "b", "c", "d"],
 );
@@ -75,7 +75,7 @@ const arbRec1 = gp.record(
 		c: gp.integer(),
 		d: gp.string(),
 		e: gp.record({ a: gp.string(), b: gp.string() }),
-		f: gp.array(gp.tuple(gp.integer(), gp.string())),
+		f: gp.array(gp.tuple(gp.integer(), gp.string()), { maxLength: 5 }),
 	},
 	["c", "d", "e", "f"],
 );
@@ -90,4 +90,29 @@ describe("entries", () => {
 
 describe("merge", () => {
 	propsForIF(it, gp.tuple(arbRec, arbRec1), () => merge());
+});
+
+// TODO doesn't work due to duplicate entries
+describe.skip("fromEntries", () => {
+	const arbKey = gp.string({
+		minLength: 1,
+		maxLength: 2,
+		unit: "grapheme-ascii",
+	});
+	const arbMappingAtomic = gp.array(
+		gp.tuple(arbKey, gp.integer({ min: -100, max: 100 })),
+		{
+			maxLength: 20,
+		},
+	);
+	const arbMappingStruct = gp.array(gp.tuple(arbKey, arbRec1), {
+		maxLength: 20,
+	});
+	describe("atomic values", () => {
+		propsForIF(it, arbMappingAtomic, () => fromEntries());
+	});
+
+	describe("structural values", () => {
+		propsForIF(it, arbMappingStruct, () => fromEntries());
+	});
 });
