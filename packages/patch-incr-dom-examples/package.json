@@ -15,7 +15,8 @@
 		"patch-incr": "workspace:*",
 		"patch-incr-dom": "workspace:*",
 		"patch-incr-ijq": "workspace:*",
-		"patcher": "workspace:*"
+		"patcher": "workspace:*",
+		"@playwright/test": "*"
 	},
 	"peerDependencies": {
 		"typescript": "^5"
