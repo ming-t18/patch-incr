@@ -180,8 +180,8 @@ export const propsForIF = <X, Y, Z = undefined>(
 
 export const propIsIdentity = <X, Z = undefined>(
 	it: It,
-	getIF: (value: Z) => IF<X, X>,
 	gen: GenWithPatches<X>,
+	getIF: (value: Z) => IF<X, X>,
 	arb = fc.constant(undefined) as fc.Arbitrary<Z>,
 ) => {
 	it("is effectively identity: f(x) = x", () => {

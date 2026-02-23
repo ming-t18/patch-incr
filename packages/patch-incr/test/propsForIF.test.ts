@@ -115,7 +115,7 @@ describe("identity", () => {
 		arbs,
 		<T>(): IF<T, [T, T]> => compose(identity<T>(), identity()),
 	);
-	forEachArb(arbs, (arb) => propIsIdentity(it, () => identity<unknown>(), arb));
+	forEachArb(arbs, (arb) => propIsIdentity(it, arb, () => identity<unknown>()));
 });
 
 describe("constant", () => {
@@ -165,10 +165,8 @@ describe("composeWithInv", () => {
 		);
 
 		forEachArb([["arbTupleIntStr", arbTupleIntStr]], (arb) =>
-			propIsIdentity(
-				it,
-				() => composeWithInv(comm<number, string>(), comm()),
-				arb,
+			propIsIdentity(it, arb, () =>
+				composeWithInv(comm<number, string>(), comm()),
 			),
 		);
 	});
@@ -179,7 +177,7 @@ describe("list", () => {
 		describe("map id", () => {
 			testPropsForIFArray(arbsArray, <T>(): IF<T[], T[]> => map(identity<T>()));
 			forEachArb(arbsArray, (arb) =>
-				propIsIdentity(it, <T>() => map(identity<T>()), arb),
+				propIsIdentity(it, arb, <T>() => map(identity<T>())),
 			);
 		});
 
