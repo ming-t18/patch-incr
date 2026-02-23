@@ -45,8 +45,15 @@ export type InnerPatches<Object, Key extends keyof Object> = {
 export const IndexEnd = "-" as const;
 export type IndexEnd = "-";
 
+export interface PatchSchemaArrayInner<Elem> {
+	/** Index to the array entry. */
+	path: [number];
+	/** Patch on the array entry. Cannot be replace-root since it's covered by the `PatchRemove` case. */
+	inner: Exclude<PatchEntry<Elem>, PatchReplace<[], Elem>>;
+}
+
 export type PatchSchemaArrayEntry<Elem> =
-	| { path: [number]; inner: PatchEntry<Elem> }
+	| PatchSchemaArrayInner<Elem>
 	| (PatchRemove<[number]> & Targeted<Elem[]>)
 	| (PatchAdd<[number | IndexEnd], Elem> & Targeted<Elem[]>)
 	| (PatchReplace<[number], Elem> & Targeted<Elem[]>);

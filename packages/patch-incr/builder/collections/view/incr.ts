@@ -20,7 +20,7 @@ import type { IF } from "../../../types";
 import type { ListView } from "./types";
 
 export type PatchSchemaListViewEntry<N, Elem> =
-	| { path: [number]; inner: PatchEntry<Elem> }
+	| { path: [number]; inner: Exclude<PatchEntry<Elem>, PatchReplace<[]>> }
 	| (PatchRemove<[number]> & Targeted<N>)
 	| (PatchAdd<[number | IndexEnd], Elem> & Targeted<N>)
 	| (PatchReplace<[number], Elem> & Targeted<N>);
