@@ -13,8 +13,8 @@ export const cartesian0 = <A, B>(): IF<
 
 /** Performs the Cartesian product between two arrays, with the first array being in the outer loop. */
 export const cartesian = <A, B>(): IF<[A[], B[]], [A, B][]> =>
-	composeMemo(composeMemo(distr(), flatMap(distl())), fst());
+	composeMemo(distr(), flatMap(distl()), fst());
 
 /** Performs the Cartesian product between two arrays, with the second array being in the outer loop. */
 export const cartesianR = <A, B>(): IF<[A[], B[]], [A, B][]> =>
-	composeMemo(composeMemo(distl(), flatMap(distr())), fst());
+	composeMemo(distl(), flatMap(distr()), fst());

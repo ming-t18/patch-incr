@@ -1,6 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: for dealing varargs */
 import * as IFArray from "patch-incr/builder/array";
-import { composeMemo } from "patch-incr/builder/compose";
+import { composeMemo, composeReeval } from "patch-incr/builder/compose";
 import * as IFPair from "patch-incr/builder/pair";
 import { tupleFor } from "patch-incr/builder/struct";
 import type { AnyIF, IF } from "patch-incr/types";
@@ -22,9 +22,9 @@ const concatArray2 = <A extends WeakKey, B>(
 		[A, A],
 		[B[], B[]]
 	> as AnyIF;
-	return composeMemo(
-		composeMemo(IFPair.dup<A>(), split),
-		composeMemo(IFArray.concat(), IFPair.fst()),
+	return composeReeval(
+		IFPair.dup<A>(),
+		composeMemo(split, IFArray.concat(), IFPair.fst()),
 	);
 };
 
