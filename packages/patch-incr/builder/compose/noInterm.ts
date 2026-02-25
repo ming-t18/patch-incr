@@ -1,5 +1,5 @@
+import type { IF, IFInv } from "@/types";
 import type { Patches } from "../../patch";
-import type { IF, IFInv } from "../../types";
 
 export const composeWithInv = <
 	Input,

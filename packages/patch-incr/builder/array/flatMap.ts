@@ -1,4 +1,4 @@
-import type { IF } from "../../types";
+import type { IF } from "@/types";
 import { compose, composeWithInv } from "../compose";
 import { assocRight } from "../tuple";
 import { concat } from "./concat";

@@ -1,3 +1,4 @@
+import type { AnyIF, IF, NoForwardOutput } from "@/types";
 import { getReplaceOnly, isReplaceOnly } from "../../algebra/replaceOnly";
 import { HINT_TRIVIAL } from "../../hints";
 import {
@@ -18,7 +19,6 @@ import type {
 	TupleConstruction,
 } from "../../patchSchema/types";
 import { getTrackedPath, trackedProxy } from "../../tracked";
-import type { AnyIF, IF, NoForwardOutput } from "../../types";
 import { identity } from "..";
 import type { AccessPath } from "../typeHelpers";
 

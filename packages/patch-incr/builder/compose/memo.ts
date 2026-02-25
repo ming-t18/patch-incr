@@ -1,10 +1,9 @@
+import type { AnyIF, IF, NoForwardOutput } from "@/types";
 import { isTrivial } from "../../hints";
 import type { Patches } from "../../patch";
 import * as ps from "../../patchSchema";
 import type { AnyPatchSchema, PatchSchema } from "../../patchSchema/types";
-import type { AnyIF, IF, NoForwardOutput } from "../../types";
 import { identity } from "..";
-import { composeReeval } from "./reeval";
 
 export const composeMemo4 = <
 	Input extends WeakKey,

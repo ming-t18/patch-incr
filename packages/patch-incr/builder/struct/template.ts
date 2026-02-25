@@ -1,5 +1,5 @@
+import type { AnyIF, IF, InferIFInput, InferIFOutput } from "@/types";
 import { type Path, patchableEntries } from "../../patch";
-import type { AnyIF, IF, InferIFInput, InferIFOutput } from "../../types";
 import { identity } from "..";
 import { assign } from "./assign";
 

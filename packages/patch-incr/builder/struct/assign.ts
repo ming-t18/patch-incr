@@ -1,3 +1,4 @@
+import type { IF } from "@/types";
 import {
 	applyGet,
 	applyPatches,
@@ -5,7 +6,6 @@ import {
 	type Path,
 	replacePatches,
 } from "../../patch";
-import type { IF } from "../../types";
 
 /**
  * Given an initial object and a mapping of changes,

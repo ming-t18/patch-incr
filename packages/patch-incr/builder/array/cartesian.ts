@@ -1,4 +1,4 @@
-import type { IF } from "../../types";
+import type { IF } from "@/types";
 import { compose, composeWithInv } from "../compose";
 import { composeMemo } from "../compose/memo";
 import { assocRight, fst } from "../pair";

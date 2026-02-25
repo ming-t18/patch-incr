@@ -1,4 +1,4 @@
-import type { IF } from "../../types";
+import type { IF } from "@/types";
 import { forwardMapPatches } from "./helpers/forwardArray";
 
 export const map = <Input, Output>(

@@ -10,6 +10,7 @@ import type {
 	PatchSchema,
 	PatchSchemaReplaceOnly,
 } from "@/patchSchema/types";
+import type { Forward, IF } from "@/types";
 import {
 	applyPatches,
 	CannotReduce,
@@ -18,7 +19,6 @@ import {
 	PatchOp,
 	reducePatches,
 } from "../../patch";
-import type { Forward, IF } from "../../types";
 
 /**
  * Incremental version of `Object.entries`.

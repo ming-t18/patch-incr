@@ -1,5 +1,5 @@
+import type { IF } from "@/types";
 import type { Patches } from "../../patch";
-import type { IF } from "../../types";
 
 /**
  * Composes two functions, re-evaluating the first function

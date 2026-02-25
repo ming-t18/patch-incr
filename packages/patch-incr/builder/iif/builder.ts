@@ -1,5 +1,5 @@
 import type { Path } from "@/patch";
-import type { AnyIF, IF } from "../../types";
+import type { AnyIF, IF } from "@/types";
 import { constant, identity } from "..";
 import { composeMemo } from "../compose";
 import { access, accessPath, tupleFor } from "../struct";

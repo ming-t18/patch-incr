@@ -1,6 +1,6 @@
+import type { IF } from "@/types";
 import { CannotReduce, PatchOp } from "../../patch";
 import { reducePatchesNoOutput } from "../../patch/reduce";
-import type { IF } from "../../types";
 
 export type Merged<
 	A extends Record<string, unknown>,

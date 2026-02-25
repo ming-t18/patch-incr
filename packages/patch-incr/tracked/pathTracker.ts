@@ -18,7 +18,9 @@ export const getTrackedPath = <T>(x: T): unknown[] | null =>
 	x[GetTracked]?._path ?? null;
 
 const toPrimitiveNotAllowed = () => {
-	throw new TypeError("cannot call [Symbol.toPrimitive] on a PathTracker");
+	throw new TypeError(
+		"PathTracker: cannot call [Symbol.toPrimitive] on a PathTracker",
+	);
 };
 
 const makeHandler = (
@@ -35,7 +37,9 @@ const makeHandler = (
 
 		if (typeof key === "symbol") {
 			if (!params?.onGetSymbol) {
-				throw new TypeError("cannot get symbol key");
+				throw new TypeError(
+					`PathTracker: cannot get symbol key: ${key.description}`,
+				);
 			}
 
 			const res = params.onGetSymbol(target, key);

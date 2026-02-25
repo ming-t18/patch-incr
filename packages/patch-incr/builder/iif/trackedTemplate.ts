@@ -1,6 +1,6 @@
+import type { IF } from "@/types";
 import { type Path, patchableEntries } from "../../patch";
 import { GetTracked, isPathTracker, type PathTracker } from "../../tracked";
-import type { IF } from "../../types";
 import { assign } from "../struct";
 import { makeNode } from "./node";
 

@@ -1,3 +1,4 @@
+import type { IF } from "@/types";
 import type { ChangeBuilder } from "../../algebra";
 import { getReplaceOnly, isReplaceOnly } from "../../algebra/replaceOnly";
 import {
@@ -14,7 +15,6 @@ import {
 	type PatchSchema,
 	type PatchSchemaArrayEntry,
 } from "../../patchSchema/types";
-import type { IF } from "../../types";
 import { splice } from "./helpers/arrayPatch";
 import { forwardWithArraySchema } from "./helpers/forwardArray";
 import { scan } from "./scan";

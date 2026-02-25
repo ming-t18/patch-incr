@@ -1,10 +1,10 @@
+import type { IF } from "@/types";
 import type { Patches } from "../../patch";
 import type {
 	InferTypeFromTupleConstruction,
 	PatchSchemaTuple,
 	TupleConstruction,
 } from "../../patchSchema/types";
-import type { IF } from "../../types";
 
 export const tupleWithSchema = <Input, C extends TupleConstruction>(
 	entries: { [k in keyof C]: IF<Input, C[k]> },

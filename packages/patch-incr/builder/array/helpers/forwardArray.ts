@@ -1,3 +1,4 @@
+import type { IF } from "@/types";
 import type { InferApplyType } from "../../../algebra";
 import { getReplaceOnly, isReplaceOnly } from "../../../algebra/replaceOnly";
 import {
@@ -18,7 +19,6 @@ import type {
 	PatchSchemaArray,
 	PatchSchemaArrayEntry,
 } from "../../../patchSchema/types";
-import type { IF } from "../../../types";
 
 export const forwardWithArraySchema =
 	<

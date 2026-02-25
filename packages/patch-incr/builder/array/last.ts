@@ -1,4 +1,4 @@
-import type { IF } from "../../types";
+import type { IF } from "@/types";
 import { bind } from "../bind";
 import { access } from "../struct/access";
 import { length } from "./length";

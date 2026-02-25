@@ -1,3 +1,4 @@
+import type { IF } from "@/types";
 import {
 	type CannotReduce,
 	type PatchEntry,
@@ -11,7 +12,6 @@ import {
 	type PatchSchemaArray,
 	type PatchSchemaArrayEntry,
 } from "../../patchSchema/types";
-import type { IF } from "../../types";
 import { forwardWithArraySchema } from "./helpers/forwardArray";
 import { scan } from "./scan";
 

@@ -1,10 +1,10 @@
+import { type IF, isIF } from "@/types";
 import type { Patches } from "../../patch";
 import type {
 	InferTypeFromRecordConstruction,
 	PatchSchemaRecord,
 	RecordConstruction,
 } from "../../patchSchema/types";
-import { type IF, isIF } from "../../types";
 import { patchesBuilder, type StructuralChangeBuilder } from "..";
 import type {
 	InferRecordInput,
