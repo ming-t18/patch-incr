@@ -25,10 +25,19 @@ describe("operators", () => {
 			["sub", I.sub],
 			["mult", I.mult],
 			["div", I.div],
-		])("%s", (_, op) => {
+		])("%s", (name, op) => {
 			const id1: IIF<Pair, number> = iif(({ a, b }: Pair) => op(a, b));
-			propEval(arbPair, id1);
-			propsForIF(it, arbPair, () => id1);
+			if (name === "div") {
+				const arbPair1 = gp.record({
+					a: gp.integer(),
+					b: gp.atomic(fc.integer().filter((x) => x !== 0)),
+				});
+				propEval(arbPair1, id1);
+				propsForIF(it, arbPair1, () => id1);
+			} else {
+				propEval(arbPair, id1);
+				propsForIF(it, arbPair, () => id1);
+			}
 		});
 	});
 });
