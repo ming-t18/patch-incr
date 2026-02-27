@@ -2,16 +2,18 @@ import { IndexEnd } from "../patchSchema/types";
 import { get as _get, applyGet, ensureObject, shallowCopy } from "./access";
 import { Applier, hasPatchApplier } from "./applyProtocol";
 import { ApplyPatchesError } from "./error";
-import type {
-	PatchCopy,
-	PatchEntry,
-	Patches,
-	PatchesExtended,
-	PatchMove,
-	PatchSwap,
-	Path,
+import {
+	NoValue,
+	type PatchCopy,
+	type PatchEntry,
+	type Patches,
+	type PatchesExtended,
+	type PatchMove,
+	PatchOp,
+	PatchOpExtended,
+	type PatchSwap,
+	type Path,
 } from "./types";
-import { PatchOp, PatchOpExtended } from "./types";
 
 const _assign = <T, Assign = unknown>(
 	base: T,
@@ -22,6 +24,8 @@ const _assign = <T, Assign = unknown>(
 	const copied = shallowCopy(base, alreadyCopied);
 	if (copied instanceof Map) {
 		copied.set(key, value);
+	} else if (copied instanceof Set) {
+		throw new ApplyPatchesError("Cannot assign on a set");
 	} else if (hasPatchApplier(base)) {
 		base[Applier].set(base, key, value);
 	} else {
@@ -31,9 +35,10 @@ const _assign = <T, Assign = unknown>(
 	return copied;
 };
 
-const applyRemove = <T, Deleted = unknown>(
+const applyRemove = <T, V = unknown, Deleted = unknown>(
 	base: T,
 	path: Path,
+	setValue: V | typeof NoValue,
 	alreadyCopied: WeakSet<WeakKey>,
 	pathIndex = 0,
 ): [T, Deleted] => {
@@ -47,6 +52,7 @@ const applyRemove = <T, Deleted = unknown>(
 		const [replacement, deleted] = applyRemove(
 			_get(base, key),
 			path,
+			setValue,
 			alreadyCopied,
 			pathIndex + 1,
 		);
@@ -60,7 +66,14 @@ const applyRemove = <T, Deleted = unknown>(
 		deleted = base1.get(key);
 		base1.delete(key);
 	} else if (base1 instanceof Set) {
-		throw new ApplyPatchesError("Can't delete from set");
+		if (setValue === NoValue) {
+			throw new ApplyPatchesError("Set: Missing value field in remove-patch");
+		}
+		if (base1.delete(setValue)) {
+			deleted = setValue as never;
+		} else {
+			deleted = undefined as never;
+		}
 	} else if (Array.isArray(base1)) {
 		if (key === IndexEnd) {
 			throw new ApplyPatchesError("Can't replace in the end");
@@ -149,6 +162,7 @@ const applyAdd = <T, Assign = unknown>(
 	if (base1 instanceof Map) {
 		base1.set(key, value);
 	} else if (base1 instanceof Set) {
+		// set patch: index ignored
 		base1.add(value);
 	} else if (Array.isArray(base1)) {
 		if (key === IndexEnd) {
@@ -170,7 +184,12 @@ const applyMove = <T>(
 	entry: PatchMove,
 	alreadyCopied: WeakSet<WeakKey>,
 ): T => {
-	const [value1, deleted] = applyRemove(base, entry.from, alreadyCopied);
+	const [value1, deleted] = applyRemove(
+		base,
+		entry.from,
+		NoValue,
+		alreadyCopied,
+	);
 	return applyAdd<T>(value1, entry.path, deleted as never, alreadyCopied);
 };
 
@@ -207,7 +226,7 @@ const applyEntry = <T>(
 	if (op === PatchOp.Add) {
 		return applyAdd(value, entry.path, entry.value, alreadyCopied);
 	} else if (op === PatchOp.Remove) {
-		return applyRemove(value, entry.path, alreadyCopied)[0];
+		return applyRemove(value, entry.path, entry.value, alreadyCopied)[0];
 	} else if (op === PatchOp.Replace) {
 		return applyReplace(value, entry.path, entry.value, alreadyCopied);
 	}

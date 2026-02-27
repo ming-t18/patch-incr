@@ -17,9 +17,11 @@ export enum PatchOpExtended {
 	Swap = "swap",
 }
 
-export interface PatchRemove<P extends Path = Path> {
+// biome-ignore lint/suspicious/noExplicitAny: intentional
+export interface PatchRemove<P extends Path = Path, V = any> {
 	op: PatchOp.Remove;
 	path: P;
+	value?: V;
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: intentional
@@ -81,3 +83,5 @@ export type Patches<V = any> = PatchEntry<V>[] & Targeted<V>;
 
 // biome-ignore lint/suspicious/noExplicitAny: intentional
 export type PatchesExtended<V = any> = PatchEntryExtended<V>[] & Targeted<V>;
+
+export const NoValue = Symbol.for("patch-incr/patch/Internal-NoValue");

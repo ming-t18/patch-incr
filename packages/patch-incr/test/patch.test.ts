@@ -1,5 +1,9 @@
-import { applyPatches, PatchOp, PatchOpExtended } from "../patch";
+import { enableMapSet, enablePatches, produceWithPatches } from "immer";
+import { applyPatches, type Patches, PatchOp, PatchOpExtended } from "../patch";
 import { IndexEnd } from "../patchSchema/types";
+
+enableMapSet();
+enablePatches();
 
 describe("applyPatches", () => {
 	describe("basic patch operations", () => {
@@ -676,5 +680,34 @@ describe("applyPatches", () => {
 				});
 			});
 		});
+	});
+});
+
+describe("Set handling", () => {
+	it("should remove from set", () => {
+		const set = new Set(["abc", "def", "ghi"]);
+		const [set1, patches] = produceWithPatches(set, (draft) => {
+			draft.delete("def");
+		});
+		expect(applyPatches(set, patches as Patches)).toStrictEqual(set1);
+	});
+	it("should add to set", () => {
+		const set = new Set(["abc", "def", "ghi"]);
+		const [set1, patches] = produceWithPatches(set, (draft) => {
+			draft.add("xyz");
+		});
+		expect(applyPatches(set, patches as Patches)).toStrictEqual(set1);
+	});
+	it("should make internal change within a set element", () => {
+		const elem1 = { x: 1 };
+		const set = new Set([elem1, { x: 2 }, { x: 3 }]);
+		const [set1, patches] = produceWithPatches(set, (draft) => {
+			Array.from(draft.values())[0].x = 10;
+		});
+		expect(patches).toStrictEqual([
+			{ op: PatchOp.Remove, path: [0], value: elem1 },
+			{ op: PatchOp.Add, path: [0], value: { x: 10 } },
+		]);
+		expect(applyPatches(set, patches as Patches)).toStrictEqual(set1);
 	});
 });
