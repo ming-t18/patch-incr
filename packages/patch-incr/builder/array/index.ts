@@ -9,4 +9,4 @@ export { map } from "./map";
 export { scan } from "./scan";
 export { seq } from "./seq";
 export { slice } from "./slice";
-export { zip } from "./zip";
+export { unzip, zip } from "./zip";

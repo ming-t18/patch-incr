@@ -1,6 +1,11 @@
+import type { AnyTuple } from "@/patchSchema/types";
 import type { IF } from "@/types";
-import { CannotReduce, PatchOp } from "../../patch";
+import { CannotReduce, PatchOp, shallowCopy } from "../../patch";
 import { reducePatchesNoOutput } from "../../patch/reduce";
+import { atomicFunc, identity } from "..";
+import { composeMemo } from "../compose";
+import * as Pair from "../pair";
+import { record } from "./record";
 
 export type Merged<
 	A extends Record<string, unknown>,
@@ -48,3 +53,25 @@ export const merge = <
 		forward: forwardMerge,
 	};
 };
+
+export const assignKey = <
+	Key extends string,
+	Value,
+	Input extends Record<string, unknown>,
+>(
+	key: Key,
+	getValue: IF<Input, Value>,
+): IF<Input, Merged<Input, Record<Key, Value>>> => {
+	return composeMemo(
+		Pair.pair(identity(), record({ [key]: getValue })),
+		merge(),
+	);
+};
+
+export const assignKeyFor =
+	<Input extends Record<string, unknown>>(): (<Key extends string, Value>(
+		key: Key,
+		getValue: IF<Input, Value>,
+	) => IF<[Input, Key], Merged<Input, Record<Key, Value>>>) =>
+	() =>
+		assignKey as never;

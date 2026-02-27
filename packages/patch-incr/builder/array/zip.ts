@@ -3,8 +3,11 @@ import { getReplaceOnly, isReplaceOnly } from "../../algebra/replaceOnly";
 import { type PatchEntry, type Patches, PatchOp } from "../../patch";
 import * as ps from "../../patchSchema";
 import { IndexEnd } from "../../patchSchema/types";
+import * as Pair from "../pair";
+import { tupleFor } from "../struct";
 import { splice } from "./helpers/arrayPatch";
 import { getMinUpdatedIndex } from "./helpers/forwardArray";
+import { map } from "./map";
 
 export const zip = <A, B>(): IF<[A[], B[]], [A, B][]> => {
 	const leftSchema = ps.atomic<A>();
@@ -125,4 +128,8 @@ export const zip = <A, B>(): IF<[A[], B[]], [A, B][]> => {
 		evaluate: evaluateZip,
 		forward: forwardZip,
 	};
+};
+
+export const unzip = <A, B>(): IF<[A, B][], [A[], B[]]> => {
+	return tupleFor<[A, B][]>()(map(Pair.fst<A, B>()), map(Pair.snd<A, B>()));
 };
