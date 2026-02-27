@@ -2,6 +2,7 @@ import { IndexEnd } from "../patchSchema/types";
 import { get as _get, applyGet, ensureObject, shallowCopy } from "./access";
 import { Applier, hasPatchApplier } from "./applyProtocol";
 import { ApplyPatchesError } from "./error";
+import * as Ijs from "./immJs";
 import {
 	NoValue,
 	type PatchCopy,
@@ -21,6 +22,10 @@ const _assign = <T, Assign = unknown>(
 	value: Assign,
 	alreadyCopied: WeakSet<WeakKey>,
 ): T => {
+	if (Ijs.isImmutableJsEnabled() && Ijs.isImmCollection(base)) {
+		return Ijs.handleReplace<T, Assign>(base, key, value);
+	}
+
 	const copied = shallowCopy(base, alreadyCopied);
 	if (copied instanceof Map) {
 		copied.set(key, value);
@@ -35,10 +40,10 @@ const _assign = <T, Assign = unknown>(
 	return copied;
 };
 
-const applyRemove = <T, V = unknown, Deleted = unknown>(
+const applyRemove = <T, Deleted = unknown>(
 	base: T,
 	path: Path,
-	setValue: V | typeof NoValue,
+	setValue: Deleted | typeof NoValue,
 	alreadyCopied: WeakSet<WeakKey>,
 	pathIndex = 0,
 ): [T, Deleted] => {
@@ -60,8 +65,13 @@ const applyRemove = <T, V = unknown, Deleted = unknown>(
 	}
 
 	ensureObject(base);
+	if (Ijs.isImmutableJsEnabled() && Ijs.isImmCollection(base)) {
+		return Ijs.handleRemove<T, Deleted>(base, key, setValue);
+	}
+
 	const base1 = shallowCopy(base, alreadyCopied);
 	let deleted: Deleted;
+
 	if (base1 instanceof Map) {
 		deleted = base1.get(key);
 		base1.delete(key);
@@ -115,6 +125,10 @@ const applyReplace = <T, Assign = unknown>(
 	}
 
 	ensureObject(base);
+	if (Ijs.isImmutableJsEnabled() && Ijs.isImmCollection(base)) {
+		return Ijs.handleReplace<T, Assign>(base, key, value);
+	}
+
 	const base1 = shallowCopy(base, alreadyCopied);
 	if (base1 instanceof Map) {
 		base1.set(key, value);
@@ -159,6 +173,10 @@ const applyAdd = <T, Assign = unknown>(
 		throw new ApplyPatchesError("Invalid type for add target");
 	}
 	const base1 = shallowCopy(base, alreadyCopied);
+	if (Ijs.isImmutableJsEnabled() && Ijs.isImmCollection(base)) {
+		return Ijs.handleAdd<T, Assign>(base, key, value);
+	}
+
 	if (base1 instanceof Map) {
 		base1.set(key, value);
 	} else if (base1 instanceof Set) {
@@ -262,7 +280,6 @@ export const applyPatches = <T>(
 	patches: PatchesExtended<T>,
 	alreadyCopiedFromArg?: WeakSet<WeakKey>,
 ): T => {
-	// TODO applyPatches mutable mode (mutable = true)
 	if (patches.length === 0) {
 		return value;
 	}

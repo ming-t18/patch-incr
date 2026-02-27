@@ -16,7 +16,7 @@
         "@types/jest": "^30.0.0",
         "bun": "^1.2.15",
         "fast-check": "^3.23.2",
-        "immer": "^10.1.1",
+        "immer": "^11.1.4",
         "lodash-es": "^4.17.21",
       },
       "devDependencies": {
@@ -80,6 +80,20 @@
     "packages/patch-incr-ijq": {
       "name": "patch-incr-ijq",
       "dependencies": {
+        "patch-incr": "*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "patch-incr": "workspace:*",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "packages/patch-incr-immutable-js": {
+      "name": "patch-incr-immutable-js",
+      "dependencies": {
+        "immutable": "^5.1.4",
         "patch-incr": "*",
       },
       "devDependencies": {
@@ -203,7 +217,9 @@
 
     "has-flag": ["has-flag@4.0.0", "", {}, "sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ=="],
 
-    "immer": ["immer@10.2.0", "", {}, "sha512-d/+XTN3zfODyjr89gM3mPq1WNX2B8pYsu7eORitdwyA2sBubnTl3laYlBk4sXY5FUa5qTZGBDPJICVbvqzjlbw=="],
+    "immer": ["immer@11.1.4", "", {}, "sha512-XREFCPo6ksxVzP4E0ekD5aMdf8WMwmdNaz6vuvxgI40UaEiu6q3p8X52aU6GdyvLY3XXX/8R7JOTXStz/nBbRw=="],
+
+    "immutable": ["immutable@5.1.4", "", {}, "sha512-p6u1bG3YSnINT5RQmx/yRZBpenIl30kVxkTLDyHLIMk0gict704Q9n+thfDI7lTRm9vXdDYutVzXhzcThxTnXA=="],
 
     "is-number": ["is-number@7.0.0", "", {}, "sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng=="],
 
@@ -234,6 +250,8 @@
     "patch-incr-dual": ["patch-incr-dual@workspace:packages/patch-incr-dual"],
 
     "patch-incr-ijq": ["patch-incr-ijq@workspace:packages/patch-incr-ijq"],
+
+    "patch-incr-immutable-js": ["patch-incr-immutable-js@workspace:packages/patch-incr-immutable-js"],
 
     "patcher": ["patcher@workspace:packages/patcher"],
 
@@ -270,7 +288,5 @@
     "chalk/ansi-styles": ["ansi-styles@4.3.0", "", { "dependencies": { "color-convert": "^2.0.1" } }, "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg=="],
 
     "micromatch/picomatch": ["picomatch@2.3.1", "", {}, "sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA=="],
-
-    "patch-incr-dom-examples/immer": ["immer@11.1.4", "", {}, "sha512-XREFCPo6ksxVzP4E0ekD5aMdf8WMwmdNaz6vuvxgI40UaEiu6q3p8X52aU6GdyvLY3XXX/8R7JOTXStz/nBbRw=="],
   }
 }

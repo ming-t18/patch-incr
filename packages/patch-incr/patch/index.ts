@@ -24,7 +24,7 @@ export {
 	unliftPatchEntry,
 	unliftPatches,
 } from "./helpers";
-export { enableImmutableJs } from "./immutableJs";
+export { enableImmutableJs } from "./immJs";
 export type { ReduceEntry } from "./reduce";
 export {
 	CannotReduce,

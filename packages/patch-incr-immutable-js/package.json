@@ -1,0 +1,16 @@
+{
+	"name": "patch-incr-immutable-js",
+	"module": "src/index.ts",
+	"type": "module",
+	"dependencies": {
+		"immutable": "^5.1.4",
+		"patch-incr": "*"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"patch-incr": "workspace:*"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	}
+}

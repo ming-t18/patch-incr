@@ -1,5 +1,6 @@
 import { Applier, defaultEntries, hasPatchApplier } from "./applyProtocol";
 import { ApplyPatchesError } from "./error";
+import * as Ijs from "./immJs";
 import type { Path } from "./types";
 
 export function ensureObject(value: unknown): asserts value is object {
@@ -13,6 +14,10 @@ export const shallowCopy = <T>(
 	alreadyCopied?: WeakSet<WeakKey>,
 ): T => {
 	if (value === null || value === undefined || typeof value !== "object") {
+		return value;
+	}
+
+	if (Ijs.isImmutableJsEnabled() && Ijs.isImmCollection(value)) {
 		return value;
 	}
 
@@ -46,11 +51,13 @@ export const shallowCopy = <T>(
 export const patchableEntries = <T>(value: T): [Path[number], unknown][] => {
 	if (value === null || value === undefined || typeof value !== "object") {
 		return [];
+	} else if (Ijs.isImmutableJsEnabled() && Ijs.isImmCollection(value)) {
+		return Ijs.patchableEntries<T>(value);
 	} else if (Array.isArray(value)) {
 		const n = value.length;
 		const xs: [number, unknown][] = [];
 		for (let i = 0; i < n; i++) {
-			xs.push([i, xs[i]]);
+			xs.push([i, value[i]]);
 		}
 		return xs;
 	} else if (hasPatchApplier(value)) {
@@ -67,6 +74,10 @@ export const get = <T, Result = unknown>(
 	value: T,
 	key: string | number,
 ): Result => {
+	if (Ijs.isImmutableJsEnabled() && Ijs.isImmCollection(value)) {
+		return Ijs.get<T, Result>(value, key);
+	}
+
 	if (hasPatchApplier(value)) {
 		return value[Applier].get(value, key) as never;
 	}
@@ -92,6 +103,10 @@ export const getOpt = <T, Result = unknown>(
 	value: T,
 	key: string | number,
 ): Result | undefined => {
+	if (Ijs.isImmutableJsEnabled() && Ijs.isImmCollection(value)) {
+		return Ijs.getOpt<T, Result>(value, key);
+	}
+
 	if (hasPatchApplier(value)) {
 		return value[Applier].get(value, key) as never;
 	}
