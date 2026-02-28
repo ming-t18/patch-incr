@@ -1,4 +1,4 @@
-import { distAssign, distl, distr } from "../builder/array/dist";
+import { distAssign, distl, distr } from "@/builder/array/dist";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 

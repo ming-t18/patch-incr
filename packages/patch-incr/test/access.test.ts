@@ -1,16 +1,16 @@
-import { identity } from "../builder";
-import { composeMemo } from "../builder/compose";
+import * as gp from "@test/genPatched.test";
+import { identity } from "@/builder";
+import { composeMemo } from "@/builder/compose";
 import {
 	accessPath,
 	accessPathFor,
 	accessPathOptFor,
 	accessRecord,
 	accessWithFor,
-} from "../builder/struct/access";
-import type { Path } from "../patch";
-import * as ps from "../patchSchema";
-import type { AnyIF } from "../types";
-import * as gp from "./helpers/genPatched.test";
+} from "@/builder/struct/access";
+import type { Path } from "@/patch";
+import * as ps from "@/patchSchema";
+import type { AnyIF } from "@/types";
 import { ensureIFEq, propsForIF } from "./helpers/props.test";
 
 const patchSchema = ps.record({

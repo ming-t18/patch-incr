@@ -1,5 +1,5 @@
-import { composeWithInv } from "../builder/compose/noInterm";
-import * as Pair from "../builder/pair";
+import { composeWithInv } from "@/builder/compose/noInterm";
+import * as Pair from "@/builder/pair";
 import type { ExistsW, IFR } from "./types";
 
 export const first = <A, B, A1, W = ExistsW>(

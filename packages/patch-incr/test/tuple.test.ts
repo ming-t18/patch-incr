@@ -1,5 +1,5 @@
 import fc from "fast-check";
-import { assocLeft, assocRight, comm } from "../builder/tuple";
+import { assocLeft, assocRight, comm } from "@/builder/tuple";
 import * as gp from "./helpers/genPatched.test";
 import { ensurePatchCoherent } from "./helpers/props.test";
 

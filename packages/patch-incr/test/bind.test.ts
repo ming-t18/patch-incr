@@ -1,11 +1,11 @@
 import fc from "fast-check";
-import { isReplaceOnly } from "../algebra/replaceOnly";
-import { filter } from "../builder/array";
-import { bind } from "../builder/bind";
-import { compose, composeWithInv } from "../builder/compose";
-import { access } from "../builder/struct";
-import { assocRight } from "../builder/tuple";
-import * as ps from "../patchSchema";
+import { isReplaceOnly } from "@/algebra/replaceOnly";
+import { filter } from "@/builder/array";
+import { bind } from "@/builder/bind";
+import { compose, composeWithInv } from "@/builder/compose";
+import { access } from "@/builder/struct";
+import { assocRight } from "@/builder/tuple";
+import * as ps from "@/patchSchema";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 

@@ -1,8 +1,8 @@
 import { expect } from "bun:test";
+import type { GenWithPatches } from "@test/genPatched.test";
 import fc from "fast-check";
+import { applyPatches, type Patches, reduceReplaceRoot } from "@/patch";
 import type { IF } from "@/types";
-import { applyPatches, type Patches, reduceReplaceRoot } from "../../patch";
-import type { GenWithPatches } from "./genPatched.test";
 
 export const ensurePatchCoherent = <X, Y, DX = Patches<X>>(
 	x: X,

@@ -1,13 +1,13 @@
+import * as gp from "@test/genPatched.test";
 import fc from "fast-check";
-import { applyPatches, liftPatches, type Patches, type Path } from "../patch";
-import { applyGet, applyGetOpt } from "../patch/access";
+import { applyPatches, liftPatches, type Patches, type Path } from "@/patch";
+import { applyGet, applyGetOpt } from "@/patch/access";
 import {
 	analyzeDisplacement,
 	PatchBuilder,
 	projectPatches,
-} from "../patch/helpers";
-import { IndexEnd } from "../patchSchema/types";
-import * as gp from "./helpers/genPatched.test";
+} from "@/patch/helpers";
+import { IndexEnd } from "@/patchSchema/types";
 
 // numRuns being too large causes test timeout of 5000ms
 const NUM_RUNS = 50;

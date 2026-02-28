@@ -1,6 +1,6 @@
-import { ifExists, matchUnionFor } from "../builder/cond";
-import { accessFor } from "../builder/struct";
-import { accessWithFor } from "../builder/struct/access";
+import { ifExists, matchUnionFor } from "@/builder/cond";
+import { accessFor } from "@/builder/struct";
+import { accessWithFor } from "@/builder/struct/access";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 

@@ -1,16 +1,16 @@
 import fc, { anything } from "fast-check";
-import { atomicFunc, constant, identity } from "../builder";
-import { compose } from "../builder/compose";
-import { IFGraphBuilder } from "../builder/graphBuilder";
-import { access, record } from "../builder/struct";
+import { atomicFunc, constant, identity } from "@/builder";
+import { compose } from "@/builder/compose";
+import { IFGraphBuilder } from "@/builder/graphBuilder";
+import { access, record } from "@/builder/struct";
 import {
 	applyPatches,
 	isAtomicValue,
 	PatchBuilder,
 	type Path,
 	replacePatches,
-} from "../patch";
-import type { IF } from "../types";
+} from "@/patch";
+import type { IF } from "@/types";
 import * as gp from "./helpers/genPatched.test";
 import { ensurePatchCoherent } from "./helpers/props.test";
 

@@ -1,6 +1,6 @@
+import type { TypesKey } from "@/builder/typeHelpers";
 import type { ChangeBuilder, ReplaceOnly } from "../algebra";
 import { makeReplaceOnly } from "../algebra/replaceOnly";
-import type { TypesKey } from "../builder/typeHelpers";
 import {
 	applyPatches,
 	type PatchEntry,

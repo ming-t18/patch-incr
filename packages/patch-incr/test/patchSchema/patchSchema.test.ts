@@ -1,9 +1,9 @@
+import * as gp from "@test/genPatched.test";
 import fc from "fast-check";
-import type { InferApplyType } from "../../algebra";
-import { getReplaceOnly } from "../../algebra/replaceOnly";
-import { type Patches, PatchOp } from "../../patch";
-import * as ps from "../../patchSchema";
-import * as gp from "./../helpers/genPatched.test";
+import type { InferApplyType } from "@/algebra";
+import { getReplaceOnly } from "@/algebra/replaceOnly";
+import { type Patches, PatchOp } from "@/patch";
+import * as ps from "@/patchSchema";
 
 describe("patchSchema", () => {
 	const recordSchema = ps.record({

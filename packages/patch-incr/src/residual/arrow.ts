@@ -1,11 +1,11 @@
-import { identity as identityIF } from "../builder";
+import { identity as identityIF } from "@/builder";
 import {
 	compose as _compose,
 	composeIFInv,
 	composeReeval,
-} from "../builder/compose";
-import { composeWithInv } from "../builder/compose/noInterm";
-import * as Pair from "../builder/pair";
+} from "@/builder/compose";
+import { composeWithInv } from "@/builder/compose/noInterm";
+import * as Pair from "@/builder/pair";
 import { isTrivial } from "../hints";
 import type { Patches } from "../patch";
 import type { IF, IFInv } from "../types";

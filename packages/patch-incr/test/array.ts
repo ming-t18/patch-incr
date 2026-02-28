@@ -1,4 +1,4 @@
-import { last, length } from "../builder/array";
+import { last, length } from "@/builder/array";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 

@@ -10,8 +10,8 @@ import {
 	type PatchReplace,
 	type Path,
 	type Targeted,
-} from "../../patch";
-import { IndexEnd } from "../../patchSchema/types";
+} from "@/patch";
+import { IndexEnd } from "@/patchSchema/types";
 export type WithPatches<T> = { value: T; patches: Patches<T> };
 
 export interface ArbPatchEntryOpts<T> {

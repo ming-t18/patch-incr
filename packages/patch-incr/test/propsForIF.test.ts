@@ -1,10 +1,10 @@
 import fc from "fast-check";
-import { atomicFunc, constant, identity } from "../builder";
-import { concat, map } from "../builder/array";
-import { compose } from "../builder/compose";
-import { composeWithInv } from "../builder/compose/noInterm";
-import { comm } from "../builder/tuple";
-import type { IF } from "../types";
+import { atomicFunc, constant, identity } from "@/builder";
+import { concat, map } from "@/builder/array";
+import { compose } from "@/builder/compose";
+import { composeWithInv } from "@/builder/compose/noInterm";
+import { comm } from "@/builder/tuple";
+import type { IF } from "@/types";
 import * as gp from "./helpers/genPatched.test";
 import { propIsIdentity, propsForIF } from "./helpers/props.test";
 

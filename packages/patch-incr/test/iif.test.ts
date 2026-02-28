@@ -1,6 +1,6 @@
 import fc from "fast-check";
+import { I, type IIF, iif } from "@/builder/iif";
 import type { Operator } from "@/builder/iif/types";
-import { I, type IIF, iif } from "../builder/iif";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 

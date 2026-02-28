@@ -1,6 +1,6 @@
 import fc from "fast-check";
-import { splice, swap } from "../builder/array/helpers/arrayPatch";
-import { applyPatches } from "../patch";
+import { splice, swap } from "@/builder/array/helpers/arrayPatch";
+import { applyPatches } from "@/patch";
 
 describe("arrayPatchHelper", () => {
 	const arbArr = fc.array(fc.integer({ min: -100, max: 100 }));

@@ -1,8 +1,8 @@
 import fc from "fast-check";
-import { constant } from "../builder";
-import { map } from "../builder/array";
-import { composer } from "../builder/compose";
-import { accessFor, template } from "../builder/struct";
+import { constant } from "@/builder";
+import { map } from "@/builder/array";
+import { composer } from "@/builder/compose";
+import { accessFor, template } from "@/builder/struct";
 import * as gp from "./helpers/genPatched.test";
 import { propsForIF } from "./helpers/props.test";
 

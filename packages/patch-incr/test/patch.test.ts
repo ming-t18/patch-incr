@@ -1,6 +1,6 @@
 import { enableMapSet, enablePatches, produceWithPatches } from "immer";
-import { applyPatches, type Patches, PatchOp, PatchOpExtended } from "../patch";
-import { IndexEnd } from "../patchSchema/types";
+import { applyPatches, type Patches, PatchOp, PatchOpExtended } from "@/patch";
+import { IndexEnd } from "@/patchSchema/types";
 
 enableMapSet();
 enablePatches();

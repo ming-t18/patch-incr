@@ -1,12 +1,6 @@
 import { atomicFunc, identity } from "@/builder";
 import * as Arr from "@/builder/array";
-import {
-	type AnyIIsoLens,
-	type IIsoLens,
-	LensAccess,
-	LensApply,
-	LensArray,
-} from "@/iso/lens";
+import { type IIsoLens, LensAccess, LensApply, LensArray } from "@/iso/lens";
 import * as gp from "../helpers/genPatched.test";
 
 const schema = gp.record({
