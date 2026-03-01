@@ -1,7 +1,7 @@
 import { PatchBuilder } from "patch-incr/patch";
-import * as A from "../src/arrow";
-import { Pipe } from "../src/pipe";
-import * as R from "../src/recurse";
+import * as A from "@/arrow";
+import { Pipe } from "@/pipe";
+import * as R from "@/recurse";
 import { propIjqPatchCoherentNoCtx } from "./helpers";
 
 interface Tree {

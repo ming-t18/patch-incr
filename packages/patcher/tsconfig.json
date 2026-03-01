@@ -24,6 +24,12 @@
 		// Some stricter flags (disabled by default)
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
-		"noPropertyAccessFromIndexSignature": false
+		"noPropertyAccessFromIndexSignature": false,
+		"rootDirs": ["./src", "./test"],
+		"paths": {
+			"@/*": ["./src/*"],
+			"patch-incr/*": ["./../node_modules/patch-incr/src/*"],
+		},
+		"baseUrl": "./src",
 	}
 }

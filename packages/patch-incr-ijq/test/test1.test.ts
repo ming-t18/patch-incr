@@ -1,11 +1,11 @@
 import { PatchBuilder } from "patch-incr/patch";
-import * as Arr from "../src/array";
-import * as A from "../src/arrow";
-import * as Stream from "../src/arrow";
-import * as C from "../src/context";
-import * as AP from "../src/pair";
-import { Pipe } from "../src/pipe";
-import type { EmptyCtx } from "../src/type";
+import * as Arr from "@/array";
+import * as A from "@/arrow";
+import * as Stream from "@/arrow";
+import * as C from "@/context";
+import * as AP from "@/pair";
+import { Pipe } from "@/pipe";
+import type { EmptyCtx } from "@/type";
 import { propIjqPatchCoherentNoCtx } from "./helpers";
 
 interface Item {

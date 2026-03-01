@@ -1,6 +1,6 @@
 import { applyPatches, type Patches } from "patch-incr/patch";
-import * as A from "../src/arrow";
-import type { EmptyCtx, Ijq } from "../src/type";
+import * as A from "@/arrow";
+import type { EmptyCtx, Ijq } from "@/type";
 
 export const propIjqPatchCoherentNoCtx = <Input extends WeakKey, Output>(
 	x: Input,

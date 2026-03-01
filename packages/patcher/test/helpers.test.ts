@@ -1,4 +1,4 @@
-import { toKey } from "../src/helpers";
+import { toKey } from "./helpers";
 
 describe("toKey", () => {
 	it("should convert strings containing integers to strings", () => {
