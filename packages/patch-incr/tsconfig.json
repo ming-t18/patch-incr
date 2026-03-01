@@ -23,10 +23,12 @@
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
 		"noPropertyAccessFromIndexSignature": false,
-		"rootDirs": ["src", "test"],
+		"baseUrl": "./src",
+		"rootDirs": ["./", "./../test/helpers"],
 		"paths": {
-			"@/*": ["./src/*"],
-			"@test/*": ["./test/helpers/*"]
+			"@/*": ["./*"],
+			"@test/*": ["./../test/helpers/*"]
 		}
-	}
+	},
+	"include": ["src/", "test/"]
 }

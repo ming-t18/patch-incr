@@ -20,7 +20,6 @@ export const reduceReplaceRoot = <T>(
 	const hasReplaceRoot = patches.findIndex(isReplaceRoot);
 	if (hasReplaceRoot !== -1) {
 		const patches1 = patches.slice(hasReplaceRoot);
-		// @ts-expect-error selected entry is not Remove
 		const initValue: T = patches[hasReplaceRoot].value;
 		return { replace: applyPatches(initValue, patches1) };
 	}
