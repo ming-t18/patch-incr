@@ -27,15 +27,10 @@ export const assocRight = <A, B, C>(): IIso<[[A, B], C], [A, [B, C]]> =>
 export const abc_acb = <A, B, C>(): IIso<[[A, B], C], [[A, C], B]> =>
 	fromPair(Pair.abc_acb(), Pair.abc_acb());
 
+export const abc_bac = <A, B, C>(): IIso<[A, [B, C]], [B, [A, C]]> =>
+	fromPair(Pair.abc_bac(), Pair.abc_bac());
+
 export const abcd_abdc = <A, B, C, D>(): IIso<
 	[[A, B], [C, D]],
 	[[A, C], [D, B]]
-> =>
-	fromPair(
-		Pair.abcd_acdb(),
-		composeIFInv3(
-			Pair.assocLeft(),
-			Pair.firstInv(Pair.assocRight()),
-			Pair.abc_acb(),
-		),
-	);
+> => fromPair(Pair.abcd_acdb(), Pair.acdb_abcd());
