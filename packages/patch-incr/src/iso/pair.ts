@@ -1,4 +1,3 @@
-import { composeIFInv3 } from "@/builder/compose";
 import * as Pair from "@/builder/pair";
 import { fromPair } from "./builder";
 import type { IIso } from "./types";
