@@ -111,7 +111,7 @@ export const assocRight = <A, B, C>(): IF<
 /** `(A + B) * C -> A * C + B * C` */
 export const distRight = <A, B, C>(): IFInv<
 	[Either<A, B>, C],
-	Either<[A, C], [A, C]>
+	Either<[A, C], [B, C]>
 > => {
 	// [[boolean, A|B], C] -> [boolean, [A|B, C]]
 	// = [false, [A, C]] | [true, [B, C]]
@@ -140,8 +140,8 @@ export const distLeft = <A, B, C>(): IF<
 
 /** `C * A + C * B -> C * (A + B)` */
 export const factorLeft = <A, B, C>(): IF<
-	[C, Either<A, B>],
-	Either<[C, A], [C, B]>
+	Either<[C, A], [C, B]>,
+	[C, Either<A, B>]
 > => {
 	return Pair.abc_bac() as AnyIFInv;
 };

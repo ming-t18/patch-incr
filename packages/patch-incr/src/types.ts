@@ -46,12 +46,6 @@ export type Forward<
  *   evaluate: Evaluate<Input, OutSub>;
  *   forward: Forward<Input, OutSub, InputChange, OutSubChange, ForwardOutput>
  * }
- *
- * // Input subtyping
- * <forall InSuper super Input, InSuperChange extends InputChange> {
- *   evaluate: Evaluate<InSuper, OutSub>;
- *   forward: Forward<InSuper, Output, InSuperChange, OutputChange, ForwardOutput>
- * }
  * ```
  *
  * @param Input The input type of the function
