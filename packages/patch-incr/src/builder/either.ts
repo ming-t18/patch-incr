@@ -1,6 +1,6 @@
-import type { AnyIF, IF, IFInv } from "../types";
+import type { AnyIF, AnyIFInv, IF, IFInv } from "../types";
 import { atomicFunc, identity } from ".";
-import { composeReeval } from "./compose";
+import { composeReeval, composeWithInv } from "./compose";
 import { cond, condSingle } from "./cond";
 import * as Pair from "./pair";
 import { access } from "./struct/access";
@@ -45,10 +45,15 @@ export const makeLeft = <A>(): IFInv<A, Left<A>> => {
 	const t = template0((x: A): Left<A> => [false, x]);
 	return { ...(t as AnyIF), inverseEvaluate: (t) => t[1] };
 };
+export const makeLeft1 = <A, B>(): IFInv<A, Either<A, B>> =>
+	makeLeft<A>() as never;
+
 export const makeRight = <A>(): IFInv<A, Right<A>> => {
 	const t = template0((x: A): Right<A> => [true, x]);
 	return { ...(t as AnyIF), inverseEvaluate: (t) => t[1] };
 };
+export const makeRight1 = <A, B>(): IFInv<B, Either<A, B>> =>
+	makeRight<B>() as never;
 
 export const left = <A, B, A1>(
 	f1: IF<A, A1>,
@@ -79,4 +84,64 @@ export const leftRight = <A, B, A1, B1>(
 		Pair.second(f1),
 		Pair.second(f2),
 	);
+};
+
+/** `A + (B + C) -> (A + B) + C` */
+export const assocLeft = <A, B, C>(): IF<
+	Either<A, Either<B, C>>,
+	Either<Either<A, B>, C>
+> => {
+	return elim(
+		composeWithInv(makeLeft1<A, B>(), makeLeft1()),
+		elim(composeWithInv(makeRight1<A, B>(), makeLeft1()), makeRight1()),
+	);
+};
+
+/** `(A + B) + C -> A + (B + C)` */
+export const assocRight = <A, B, C>(): IF<
+	Either<Either<A, B>, C>,
+	Either<A, Either<B, C>>
+> => {
+	return elim(
+		elim(makeLeft1(), composeWithInv(makeLeft1<B, C>(), makeRight1())),
+		composeWithInv(makeRight1<B, C>(), makeRight1()),
+	);
+};
+
+/** `(A + B) * C -> A * C + B * C` */
+export const distRight = <A, B, C>(): IFInv<
+	[Either<A, B>, C],
+	Either<[A, C], [A, C]>
+> => {
+	// [[boolean, A|B], C] -> [boolean, [A|B, C]]
+	// = [false, [A, C]] | [true, [B, C]]
+	const pairOp = Pair.assocRight<boolean, A | B, C>();
+	return pairOp as AnyIFInv;
+};
+
+/** `A * C + B * C -> (A + B) * C` */
+export const factorRight = <A, B, C>(): IF<
+	Either<[A, C], [B, C]>,
+	[Either<A, B>, C]
+> => {
+	return Pair.assocLeft<boolean, A | B, C>() as AnyIFInv;
+};
+
+/** `C * (A + B) -> C * A + C * B` */
+export const distLeft = <A, B, C>(): IF<
+	[C, Either<A, B>],
+	Either<[C, A], [C, B]>
+> => {
+	// [C, [boolean, A|B]] -> [boolean, [C, A|B]]
+	// = [false, [A, C]] | [true, [B, C]]
+	const pairOp = Pair.abc_bac<C, boolean, A | B>();
+	return pairOp as AnyIFInv;
+};
+
+/** `C * A + C * B -> C * (A + B)` */
+export const factorLeft = <A, B, C>(): IF<
+	[C, Either<A, B>],
+	Either<[C, A], [C, B]>
+> => {
+	return Pair.abc_bac() as AnyIFInv;
 };

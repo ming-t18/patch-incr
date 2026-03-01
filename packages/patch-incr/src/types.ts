@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: needed for constraints */
+
 import type { Apply, ApplyCombine } from "./algebra";
 import type { AccessTypes, TypesKey } from "./builder/typeHelpers";
 import type { HasHints } from "./hints";
@@ -10,10 +12,8 @@ export interface ApplyCombineLift<T, Patch> extends ApplyCombine<T, Patch> {
 	liftArrayIndex: (index: number, patch: Patch) => Patch;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: intentional
 export type AnyApply = Apply<any, any>;
 
-// biome-ignore lint/suspicious/noExplicitAny: intentional
 export type AnyApplyCombine = ApplyCombine<any, any>;
 
 export type Evaluate<Input, Output> = (input: Input) => Output;
@@ -37,6 +37,22 @@ export type Forward<
  * An `IF`, or `IncrementalFunction`, is a single-argument function
  * that can convert incremental changes on `Input` into incremental
  * changes on `Output` after evaluating it.
+ *
+ * ## Subtyping
+ * Technically, the subtyping-friendly of type signatures of `IF` are:
+ * ```typescript
+ * // Output subtyping
+ * <forall OutSub extends Output, OutSubChange extends OutputChange> {
+ *   evaluate: Evaluate<Input, OutSub>;
+ *   forward: Forward<Input, OutSub, InputChange, OutSubChange, ForwardOutput>
+ * }
+ *
+ * // Input subtyping
+ * <forall InSuper super Input, InSuperChange extends InputChange> {
+ *   evaluate: Evaluate<InSuper, OutSub>;
+ *   forward: Forward<InSuper, Output, InSuperChange, OutputChange, ForwardOutput>
+ * }
+ * ```
  *
  * @param Input The input type of the function
  * @param Output The output type of the function
@@ -62,7 +78,7 @@ export interface IncrementalFunction<
 	};
 }
 
-/** @see rementalFunction */
+/** @see IncrementalFunction */
 export type IF<
 	Input,
 	Output,
@@ -103,10 +119,10 @@ export type IFInv<
 > = IF<Input, Output, InputChange, OutputChange, NoForwardOutput> &
 	InverseEvaluate<Input, Output>;
 
-// biome-ignore lint/suspicious/noExplicitAny: used on constraints
 export type AnyIF = IF<any, any, any, any>;
 
-// biome-ignore lint/suspicious/noExplicitAny: used on constraints
+export type AnyIFInv = IFInv<any, any, any, any>;
+
 export type AnyIFWithInput<Input> = IF<Input, any, any, any>;
 
 export const isIF = <

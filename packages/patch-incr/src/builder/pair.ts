@@ -54,6 +54,9 @@ export { assocLeft, assocRight, comm as swap } from "./tuple";
 export const abc_acb = <A, B, C>(): IFInv<[[A, B], C], [[A, C], B]> =>
 	composeIFInv3(Tuple.assocRight(), secondInv(Tuple.comm()), Tuple.assocLeft());
 
+export const abc_bac = <A, B, C>(): IFInv<[A, [B, C]], [B, [A, C]]> =>
+	composeIFInv3(Tuple.assocLeft(), firstInv(Tuple.comm()), Tuple.assocRight());
+
 /** Permutation helper for managing residuals. */
 export const abcd_acdb = <A, B, C, D>(): IFInv<
 	[[A, B], [C, D]],
@@ -63,4 +66,14 @@ export const abcd_acdb = <A, B, C, D>(): IFInv<
 		abc_acb<A, B, [C, D]>(),
 		firstInv(Tuple.assocLeft()),
 		Tuple.assocRight(),
+	);
+
+export const acdb_abcd = <A, B, C, D>(): IFInv<
+	[[A, C], [D, B]],
+	[[A, B], [C, D]]
+> =>
+	composeIFInv3(
+		Tuple.assocLeft(),
+		firstInv(Tuple.assocRight()),
+		abc_acb<A, [C, D], B>(),
 	);
