@@ -3,6 +3,7 @@
 	"module": "src/index.ts",
 	"type": "module",
 	"dependencies": {
+		"fast-check": "^4.5.3",
 		"immutable": "^5.1.4",
 		"patch-incr": "*"
 	},

@@ -26,8 +26,12 @@
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
 		"noPropertyAccessFromIndexSignature": false,
+		"baseUrl": "./src",
+		"rootDirs": ["./", "../test"],
 		"paths": {
-			"@/*": ["./*"]
-		}
-	}
+			"@/*": ["./*"],
+			"patch-incr/*": ["../node_modules/patch-incr/src/*"]
+		},
+	},
+  "include": ["src/", "test/"]
 }
