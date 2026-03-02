@@ -4,6 +4,7 @@ import { applyPatches, liftPatches, type Patches, type Path } from "@/patch";
 import { applyGet, applyGetOpt } from "@/patch/access";
 import {
 	analyzeDisplacement,
+	antiProjectPatches,
 	PatchBuilder,
 	projectPatches,
 } from "@/patch/helpers";
@@ -12,12 +13,14 @@ import { IndexEnd } from "@/patchSchema/types";
 // numRuns being too large causes test timeout of 5000ms
 const NUM_RUNS = 50;
 
+const NUM_RUNS_ANTIPROJECT = 25;
+
 /**
  * Given `projected = projectPatches(prefix, patches)` and `projected !== null`:
  *
  * `value[[prefix]] @ projected = (value @ patches)[[prefix]]`
  */
-const projProjectPatches = <T>(gen: gp.GenWithPatches<T>, prefix: Path) => {
+const propProjectPatches = <T>(gen: gp.GenWithPatches<T>, prefix: Path) => {
 	it("project property", () => {
 		fc.assert(
 			fc.property(
@@ -40,6 +43,70 @@ const projProjectPatches = <T>(gen: gp.GenWithPatches<T>, prefix: Path) => {
 			),
 			{ numRuns: NUM_RUNS },
 		);
+	});
+
+	describe("projectPatches and antiProjectPatches", () => {
+		const arbPair = gen
+			.arb()
+			.map((x) => ({
+				...x,
+				projected: projectPatches(prefix, x.patches),
+				antiProjected: antiProjectPatches(prefix, x.patches),
+			}))
+			.filter(
+				({ value, projected }) =>
+					projected !== null && applyGetOpt(value, prefix) !== undefined,
+			);
+
+		it("nullness property", () => {
+			fc.assert(
+				fc.property(arbPair, ({ projected, antiProjected }) => {
+					return (projected !== null) === (antiProjected !== null);
+				}),
+				{ numRuns: NUM_RUNS_ANTIPROJECT },
+			);
+		});
+
+		it("combined length property", () => {
+			fc.assert(
+				fc.property(arbPair, ({ patches, projected, antiProjected }) => {
+					fc.pre(projected !== null && antiProjected !== null);
+					return projected.length + antiProjected.length === patches.length;
+				}),
+				{ numRuns: NUM_RUNS_ANTIPROJECT },
+			);
+		});
+
+		it("partition property, original order is not checked", () => {
+			const sort = (ps: Patches) => {
+				return ps.toSorted((a, b) =>
+					JSON.stringify(a).localeCompare(JSON.stringify(b)),
+				);
+			};
+			fc.assert(
+				fc.property(arbPair, ({ patches, projected, antiProjected }) => {
+					fc.pre(projected !== null && antiProjected !== null);
+					expect(
+						sort([...antiProjected, ...liftPatches(prefix, projected)]),
+					).toStrictEqual(sort(patches));
+				}),
+				{ numRuns: NUM_RUNS_ANTIPROJECT },
+			);
+		});
+
+		it("commutative property", () => {
+			fc.assert(
+				fc.property(arbPair, ({ value, projected, antiProjected }) => {
+					fc.pre(projected !== null && antiProjected !== null);
+					const comm1 = [...antiProjected, ...liftPatches(prefix, projected)];
+					const comm2 = [...liftPatches(prefix, projected), ...antiProjected];
+					expect(applyPatches(value, comm2)).toStrictEqual(
+						applyPatches(value, comm1),
+					);
+				}),
+				{ numRuns: NUM_RUNS },
+			);
+		});
 	});
 };
 
@@ -128,7 +195,7 @@ describe("projectPatches", () => {
 			expect(actual).toStrictEqual(applyPatches(value1, patches1));
 		};
 
-		const genRecord = gp.record({
+		const arbRecord = gp.record({
 			a: gp.string(),
 			b: gp.array(gp.string()),
 			c: gp.record({
@@ -140,12 +207,12 @@ describe("projectPatches", () => {
 				it("applying projected patch", () => {
 					fc.assert(
 						fc.property(
-							fc.constantFrom<keyof gp.InferArbValue<typeof genRecord>>(
+							fc.constantFrom<keyof gp.InferArbValue<typeof arbRecord>>(
 								"a",
 								"b",
 								"c",
 							),
-							genRecord.arb(),
+							arbRecord.arb(),
 							propProjectPatches,
 						),
 						{ numRuns: NUM_RUNS },
@@ -153,7 +220,7 @@ describe("projectPatches", () => {
 				});
 			});
 
-			const genArray = gp.array(genRecord, { maxLength: 10 });
+			const genArray = gp.array(arbRecord, { maxLength: 10 });
 			describe("array index and displacement", () => {
 				it("applying projected patch", () => {
 					fc.assert(
@@ -197,7 +264,7 @@ describe("projectPatches", () => {
 			[[2, 3]],
 			[[0, 3]],
 		])("project property: %o", (prefix: Path) =>
-			projProjectPatches(genArray2D, prefix));
+			propProjectPatches(genArray2D, prefix));
 	});
 
 	describe("multi", () => {
@@ -222,7 +289,7 @@ describe("projectPatches", () => {
 				[["tup", 0]],
 				[["tup", 1]],
 			] as [Path][])("project property: %o", (prefix: Path) =>
-				projProjectPatches(genNested, prefix));
+				propProjectPatches(genNested, prefix));
 		});
 
 		const genNestedArray = gp.record({
@@ -241,7 +308,7 @@ describe("projectPatches", () => {
 				[["arr1", 0, "str1"]],
 				[["arr1", 1, "str1"]],
 			] as [Path][])("project property: %o", (prefix: Path) =>
-				projProjectPatches(genNestedArray, prefix));
+				propProjectPatches(genNestedArray, prefix));
 		});
 
 		describe("nested object with 2 layers of array", () => {
@@ -256,7 +323,48 @@ describe("projectPatches", () => {
 				[["arr1", 1, "arr2", 2, "str"]],
 				[["arr1", 2, "arr2", 1, "str"]],
 			] as [Path][])("project property: %o", (prefix: Path) =>
-				projProjectPatches(genNestedArray, prefix));
+				propProjectPatches(genNestedArray, prefix));
+		});
+	});
+});
+
+describe("antiProjectPatches", () => {
+	describe("single", () => {
+		it("should filter out by key for replace child only patches, key", () => {
+			const patches = PatchBuilder.empty()
+				.replace(["key2"], "test")
+				.replace(["key1"], 10)
+				.replace(["key3"], false)
+				.build();
+			const filtered = PatchBuilder.empty()
+				.replace(["key2"], "test")
+				.replace(["key3"], false)
+				.build();
+			expect(antiProjectPatches("key1", patches)).toStrictEqual(filtered);
+		});
+
+		it("should filter out by key for replace child only patches, array index", () => {
+			const patches = PatchBuilder.empty()
+				.replace([2], "test")
+				.replace([1], 10)
+				.replace([3], false)
+				.build();
+			const filtered = PatchBuilder.empty()
+				.replace([2], "test")
+				.replace([3], false)
+				.build();
+			expect(antiProjectPatches(1, patches)).toStrictEqual(filtered);
+		});
+
+		it("should return null if there is telement displacement", () => {
+			const patches = PatchBuilder.empty().replace([2], 0).add([3], 10).build();
+			const patches2 = PatchBuilder.empty().add([3], 10).build();
+			expect(projectPatches(1, patches)).toStrictEqual([]);
+			expect(antiProjectPatches(1, patches)).toStrictEqual(patches);
+			expect(antiProjectPatches(2, patches)).toStrictEqual(patches2);
+			expect(antiProjectPatches(1, patches)).toStrictEqual(patches);
+			expect(antiProjectPatches(3, patches)).toBeNull();
+			expect(antiProjectPatches(5, patches)).toBeNull();
 		});
 	});
 });

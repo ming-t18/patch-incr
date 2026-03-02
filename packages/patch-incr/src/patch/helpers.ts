@@ -153,11 +153,13 @@ export const projectPatchesSingle = <Target>(
 	key: string | number,
 	patches: Patches,
 ): Patches<Target> | null => {
-	// TODO if key is number perform displacement analysis
 	const res = [] as Patches<Target>;
 	let minDisp = null;
 	if (typeof key === "number") {
 		minDisp = analyzeDisplacement(patches);
+		if (minDisp !== null && key >= minDisp) {
+			return null;
+		}
 	}
 	for (const entry of patches) {
 		const { path } = entry;
@@ -165,9 +167,6 @@ export const projectPatchesSingle = <Target>(
 			return null;
 		}
 		const [head, ...rest] = path;
-		if (minDisp !== null && typeof head === "number" && head >= minDisp) {
-			return null;
-		}
 		if (head === key) {
 			res.push({
 				...entry,
@@ -179,52 +178,90 @@ export const projectPatchesSingle = <Target>(
 	return res;
 };
 
-export const projectPatchesMulti = <Target>(
-	prefix: Path,
+export const antiProjectPatchesSingle = <Target>(
+	key: string | number,
 	patches: Patches,
 ): Patches<Target> | null => {
+	const res = [] as Patches<Target>;
+	let minDisp = null;
+	if (typeof key === "number") {
+		minDisp = analyzeDisplacement(patches);
+		if (minDisp !== null && key >= minDisp) {
+			return null;
+		}
+	}
+
+	for (const entry of patches) {
+		const { path } = entry;
+		if (path.length === 0) {
+			return null;
+		}
+		const [head] = path;
+		if (head !== key) {
+			res.push({
+				...entry,
+			} as PatchEntry<Target>);
+		}
+	}
+
+	return res;
+};
+
+const _cannotProjectHelper = (prefix: Path, entry: PatchEntry) => {
+	const { path } = entry;
+	if (path.length === 0) {
+		// root is replaced, return null due to displacement
+		return true;
+	}
+
+	if (path.length <= prefix.length) {
+		const last = path[path.length - 1];
+		if (typeof last === "number") {
+			const i: number = last;
+			const j = prefix[path.length - 1];
+			const before: Path = path.slice(0, path.length - 1);
+			if (pathIsPrefix(before, prefix) && typeof j === "number") {
+				if (path.length === prefix.length) {
+					// path = [...before, i]
+					// prefix = [...before, j]
+					const { op } = entry;
+					if (i <= j && op !== PatchOp.Replace) {
+						return true;
+					}
+				} else if (i <= j) {
+					// path = [...before, i]
+					// prefix = [...before, j, ...after]
+					// a parent of root is displaced
+					return true;
+				}
+			}
+		}
+	}
+
+	if (pathIsPrefix(path, prefix)) {
+		// prefix = [...path, ...extras]
+		return true;
+	}
+
+	return false;
+};
+
+export const projectPatchesMulti = <Target, Root = unknown>(
+	prefix: Path,
+	patches: Patches<Root>,
+): Patches<Target> | null => {
 	if (prefix.length === 0 || patches.length === 0) {
-		return patches;
+		return [];
 	}
 
 	const n = prefix.length;
 	const results: Patches<Target> = [];
 	for (const entry of patches) {
+		if (_cannotProjectHelper(prefix, entry)) {
+			return null;
+		}
+
 		const { path } = entry;
-		if (path.length === 0) {
-			// root is replaced, return null due to displacement
-			return null;
-		}
-
-		if (path.length <= prefix.length) {
-			const last = path[path.length - 1];
-			if (typeof last === "number") {
-				const i: number = last;
-				const j = prefix[path.length - 1];
-				const before: Path = path.slice(0, path.length - 1);
-				if (pathIsPrefix(before, prefix) && typeof j === "number") {
-					if (path.length === prefix.length) {
-						// path = [...before, i]
-						// prefix = [...before, j]
-						const { op } = entry;
-						if (i <= j && op !== PatchOp.Replace) {
-							return null;
-						}
-					} else if (i <= j) {
-						// path = [...before, i]
-						// prefix = [...before, j, ...after]
-						// a parent of root is displaced
-						return null;
-					}
-				}
-			}
-		}
-
-		if (pathIsPrefix(path, prefix)) {
-			// prefix = [...path, ...extras]
-			return null;
-		}
-
 		if (!pathIsPrefix(prefix, path)) {
 			continue;
 		}
@@ -233,7 +270,32 @@ export const projectPatchesMulti = <Target>(
 		results.push({
 			...entry,
 			path: entry.path.slice(n),
-		});
+		} as PatchEntry<Target>);
+	}
+
+	return results;
+};
+
+export const antiProjectPatchesMulti = <Root = unknown>(
+	prefix: Path,
+	patches: Patches<Root>,
+): Patches<Root> | null => {
+	if (prefix.length === 0 || patches.length === 0) {
+		return [];
+	}
+
+	const results: Patches<Root> = [];
+	for (const entry of patches) {
+		if (_cannotProjectHelper(prefix, entry)) {
+			return null;
+		}
+
+		const { path } = entry;
+		if (pathIsPrefix(prefix, path)) {
+			continue;
+		}
+
+		results.push(entry);
 	}
 
 	return results;
@@ -260,6 +322,34 @@ export const projectPatches = <Target>(
 		return projectPatchesMulti(key, patches);
 	}
 	return projectPatchesSingle(key, patches);
+};
+
+/**
+ * The complement of `projectPatches`.
+ *
+ * Given `Patches<Target>`, determine the subset of patches
+ * that does not affect the particular path.
+ *
+ * Returns `null` if `projectPatches` on the samne arguments would return `null`.
+ *
+ * ## Properties
+ *
+ * Let `p = projectPatches(path, patches), q = antiProjectPatches(path, patches)`
+ *
+ * 1. Nullness: `p === null` if and only if `q === null`
+ *
+ * 2. Partition: `p` and `liftPatches(path, q)` are partitions of `patches` in their original orders
+ *
+ * 3. Commutative: `p` and `liftPatches(path, q)` are disjoint and commute.
+ */
+export const antiProjectPatches = <Root = unknown>(
+	key: string | number | Path,
+	patches: Patches<Root>,
+): Patches<Root> | null => {
+	if (Array.isArray(key)) {
+		return antiProjectPatchesMulti(key, patches);
+	}
+	return antiProjectPatchesSingle(key, patches);
 };
 
 /**
