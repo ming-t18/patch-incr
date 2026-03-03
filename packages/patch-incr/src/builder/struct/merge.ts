@@ -1,8 +1,10 @@
-import type { AnyTuple } from "@/patchSchema/types";
-import type { IF } from "@/types";
-import { CannotReduce, PatchOp, shallowCopy } from "../../patch";
+import { getReplaceOnly, isReplaceOnly } from "@/algebra/replaceOnly";
+import { antiProjectPatches } from "@/patch/helpers";
+import * as ps from "@/patchSchema";
+import type { IF, NoForwardOutput } from "@/types";
+import { CannotReduce, type Patches, PatchOp } from "../../patch";
 import { reducePatchesNoOutput } from "../../patch/reduce";
-import { atomicFunc, identity } from "..";
+import { identity } from "..";
 import { composeMemo } from "../compose";
 import * as Pair from "../pair";
 import { record } from "./record";
@@ -15,7 +17,13 @@ export type Merged<
 export const merge = <
 	A extends Record<string, unknown>,
 	B extends Record<string, unknown>,
->(): IF<[A, B], Merged<A, B>> => {
+>(): IF<
+	[A, B],
+	Merged<A, B>,
+	Patches<[A, B]>,
+	Patches<Merged<A, B>>,
+	NoForwardOutput
+> => {
 	const evaluateMerge = ([left, right]: [A, B]): Merged<A, B> => ({
 		...left,
 		...right,
@@ -51,6 +59,61 @@ export const merge = <
 	return {
 		evaluate: evaluateMerge,
 		forward: forwardMerge,
+	};
+};
+
+export const mergeFixed = <
+	A extends Record<string, unknown>,
+	B extends Record<string, unknown>,
+>(
+	keys: (string & keyof B)[],
+): IF<
+	[A, B],
+	Merged<A, B>,
+	Patches<[A, B]>,
+	Patches<Merged<A, B>>,
+	NoForwardOutput
+> => {
+	const pairSchema = ps.tuple(ps.atomic<A>(), ps.atomic<B>());
+	const outSchema = ps.atomic<Merged<A, B>>();
+	const evaluateMergeFixed = ([left, right]: [A, B]): Merged<A, B> => ({
+		...left,
+		...right,
+	});
+	const forwardMergeFixed = (
+		x0: [A, B],
+		dx: Patches<[A, B]>,
+		_ignored?: Merged<A, B>,
+	): Patches<Merged<A, B>> => {
+		const res = pairSchema.analyze(dx);
+		if (res === null) {
+			return outSchema.empty;
+		}
+		if (isReplaceOnly(res)) {
+			return outSchema.fromReplace(evaluateMergeFixed(getReplaceOnly(res)));
+		}
+
+		const dLeft = res[0]?.inner ?? pairSchema.$[0].empty;
+		let dLeft1 = dLeft as typeof dLeft | null;
+		for (const key of keys) {
+			dLeft1 = antiProjectPatches(key, dLeft1 as typeof dLeft);
+			if (dLeft1 === null) {
+				return outSchema.fromReplace(
+					evaluateMergeFixed(pairSchema.apply(x0, dx)),
+				);
+			}
+		}
+		if (dLeft1 === null) {
+			return outSchema.fromReplace(
+				evaluateMergeFixed(pairSchema.apply(x0, dx)),
+			);
+		}
+		const dRight = res[1]?.inner ?? pairSchema.$[1].empty;
+		return outSchema.combine(dLeft1 as Patches, dRight as Patches);
+	};
+	return {
+		evaluate: evaluateMergeFixed,
+		forward: forwardMergeFixed,
 	};
 };
 

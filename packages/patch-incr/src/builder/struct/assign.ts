@@ -1,3 +1,4 @@
+import { antiProjectPatches } from "@/patch/helpers";
 import type { IF } from "@/types";
 import {
 	applyGet,
@@ -6,6 +7,7 @@ import {
 	type Path,
 	replacePatches,
 } from "../../patch";
+import type { Merged } from "./merge";
 
 /**
  * Given an initial object and a mapping of changes,
@@ -51,5 +53,59 @@ export const assign = <Input, Output>(
 	return {
 		evaluate: evaluateAssign,
 		forward: forwardAssign,
+	};
+};
+
+export const assignWith = <
+	Input extends Record<string, unknown>,
+	Merge extends Record<string, unknown>,
+>(
+	changes: { path: Path; getValue: IF<Input, unknown> }[],
+): IF<Input, Merged<Input, Merge>> => {
+	type Output = Merged<Input, Merge>;
+	const evaluateAssignWith = (input: Input) => {
+		let value = input as Output;
+		for (const { path, getValue } of changes) {
+			value = applyPatches(
+				value,
+				replacePatches(getValue.evaluate(input), path),
+			) as never;
+		}
+		return value;
+	};
+
+	const forwardAssignWith = (
+		input: Input,
+		dx: Patches<Input>,
+		output: Output,
+	): Patches<Output> => {
+		let dx1 = dx as Patches<Output> | null;
+		for (const { path } of dx) {
+			dx1 = antiProjectPatches(path, dx1 as Patches<Output>);
+			if (dx1 === null) {
+				break;
+			}
+		}
+
+		if (dx1 === null) {
+			return replacePatches(evaluateAssignWith(input));
+		}
+
+		const dy: Patches<Output> = [...dx1];
+		for (const { path, getValue } of changes) {
+			const dy1 = getValue.forward(input, dx, applyGet(output, path));
+			for (const entry of dy1) {
+				dy.push({
+					...entry,
+					path: [...path, ...entry.path],
+				} as never);
+			}
+		}
+		return dy;
+	};
+
+	return {
+		evaluate: evaluateAssignWith,
+		forward: forwardAssignWith,
 	};
 };
