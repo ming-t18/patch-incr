@@ -3,6 +3,8 @@ import * as E from "@/builder/either";
 import { fromPair } from "./builder";
 import type { IIso } from "./types";
 
+export type { Either, Left, Right } from "@/builder/either";
+
 export const left = <A, B, A1>(
 	f1: IIso<A, A1>,
 ): IIso<Either<A, B>, Either<A1, B>> => fromPair(E.left(f1.fw), E.left(f1.bw));
