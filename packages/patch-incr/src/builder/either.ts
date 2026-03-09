@@ -1,5 +1,5 @@
 import type { AnyIF, AnyIFInv, IF, IFInv } from "../types";
-import { atomicFunc, identity } from ".";
+import { atomicFunc, atomicFuncInv, identity } from ".";
 import { composeReeval, composeWithInv } from "./compose";
 import { cond, condSingle } from "./cond";
 import * as Pair from "./pair";
@@ -85,6 +85,15 @@ export const leftRight = <A, B, A1, B1>(
 		Pair.second(f2),
 	);
 };
+
+/** `A + B -> B + A` */
+export const flip = <A, B>(): IFInv<Either<A, B>, Either<B, A>> =>
+	Pair.firstInv<boolean, A | B, boolean>(
+		atomicFuncInv(
+			(x) => !x,
+			(x) => !x,
+		),
+	) satisfies IFInv<[boolean, A | B], [boolean, B | A]> as AnyIFInv;
 
 /** `A + (B + C) -> (A + B) + C` */
 export const assocLeft = <A, B, C>(): IF<

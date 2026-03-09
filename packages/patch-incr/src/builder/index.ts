@@ -81,6 +81,33 @@ export const atomicFunc = <Input, Output>(
 	};
 };
 
+export const atomicFuncInv = <Input, Output>(
+	evaluate: Evaluate<Input, Output>,
+	inverseEvaluate: Evaluate<Output, Input>,
+): IFInv<Input, Output, Patches<Input>, Patches<Output>> => {
+	const forwardAtomicFunc = (
+		input: Input,
+		patches: Patches<Input>,
+		output?: Output,
+	): Patches<Output> => {
+		if (patches.length === 0) {
+			return [];
+		}
+
+		const newInput = applyPatches(input, patches);
+		const newOutput = evaluate(newInput);
+		if (output !== undefined && Object.is(newOutput, output)) {
+			return [];
+		}
+		return replacePatches(newOutput);
+	};
+	return {
+		evaluate,
+		inverseEvaluate,
+		forward: forwardAtomicFunc,
+	};
+};
+
 // biome-ignore lint/suspicious/noExplicitAny: used in infer
 export type FirstArg<T> = T extends (v: infer Arg, ...args: any[]) => any
 	? Arg

@@ -20,6 +20,10 @@ export const leftRight = <A, B, A1, B1>(
 ): IIso<Either<A, B>, Either<A1, B1>> =>
 	fromPair(E.leftRight(f1.fw, f2.fw), E.leftRight(f1.bw, f2.bw));
 
+/** `A + B -> B + A` */
+export const flip = <A, B>(): IIso<Either<A, B>, Either<B, A>> =>
+	fromPair(E.flip(), E.flip());
+
 /** `A + (B + C) -> (A + B) + C` */
 export const assocLeft = <A, B, C>(): IIso<
 	Either<A, Either<B, C>>,

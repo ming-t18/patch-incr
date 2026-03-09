@@ -29,3 +29,5 @@ export interface ApplyCombine<Value, Change> extends Apply<Value, Change> {
 	combine: (left: Change, right: Change) => Change;
 	builder?: () => ChangeBuilder<Change>;
 }
+
+export * from "./replaceOnly";
