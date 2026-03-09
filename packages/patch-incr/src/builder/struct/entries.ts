@@ -11,6 +11,7 @@ import type {
 	PatchSchemaReplaceOnly,
 } from "@/patchSchema/types";
 import type { Forward, IF } from "@/types";
+import type { Distinct, Entries } from "@/uniqueTypes";
 import {
 	applyPatches,
 	CannotReduce,
@@ -29,14 +30,14 @@ import {
  */
 export const entries = <Key extends string = string, Value = unknown>(): IF<
 	Record<Key, Value>,
-	[Key, Value][]
+	Entries<Key, Value>
 > => {
 	type Object = Record<Key, Value>;
 	const evaluateEntries = (obj: Object) =>
-		Object.entries(obj) as [Key, Object[Key]][];
+		Object.entries(obj) as Entries<Key, Object[Key]>;
 	const forwardEntries: Forward<Object, [Key, Object[Key]][]> = reducePatches<
 		Object,
-		[Key, Object[Key]][]
+		Entries<Key, Object[Key]>
 	>(evaluateEntries, (input, entry, output) => {
 		if (entry.path.length === 0) {
 			return CannotReduce;
@@ -113,56 +114,56 @@ export const entries = <Key extends string = string, Value = unknown>(): IF<
 export const keys = <
 	Key extends string = string,
 	Object extends Record<Key, unknown> = Record<Key, unknown>,
->(): IF<Object, Key[]> => {
-	const evaluateKeys = (obj: Object) => Object.keys(obj) as Key[];
-	const forwardKeys: Forward<Object, Key[]> = reducePatches<Object, Key[]>(
-		evaluateKeys,
-		(_input, entry, output) => {
-			const op = entry.op;
-			const key = entry.path[0] as Key;
-			const outIndex = output.indexOf(key);
-			if (entry.path.length === 0) {
-				return CannotReduce;
-			}
+>(): IF<Object, Distinct<Key>> => {
+	const evaluateKeys = (obj: Object) => Object.keys(obj) as Distinct<Key>;
+	const forwardKeys: Forward<Object, Distinct<Key>> = reducePatches<
+		Object,
+		Distinct<Key>
+	>(evaluateKeys, (_input, entry, output) => {
+		const op = entry.op;
+		const key = entry.path[0] as Key;
+		const outIndex = output.indexOf(key);
+		if (entry.path.length === 0) {
+			return CannotReduce;
+		}
 
-			if (entry.path.length === 1) {
-				if (op === PatchOp.Add) {
-					return outIndex === -1
-						? [
-								{
-									op: PatchOp.Add,
-									path: ["-"],
-									value: key,
-								},
-							]
-						: [];
-				} else if (op === PatchOp.Remove) {
-					return outIndex === -1
-						? []
-						: [
-								{
-									op: PatchOp.Remove,
-									path: [outIndex],
-								},
-							];
-				} else if (op === PatchOp.Replace) {
-					// value changes, key doesn't
-					return outIndex === -1
-						? [
-								{
-									op: PatchOp.Add,
-									path: ["-"],
-									value: key,
-								},
-							]
-						: [];
-				}
-				throw new Error(`Unsupported patch op: ${op}`);
+		if (entry.path.length === 1) {
+			if (op === PatchOp.Add) {
+				return outIndex === -1
+					? [
+							{
+								op: PatchOp.Add,
+								path: ["-"],
+								value: key,
+							},
+						]
+					: [];
+			} else if (op === PatchOp.Remove) {
+				return outIndex === -1
+					? []
+					: [
+							{
+								op: PatchOp.Remove,
+								path: [outIndex],
+							},
+						];
+			} else if (op === PatchOp.Replace) {
+				// value changes, key doesn't
+				return outIndex === -1
+					? [
+							{
+								op: PatchOp.Add,
+								path: ["-"],
+								value: key,
+							},
+						]
+					: [];
 			}
+			throw new Error(`Unsupported patch op: ${op}`);
+		}
 
-			return [];
-		},
-	);
+		return [];
+	});
 	return {
 		evaluate: evaluateKeys,
 		forward: forwardKeys,
@@ -177,16 +178,16 @@ export const keys = <
 export const fromEntries = <Key extends string = string, Value = unknown>(
 	keySchema = ps.replaceOnly<Key>() as PatchSchemaReplaceOnly<Key>,
 	valueSchema = ps.atomic<Value>() as PatchSchema<Value>,
-): IF<[Key, Value][], Record<Key, Value>> => {
+): IF<Entries<Key, Value>, Record<Key, Value>> => {
 	const pairSchema = ps.tuple(keySchema, valueSchema);
 	const schema = ps.array(pairSchema);
-	const evaluateFromEntries = (entries: [Key, Value][]) =>
+	const evaluateFromEntries = (entries: Entries<Key, Value>) =>
 		Object.fromEntries<Value>(entries) as Record<Key, Value>;
 	const outSchema = ps.mapping<Key, Value>(keySchema, valueSchema);
 
 	const forwardFromEntries = (
-		entries0: [Key, Value][],
-		change: Patches<[Key, Value][]>,
+		entries0: Entries<Key, Value>,
+		change: Patches<Entries<Key, Value>>,
 		_output: Record<Key, Value>,
 	): Patches<Record<Key, Value>> => {
 		const res = schema.analyze(change);
