@@ -113,6 +113,9 @@ const pathIsPrefix = (shorter: Path, longer: Path) => {
 /**
  * Given patches on an array,
  * determine the minimum index (or null) where the elements are displaced.
+ *
+ * @returns `-1` if the entire array is replaced. `null` if no affected
+ * indexes. Otherwise the lowest index of displaced elements.
  */
 export const analyzeDisplacement = (patches: Patches): number | null => {
 	const filteredPatches: { op: PatchOp; index: number }[] = [];

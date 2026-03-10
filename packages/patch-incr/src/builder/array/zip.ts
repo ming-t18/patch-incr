@@ -101,9 +101,6 @@ export const zip = <A, B>(): IF<[A[], B[]], [A, B][]> => {
 			return builder.build();
 		};
 
-		// TODO find index dividing between repalce-only and bumping over,
-		// and merge both portions
-
 		const res1 = maybeReplaceOnly();
 		if (res1 !== null) {
 			return res1;
