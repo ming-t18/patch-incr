@@ -1,7 +1,8 @@
 import type { IF, IFInv } from "../types";
 import { identity } from ".";
 import { composeIFInv3, composeReeval } from "./compose";
-import { access, tupleFor } from "./struct";
+import { access } from "./struct/access";
+import { tupleFor } from "./struct/record";
 import * as Tuple from "./tuple";
 
 export type Pair<A, B> = [A, B];
