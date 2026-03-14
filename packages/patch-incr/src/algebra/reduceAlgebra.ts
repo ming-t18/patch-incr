@@ -1,12 +1,33 @@
-/** Algebra for a list reduce operation with
- * an initial accumulator and handlers for list replace/add/remove operations.
+/**
+ * A `ReduceAlgebra<Acc, T>` represents an abelian group
+ * (commutative and associative) that aggregates
+ * an unordered collection containing multiple `T`s
+ * into an accumulator type `Acc`.
  *
- * The operation must be commutative and associative.
+ * The interface methods are named after list patches: replace/add/remove.
+ *
+ * Notation:
+ *  - `reduce(alg)([a, b, c]) = alg.init <> f(a) <> f(b) <> f(c)`
+ *  - Remove contribution: `reduce(alg)([a, b]) = reduce(alg)([a, b, c]) <> inverse(f(c))`
+ *  - `f : T -> Acc` determines the contribution of an individual element.
+ *  - `inverse : Acc -> Acc` inverts a contribution.
+ *
+ * If `Acc` is a structure with patches, use `IncReduceAlgebra`
+ * for an algebra on the incremental contributions to `Acc`.
+ *
+ * @see IncReduceAlgebra
  */
 export interface ReduceAlgebra<Acc, T> {
+	/**
+	 * Initial value of the accumulator (or the aggregation of the empty list: `reduce(alg)([]) = init`).
+	 * Does not have to be the identity element of the group.
+	 * */
 	init: Acc;
+	/** `acc <> inverse(f(prev)) <> f(next)` */
 	replace: (acc: Acc, prev: T, next: T) => Acc;
+	/** `acc <> f(value)` */
 	add: (acc: Acc, value: T) => Acc;
+	/** `acc <> inverse(f(value))` */
 	remove: (acc: Acc, value: T) => Acc;
 }
 

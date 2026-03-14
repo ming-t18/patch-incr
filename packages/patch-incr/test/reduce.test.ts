@@ -1,22 +1,50 @@
 import { propsForIF } from "@test/props.test";
+import { objectFromEntriesAlgebra } from "@/algebra/incReduce";
 import { sumBigint, sumWith } from "@/algebra/reduceAlgebra";
-import { reduce } from "@/builder/array/reduce";
+import { reduce, reduceInc } from "@/builder/array/reduce";
 import * as gp from "./helpers/genPatched.test";
 
-const arb = gp.array(
+const arbIntegers = gp.array(
 	gp.record({
 		value: gp.integer({ min: 0, max: 10 }),
 	}),
-	{ maxLength: 20 },
+	{ maxLength: 10 },
 );
 
 const arbWithBigint = gp.array(gp.bigInt(), { maxLength: 20 });
 
+const arbValue = gp.record({
+	a: gp.integer({ min: 0, max: 10 }),
+	b: gp.array(gp.string(), { maxLength: 5 }),
+});
+
+const arbEntries = gp.entriesArray(
+	// empty string can't be a valid key
+	gp.string({ minLength: 1, maxLength: 3, unit: "grapheme-ascii" }),
+	arbValue,
+	{ maxLength: 10 },
+);
+
 describe("reduce", () => {
 	describe("sum number", () => {
-		propsForIF(it, arb, () => reduce(sumWith((x) => x.value)));
+		propsForIF(it, arbIntegers, () => reduce(sumWith((x) => x.value)));
 	});
 	describe("sum bigint", () => {
 		propsForIF(it, arbWithBigint, () => reduce(sumBigint()));
+	});
+	describe("merge maps non-patching", () => {
+		propsForIF(it, arbEntries, () =>
+			reduce(objectFromEntriesAlgebra<string, { a: number; b: string[] }>({})),
+		);
+	});
+});
+
+describe("reduceInc", () => {
+	describe("merge maps patching", () => {
+		propsForIF(it, arbEntries, () =>
+			reduceInc(
+				objectFromEntriesAlgebra<string, { a: number; b: string[] }>({}),
+			),
+		);
 	});
 });

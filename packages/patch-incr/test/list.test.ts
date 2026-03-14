@@ -389,7 +389,7 @@ describe("map", () => {
 	});
 
 	describe.skip("map compose", () => {
-		const mapping1 = record({
+		const _mapping1 = record({
 			a: atomicFunc((x: number) => x + 1),
 			b: atomicFunc((x: number) => `${x % 5}`),
 		});
@@ -473,7 +473,7 @@ describe("scan", () => {
 			.array(arbElem)
 			.arb()
 			.filter(({ value }) => value.length > 0)
-			.chain(({ value, patches }) =>
+			.chain(({ value, patches: _patches }) =>
 				fc.record({
 					value: fc.constant(value),
 					patches: fc
@@ -484,7 +484,7 @@ describe("scan", () => {
 								op: PatchOp.Remove,
 								path: [index],
 							})),
-						) as fc.Arbitrary<never> as fc.Arbitrary<typeof patches>,
+						) as fc.Arbitrary<never> as fc.Arbitrary<typeof _patches>,
 				}),
 			);
 

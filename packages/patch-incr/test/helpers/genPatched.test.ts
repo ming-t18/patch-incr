@@ -326,15 +326,21 @@ export const record = <Ts extends Record<string, unknown>>(
 
 export const array = <T>(
 	arbElem: GenWithPatches<T>,
-	constraints?: fc.ArrayConstraints,
+	constraints?: fc.ArrayConstraints & {
+		checkArray?: (values: T[]) => boolean;
+		checkEntry?: (values: T[], entry: PatchEntry<T[]>) => boolean;
+	},
 ): GenWithPatches<T[]> => {
-	const isValidPatchEntry = (value: T[], entry: PatchEntry<T[]>) => {
+	const checkEntry = constraints?.checkEntry;
+	const checkArray = constraints?.checkArray;
+	let isValidPatchEntry = (value: T[], entry: PatchEntry<T[]>) => {
 		const { op, path } = entry;
 		if (path.length === 0) {
 			return true;
 		}
 
 		const p0 = path[0];
+		// TODO support pop-end
 		if (p0 === IndexEnd) {
 			return op === PatchOp.Add;
 		}
@@ -360,8 +366,13 @@ export const array = <T>(
 
 		return true;
 	};
+	if (checkEntry) {
+		const isValidPatchEntry0 = isValidPatchEntry;
+		isValidPatchEntry = (a, e) => isValidPatchEntry0(a, e) && checkEntry(a, e);
+	}
 
-	const arb0: fc.Arbitrary<T[]> = fc.array(toArbValue(arbElem), constraints);
+	let arb0: fc.Arbitrary<T[]> = fc.array(toArbValue(arbElem), constraints);
+	if (checkArray) arb0 = arb0.filter(checkArray);
 
 	const arbPatchEntry = (
 		opts?: ArbPatchEntryOpts<T[]>,
@@ -511,6 +522,50 @@ export const array = <T>(
 			}),
 	};
 };
+
+export const entriesArray = <K, V>(
+	arbKey: GenWithPatches<K>,
+	arbValue: GenWithPatches<V>,
+	c?: fc.ArrayConstraints,
+) =>
+	array(tuple(arbKey, arbValue), {
+		...(c ?? {}),
+		checkArray: (arr) => {
+			const setKeys = new Set<K>(arr.map((x) => x[0]));
+			return setKeys.size === arr.length;
+		},
+		checkEntry: (arr, entry) => {
+			const setKeys = new Set<K>(arr.map((x) => x[0]));
+			if (entry.path.length === 1) {
+				if (entry.op === PatchOp.Add) {
+					const newKey = entry.value[0];
+					return !setKeys.has(newKey);
+				} else if (entry.op === PatchOp.Replace) {
+					const prevKey: K = arr[entry.path[0] as number][0];
+					const newKey: K = entry.value[0];
+					if (prevKey === newKey) {
+						return true;
+					}
+					return !setKeys.has(newKey);
+				} else {
+					return true;
+				}
+			}
+			if (entry.path.length === 2) {
+				const index = entry.path[0] as number;
+				if (entry.op === PatchOp.Replace) {
+					const prevKey: K = arr[index][0];
+					const newKey: K = entry.value;
+					if (prevKey === newKey) {
+						return true;
+					}
+					return !setKeys.has(newKey);
+				}
+			}
+
+			return true;
+		},
+	});
 
 export const oneof = <T>(
 	args: { weight: number; arbitrary: GenWithPatches<T> }[],
