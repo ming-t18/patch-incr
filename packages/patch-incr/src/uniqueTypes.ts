@@ -7,4 +7,4 @@ export type Distinct<K> = K[];
 export type Entries<K, V> = [K, V][];
 
 /** A list of path-value pairs. The paths must be distinct. */
-export type ByPath<V> = [Path, V][];
+export type ByPath<V = unknown> = [Path, V][];
