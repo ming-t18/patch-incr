@@ -390,8 +390,12 @@ export class PatchBuilder<Target = any> {
 		this.patches = [...patches];
 	}
 
-	remove(path: Path): this {
-		this.patches.push({ op: PatchOp.Remove, path });
+	remove(path: Path, value = undefined as unknown): this {
+		if (value === undefined) {
+			this.patches.push({ op: PatchOp.Remove, path });
+		} else {
+			this.patches.push({ op: PatchOp.Remove, path, value });
+		}
 		return this;
 	}
 
