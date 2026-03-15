@@ -1,5 +1,11 @@
-import { PatchBuilder, type PatchEntry, type Patches } from "@/patch";
+import {
+	applyPatches,
+	PatchBuilder,
+	type PatchEntry,
+	type Patches,
+} from "@/patch";
 import * as ps from "@/patchSchema";
+import { IndexEnd } from "@/patchSchema/types";
 import type { ReduceAlgebra } from "./reduceAlgebra";
 import { getReplaceOnly, isReplaceOnly } from "./replaceOnly";
 
@@ -97,3 +103,72 @@ export const objectFromEntriesAlgebra = <K extends string | number, V>(
 		): Patches<Record<K, V>> => forwardReplace0(pair0, pair1),
 	};
 };
+
+/** Requires `{ func(x) | inputArray }`` to be distinct. */
+export const toSetAlgebra = <A, B = A>(
+	func: (input: A) => B,
+	init = new Set<B>(),
+): IncReduceAlgebra<Set<B>, A> => ({
+	init,
+	add: (acc: Set<B>, value: A): Set<B> => {
+		const acc1 = new Set<B>(acc);
+		acc1.add(func(value));
+		return acc1;
+	},
+	remove: (acc: Set<B>, value: A): Set<B> => {
+		const acc1 = new Set<B>(acc);
+		acc1.delete(func(value));
+		return acc1;
+	},
+	replace: (acc: Set<B>, prev: A, next: A): Set<B> => {
+		const prevValue = func(prev);
+		const nextValue = func(next);
+		if (Object.is(prevValue, nextValue)) {
+			return acc;
+		}
+		const acc1 = new Set<B>(acc);
+		acc1.delete(prevValue);
+		acc1.add(nextValue);
+		return acc1;
+	},
+	forwardInternal: (
+		_acc: Set<B>,
+		current: A,
+		dt: Patches<A>,
+	): Patches<Set<B>> => {
+		const prev = func(current);
+		const next = func(applyPatches(current, dt));
+		if (Object.is(prev, next)) {
+			return [];
+		}
+		return PatchBuilder.empty<Set<B>>()
+			.remove([IndexEnd], prev)
+			.add([IndexEnd], next)
+			.build();
+	},
+	forwardAdd: (_acc: Set<B>, valueToAdd: A): Patches<Set<B>> => {
+		return PatchBuilder.empty<Set<B>>()
+			.add([IndexEnd], func(valueToAdd))
+			.build();
+	},
+	forwardRemove: (_acc: Set<B>, valueToRemove: A): Patches<Set<B>> => {
+		return PatchBuilder.empty<Set<B>>()
+			.remove([IndexEnd], func(valueToRemove))
+			.build();
+	},
+	forwardReplace: (
+		_acc: Set<B>,
+		prevValue: A,
+		nextValue: A,
+	): Patches<Set<B>> => {
+		const prev = func(prevValue);
+		const next = func(nextValue);
+		if (Object.is(prev, next)) {
+			return [];
+		}
+		return PatchBuilder.empty<Set<B>>()
+			.remove([IndexEnd], prev)
+			.add([IndexEnd], next)
+			.build();
+	},
+});

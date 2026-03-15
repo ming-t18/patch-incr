@@ -14,6 +14,12 @@ export const accessPath = <Output, Input extends WeakKey>(
 		S.template0((x: Output) => [[path, x]]),
 	);
 
+export const accessPathFor = (() => accessPath) as never as <Input>() => <
+	Output,
+>(
+	path: Path,
+) => PathListOptics<Input, Output>;
+
 export const accessPathOpt = <Output, Input extends WeakKey>(
 	path: Path,
 ): PathListOptics<Input, Output> =>
