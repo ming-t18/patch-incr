@@ -14,6 +14,7 @@ import {
 	applyPatches,
 	type PatchEntry,
 	type Patches,
+	PatchOp,
 	type Path,
 	removePatches,
 	replacePatches,
@@ -22,6 +23,8 @@ import { applyGetOpt } from "@/patch/access";
 import { pathEquals, pathIsPrefix } from "@/patch/helpers";
 import * as ps from "@/patchSchema";
 import type { IF } from "@/types";
+import { fromPair } from "../builder";
+import type { IIso } from "../types";
 import type { ByPath, PathListOptics } from "./types";
 
 export const empty = <A, T = never>(): PathListOptics<A, T> =>
@@ -234,6 +237,124 @@ export const doAssignBind = <
 		),
 	);
 
+const getMaskedResidualChanges = <T, A>(
+	byPath: ByPath<A>,
+	dx: Patches<T>,
+): Patches<T> => {
+	return dx.filter(({ path }) => {
+		const isCovered = byPath.some(([pathOverwritten]) =>
+			pathIsPrefix(path, pathOverwritten),
+		);
+		if (isCovered) {
+			return true;
+		}
+		const isBeingOverwritten = byPath.some(([pathOverwritten]) =>
+			pathIsPrefix(pathOverwritten, path),
+		);
+		return !isBeingOverwritten;
+	});
+};
+
+// TODO generate a list of ByPath that needs to be re-applied
+const getNonOverwittenChanges = <T, A>(
+	byPath: ByPath<A>,
+	patches: Patches<T>,
+): [Patches<T>, ByPath<A>] => {
+	const res: Patches<T> = [];
+	const filtered: ByPath<A> = [];
+	for (const entry of patches) {
+		const entryPath = entry.path;
+		let found = false;
+		for (const pair of byPath) {
+			const [path] = pair;
+			if (pathIsPrefix(entryPath, path)) {
+				filtered.push(pair);
+				found = true;
+			}
+		}
+
+		if (found) {
+			continue;
+		}
+		if (!byPath.some(([prefix]) => pathIsPrefix(prefix, entryPath))) {
+			res.push(entry);
+		}
+	}
+	return [res, filtered];
+};
+
+const makeDResidualReapply = <T, A>(
+	dAssign: Patches<T>,
+	toReapply: ByPath<A>,
+): Patches<T> => {
+	const res: Patches<T> = [];
+	for (const [pathReapply, valueReapply] of toReapply) {
+		const isOverwritten = dAssign.some((entry) => {
+			if (entry.op !== PatchOp.Replace) {
+				return false;
+			}
+			if (pathEquals(entry.path, pathReapply)) {
+				return true;
+			}
+
+			// entry.path = [...pathReapply, key] and overwritten value is same
+			if (
+				entry.path.length === pathReapply.length + 1 &&
+				pathIsPrefix(pathReapply, entry.path)
+			) {
+				const key = entry.path[pathReapply.length];
+				const newValue = applyGetOpt(entry.value, [key]);
+				if (Object.is(newValue, valueReapply)) {
+					return true;
+				}
+			}
+			return false;
+		});
+		if (isOverwritten) {
+			continue;
+		}
+
+		res.push({
+			op: PatchOp.Replace,
+			path: pathReapply,
+			value: valueReapply,
+		});
+	}
+	return res;
+};
+
+const maskResidualChanges = <Residual, Out>(): IF<
+	[ByPath<Out>, Residual],
+	Residual
+> => {
+	const byPathSchema = ps.atomic<ByPath<Out>>();
+	const residualSchema = ps.atomic<Residual>();
+	const pairSchema = ps.tuple(byPathSchema, residualSchema);
+	return {
+		evaluate: ([_, r]: [ByPath<Out>, Residual]): Residual => r,
+		forward: (
+			[byPath]: [ByPath<Out>, Residual],
+			dPair: Patches<[ByPath<Out>, Residual]>,
+			_1: Residual,
+		): Patches<Residual> => {
+			const res = pairSchema.analyze(dPair);
+			if (res === null) {
+				return residualSchema.empty;
+			}
+
+			if (isReplaceOnly(res)) {
+				return residualSchema.fromReplace(getReplaceOnly(res)[1]);
+			}
+
+			const dResidual = res[1]?.inner;
+			if (!dResidual) {
+				return residualSchema.empty;
+			}
+			return getMaskedResidualChanges(byPath, dResidual) as Patches;
+		},
+	};
+};
+
 export const doAssign = <
 	Result extends WeakKey,
 	Out,
@@ -279,20 +400,46 @@ export const doAssign = <
 		if (residualSchema.isEmpty(dResidual)) {
 			return getReduce(residual).forward(byPath, dByPath, out);
 		}
+		if (
+			byPathSchema.isReplace(dByPath) ||
+			residualSchema.isReplace(dResidual)
+		) {
+			const args1 = applyPatches(args, dArgs);
+			return resultSchema.fromReplace(evaluateDoAssign(args1));
+		}
 
 		// When residual changes:
 		// Change residual then apply doAssignBind with the updated residual
-		const dResidualFiltered = dResidual.filter(
-			({ path }) =>
-				// Filter out non-overlapping paths
-				byPath.findIndex(([pathOverwritten]) =>
-					pathIsPrefix(pathOverwritten, path),
-				) === -1,
+		const [dResidualFiltered, toReapply] = getNonOverwittenChanges(
+			byPath,
+			dResidual,
 		);
 		const residual1 = residualSchema.apply(residual, dResidualFiltered);
 		const dAssign = getReduce(residual1).forward(byPath, dByPath, out);
-		return [...dResidualFiltered, ...dAssign];
+		const dResidualReapply: Patches<Result> = makeDResidualReapply(
+			dAssign,
+			toReapply,
+		);
+		return [...dResidual, ...dResidualReapply, ...dAssign];
 	};
 
 	return { evaluate: evaluateDoAssign, forward: forwardDoAssign };
 };
+
+export const mapByPathValues = <A, B>(
+	func: IF<A, B>,
+): IF<ByPath<A>, ByPath<B>> => Arr.map(Pair.second(func));
+
+export const pathListIso = <T extends WeakKey, A>(
+	toPathList: PathListOptics<T, A>,
+	maskOut = false,
+): IIso<T, [ByPath<A>, T]> =>
+	fromPair(
+		maskOut
+			? composeMemo(
+					Pair.pair(toPathList, B.identity()),
+					Pair.pair(Pair.fst(), maskResidualChanges<T, A>()),
+				)
+			: Pair.pair(toPathList, B.identity()),
+		doAssign<T, A, T>(),
+	);
