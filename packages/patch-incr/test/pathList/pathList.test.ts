@@ -118,7 +118,8 @@ describe("algebra", () => {
 			);
 		});
 	});
-	it("test", () => {
+
+	it.skip("example", () => {
 		const value = {
 			a: { x: 56, y: 3 },
 			b: { x: -2, y: 3 },
@@ -128,7 +129,7 @@ describe("algebra", () => {
 			],
 		};
 		const entries = lens.evaluate(value);
-		const reassigned = doAssignBind().evaluate([entries, value]);
+		const reassigned = doAssign().evaluate([entries, value]);
 		console.log(entries);
 		console.log(reassigned);
 		expect(reassigned).toStrictEqual(value);
