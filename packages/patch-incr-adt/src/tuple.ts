@@ -80,12 +80,12 @@ export const tuple = <Args extends AnyADT[]>(...args: Args): Tuple<Args> => {
 			isReplaceOnly(change) ? change : null,
 
 		intro: <A, DA>(
-			args: InferTupleIntro<A, DA, Args>,
+			_args: InferTupleIntro<A, DA, Args>,
 		): IFADT<A, DA, InferTupleTypes<Args>, InferTupleChange<Args>> => {
 			throw new Error("Function not implemented.");
 		},
 		elim: <B, DB>(
-			args: InferTupleElim<B, DB, Args>,
+			_args: InferTupleElim<B, DB, Args>,
 		): IFADT<InferTupleChange<Args>, InferTupleTypes<Args>, B, DB> => {
 			throw new Error("Function not implemented.");
 		},

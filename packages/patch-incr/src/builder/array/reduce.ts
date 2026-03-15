@@ -77,7 +77,9 @@ export const reduce = <Acc, T>(alg: ReduceAlgebra<Acc, T>): IF<T[], Acc> => {
  *  - Merging multiple maps (`Map<K, V>`)
  *  - Incremental version of `Object.fromEntries`
  */
-export const reduceInc = <Acc, T>(alg: IncReduceAlgebra<Acc, T>) => {
+export const reduceInc = <Acc, T>(
+	alg: IncReduceAlgebra<Acc, T>,
+): IF<T[], Acc> => {
 	type DAcc = Patches<Acc>;
 	type DT = Patches<T>;
 	const accSchema = ps.atomic<Acc>();

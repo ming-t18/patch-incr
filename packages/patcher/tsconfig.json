@@ -28,8 +28,8 @@
 		"rootDirs": ["./src", "./test"],
 		"paths": {
 			"@/*": ["./src/*"],
-			"patch-incr/*": ["./../node_modules/patch-incr/src/*"],
+			"patch-incr/*": ["./../node_modules/patch-incr/src/*"]
 		},
-		"baseUrl": "./src",
+		"baseUrl": "./src"
 	}
 }

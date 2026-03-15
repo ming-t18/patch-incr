@@ -1,7 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: for testing */
 import { getTrackedPath } from "patch-incr/tracked";
 import { type IjqSlot, makeSlot, S, type ToTemplateValue } from "@/template";
-import type { EmptyCtx } from "./type";
 
 type Test = {
 	a: number;
@@ -72,16 +71,16 @@ describe("template", () => {
 		}
 
 		const root = makeSlot<State>();
-		const res = root.items[S.stream]
+		const _res = root.items[S.stream]
 			[S.pipe]((x) => ({
 				text1: x.text,
 				child: x.children[S.stream] satisfies IjqSlot<Item>,
 			}))
 			[S.pipe]<string>((x1) => x1.text1);
-		const res1 = root[S.context]<"isDone", boolean, Item>(
+		const _res1 = root[S.context]<"isDone", boolean, Item>(
 			"isDone",
 			(r): ToTemplateValue<boolean> => r.isDone,
-			(root1, $isDone) => root1.items[S.stream],
+			(root1, _$isDone) => root1.items[S.stream],
 		);
 	});
 });

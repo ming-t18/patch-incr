@@ -26,10 +26,10 @@
 		"noUnusedParameters": false,
 		"noPropertyAccessFromIndexSignature": false,
 		"rootDirs": ["src", "test"],
-    "paths": {
-      "@/*": ["./*"],
-      "patch-incr/*": ["./../node_modules/patch-incr/src/*"],
-    },
-    "baseUrl": "./src",
+		"paths": {
+			"@/*": ["./*"],
+			"patch-incr/*": ["./../node_modules/patch-incr/src/*"]
+		},
+		"baseUrl": "./src"
 	}
 }

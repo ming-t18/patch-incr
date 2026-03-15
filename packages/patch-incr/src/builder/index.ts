@@ -8,7 +8,14 @@ import {
 	replacePatches,
 	type Targeted,
 } from "../patch";
-import type { Evaluate, IF, IFInv, NoForwardOutput } from "../types";
+import type {
+	AnyIF,
+	Evaluate,
+	HasForwardOutput,
+	IF,
+	IFInv,
+	NoForwardOutput,
+} from "../types";
 
 /**
  * Placeholder for type checking by checking the inferred type params. Throws an exception when called.
@@ -22,6 +29,16 @@ export const hole = <Input, Output>(): IF<Input, Output> => {
 export const holeInv = <Input, Output>(): IFInv<Input, Output> => {
 	throw new Error("error: holeInv");
 };
+
+export const castOutput = <
+	Input,
+	Output extends Super,
+	Super,
+	DInput = Patches<Input>,
+	F extends boolean = HasForwardOutput,
+>(
+	func: IF<Input, Output, DInput, Patches<Output>, F>,
+): IF<Input, Super, DInput, Patches<Super>, F> => func as AnyIF;
 
 const _identity = <T>(x: T) => x;
 

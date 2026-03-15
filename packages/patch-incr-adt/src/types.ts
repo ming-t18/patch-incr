@@ -4,8 +4,7 @@ import type {
 	InferApplyType,
 	InferChangeType,
 } from "patch-incr/algebra";
-import type { TypesKey } from "patch-incr/builder/typeHelpers";
-import type { AnyIF, IF } from "patch-incr/types";
+import type { IF } from "patch-incr/types";
 export interface ADT<T = unknown, DT = DRO<T>> extends ApplyCombine<T, DT> {}
 
 export type AnyADT = ADT<any, any>;

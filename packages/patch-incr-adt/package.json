@@ -1,15 +1,15 @@
 {
-  "name": "patch-incr-adt",
-  "module": "src/index.ts",
-  "type": "module",
-  "dependencies": {
-    "patch-incr": "*"
-  },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "patch-incr": "workspace:*"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  }
+	"name": "patch-incr-adt",
+	"module": "src/index.ts",
+	"type": "module",
+	"dependencies": {
+		"patch-incr": "*"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"patch-incr": "workspace:*"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	}
 }

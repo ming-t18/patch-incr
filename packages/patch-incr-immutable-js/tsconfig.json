@@ -31,7 +31,7 @@
 		"paths": {
 			"@/*": ["./*"],
 			"patch-incr/*": ["../node_modules/patch-incr/src/*"]
-		},
+		}
 	},
-  "include": ["src/", "test/"]
+	"include": ["src/", "test/"]
 }

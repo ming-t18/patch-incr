@@ -23,12 +23,12 @@ export interface ReduceAlgebra<Acc, T> {
 	 * Does not have to be the identity element of the group.
 	 * */
 	init: Acc;
-	/** `acc <> inverse(f(prev)) <> f(next)` */
-	replace: (acc: Acc, prev: T, next: T) => Acc;
 	/** `acc <> f(value)` */
 	add: (acc: Acc, value: T) => Acc;
 	/** `acc <> inverse(f(value))` */
 	remove: (acc: Acc, value: T) => Acc;
+	/** `acc <> inverse(f(prev)) <> f(next)` */
+	replace: (acc: Acc, prev: T, next: T) => Acc;
 }
 
 export const sumWith = <T, N extends number | bigint = number>(

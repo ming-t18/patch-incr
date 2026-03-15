@@ -3,17 +3,8 @@ import { map } from "patch-incr/builder/array";
 import { distAssign } from "patch-incr/builder/array/dist";
 import { bindMemo } from "patch-incr/builder/bind";
 import { composeMemo, composer } from "patch-incr/builder/compose";
-import {
-	record,
-	template,
-	template0,
-	tupleFor,
-} from "patch-incr/builder/struct";
-import {
-	access,
-	accessWith,
-	accessWithFor,
-} from "patch-incr/builder/struct/access";
+import { record, template, tupleFor } from "patch-incr/builder/struct";
+import { accessWithFor } from "patch-incr/builder/struct/access";
 import type { IF } from "patch-incr/types";
 import { tags } from "patch-incr-dom/construct/vanjs";
 import { type Dispatch, DOMRoot } from "patch-incr-dom/mount";

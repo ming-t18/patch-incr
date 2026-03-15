@@ -28,7 +28,7 @@ describe("untracked mode", () => {
 	describe("generating patches with patchesOnRoot", () => {
 		it("should generate repalce-patches to out of bounds values", () => {
 			const draft = createDraft(getOriginal(), { untracked: true });
-			draft.c[2]!.y[5] = 100;
+			draft.c[2]?.y[5] = 100;
 			expect(patchesOnRoot(draft)).toStrictEqual([
 				{
 					op: PatchOp.Replace,

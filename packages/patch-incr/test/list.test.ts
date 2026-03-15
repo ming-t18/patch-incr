@@ -393,7 +393,7 @@ describe("map", () => {
 			a: atomicFunc((x: number) => x + 1),
 			b: atomicFunc((x: number) => `${x % 5}`),
 		});
-		type Out = InferIFOutput<typeof mapping1>;
+		type Out = InferIFOutput<typeof _mapping1>;
 		const _mapping2 = record({
 			p: accessFor<Out>()("a"),
 			q: IFGraphBuilder.empty<Out>().add([] as const, access(0)),

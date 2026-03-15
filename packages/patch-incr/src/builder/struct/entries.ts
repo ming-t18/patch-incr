@@ -1,26 +1,7 @@
 import { objectFromEntriesAlgebra } from "@/algebra/incReduce";
-import {
-	getReplaceOnly,
-	isReplaceOnly,
-	makeReplaceOnly,
-	type ReplaceOnly,
-} from "@/algebra/replaceOnly";
-import * as ps from "@/patchSchema";
-import type {
-	InnerPatches,
-	PatchSchema,
-	PatchSchemaReplaceOnly,
-} from "@/patchSchema/types";
 import type { Forward, IF } from "@/types";
 import type { Distinct, Entries } from "@/uniqueTypes";
-import {
-	applyPatches,
-	CannotReduce,
-	liftPatches,
-	type Patches,
-	PatchOp,
-	reducePatches,
-} from "../../patch";
+import { CannotReduce, PatchOp, reducePatches } from "../../patch";
 import { reduceInc } from "../array/reduce";
 
 /**

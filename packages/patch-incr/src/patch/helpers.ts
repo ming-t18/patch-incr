@@ -92,7 +92,7 @@ export const unliftPatches = <Out>(
 
 export const combinePatches = (a: Patches, b: Patches): Patches => [...a, ...b];
 
-const pathIsPrefix = (shorter: Path, longer: Path) => {
+export const pathIsPrefix = (shorter: Path, longer: Path) => {
 	const a = shorter;
 	const b = longer;
 	if (a === b) {
@@ -449,3 +449,20 @@ export class InvalidPatchEntry extends Error {
 		);
 	}
 }
+
+export const pathEquals = (a: Path, b: Path): boolean => {
+	if (a === b) {
+		return true;
+	}
+	if (a.length !== b.length) {
+		return false;
+	}
+
+	const n = a.length;
+	for (let i = 0; i < n; i++) {
+		if (a[i] !== b[i]) {
+			return false;
+		}
+	}
+	return true;
+};
