@@ -25,13 +25,40 @@ import * as ps from "@/patchSchema";
 import type { IF } from "@/types";
 import { fromPair } from "../builder";
 import type { IIso } from "../types";
-import type { ByPath, PathListOptics } from "./types";
+import type { AcceptPath, ByPath, PathListOptics } from "./types";
 
-export const empty = <A, T = never>(): PathListOptics<A, T> =>
-	B.constant([] as ByPath<T>);
+const composeAcceptPath =
+	(f1: AcceptPath, f2: AcceptPath): AcceptPath =>
+	(path: Path) => {
+		const res1 = f1(path);
+		if (!res1) {
+			return null;
+		}
 
-export const identity = <A>(): PathListOptics<A, A> =>
-	template0((value: A): ByPath<A> => [[[], value]]);
+		return f2(res1);
+	};
+
+const plusAcceptPath =
+	(fs: { acceptPath: AcceptPath }[]): AcceptPath =>
+	(path: Path) => {
+		for (const { acceptPath } of fs) {
+			const res = acceptPath(path);
+			if (res) {
+				return res;
+			}
+		}
+		return null;
+	};
+
+export const empty = <A, T = never>(): PathListOptics<A, T> => ({
+	func: B.constant([] as ByPath<T>),
+	acceptPath: (_) => null,
+});
+
+export const identity = <A>(): PathListOptics<A, A> => ({
+	func: template0((value: A): ByPath<A> => [[[], value]]),
+	acceptPath: (path) => path,
+});
 
 const joinPaths: IF<[Path, Path], Path> = B.atomicFunc(([a, b]) => [
 	...a,
@@ -39,100 +66,116 @@ const joinPaths: IF<[Path, Path], Path> = B.atomicFunc(([a, b]) => [
 ]);
 
 export const composeFlatMap = <A extends WeakKey, B, C>(
-	f1: PathListOptics<A, B>,
-	f2: PathListOptics<B, C>,
+	{ func: f1, acceptPath: check1 }: PathListOptics<A, B>,
+	{ func: f2, acceptPath: check2 }: PathListOptics<B, C>,
 ): PathListOptics<A, C> => {
-	return composeMemo(
-		f1,
-		Arr.flatMap<[Path, B], [Path, C]>(
-			composeMemo(
-				Pair.second(f2),
-				distl(),
-				Arr.map(composeReeval(Pair.assocLeft(), Pair.first(joinPaths))),
+	return {
+		func: composeMemo(
+			f1,
+			Arr.flatMap<[Path, B], [Path, C]>(
+				composeMemo(
+					Pair.second(f2),
+					distl(),
+					Arr.map(composeReeval(Pair.assocLeft(), Pair.first(joinPaths))),
+				),
 			),
+			Pair.fst(),
 		),
-		Pair.fst(),
-	);
+		acceptPath: composeAcceptPath(check1, check2),
+	};
 };
 
 export const plus = <T extends WeakKey, A>(
-	...fs: PathListOptics<T, A>[]
+	...pls: PathListOptics<T, A>[]
 ): PathListOptics<T, A> => {
-	return composeMemo(
-		tupleFor<T>()(...fs) as IF<T, ByPath<A>[]>,
-		concat(),
-		Pair.fst(),
-	);
+	const fs = pls.map((x) => x.func);
+	return {
+		func: composeMemo(
+			tupleFor<T>()(...fs) as IF<T, ByPath<A>[]>,
+			concat(),
+			Pair.fst(),
+		),
+		acceptPath: plusAcceptPath(pls),
+	};
 };
 
 export const plusMany = <T extends WeakKey, A>(
 	func: IF<T, ByPath<A>[]>,
-): PathListOptics<T, A> => composeMemo(func, concat(), Pair.fst());
+	acceptPath: AcceptPath,
+): PathListOptics<T, A> => ({
+	func: composeMemo(func, concat(), Pair.fst()),
+	acceptPath,
+});
 
 export const composeBind = <A extends WeakKey, B, C>(
-	f1: PathListOptics<A, B>,
-	f2: PathListOptics<B, C>,
+	{ func: f1, acceptPath: check1 }: PathListOptics<A, B>,
+	{ func: f2, acceptPath: check2 }: PathListOptics<B, C>,
 ): PathListOptics<A, C> => {
-	return composeMemo(
-		f1,
-		Arr.flatMap<[Path, B], [Path, C]>(
-			bind(Pair.fst(), (prefix: Path) =>
-				composeMemo(
-					Pair.snd(),
-					f2,
-					Arr.map(
-						Pair.first(B.atomicFunc((path: Path) => [...prefix, ...path])),
+	return {
+		func: composeMemo(
+			f1,
+			Arr.flatMap<[Path, B], [Path, C]>(
+				bind(Pair.fst(), (prefix: Path) =>
+					composeMemo(
+						Pair.snd(),
+						f2,
+						Arr.map(
+							Pair.first(B.atomicFunc((path: Path) => [...prefix, ...path])),
+						),
 					),
 				),
 			),
+			Pair.fst(),
 		),
-		Pair.fst(),
-	);
+		acceptPath: composeAcceptPath(check1, check2),
+	};
 };
 
 export const composeNonIncremental = <A extends WeakKey, B, C>(
-	f1: PathListOptics<A, B>,
-	f2: PathListOptics<B, C>,
+	{ func: f1, acceptPath: check1 }: PathListOptics<A, B>,
+	{ func: f2, acceptPath: check2 }: PathListOptics<B, C>,
 ): PathListOptics<A, C> => {
-	return B.atomicFunc((x: A) =>
-		f1
-			.evaluate(x)
-			.flatMap(([prefix, b]: [Path, B]) =>
-				f2
-					.evaluate(b)
-					.map(([path, c]: [Path, C]): [Path, C] => [[...prefix, ...path], c]),
-			),
-	);
+	return {
+		func: B.atomicFunc((x: A) =>
+			f1
+				.evaluate(x)
+				.flatMap(([prefix, b]: [Path, B]) =>
+					f2
+						.evaluate(b)
+						.map(([path, c]: [Path, C]): [Path, C] => [
+							[...prefix, ...path],
+							c,
+						]),
+				),
+		),
+		acceptPath: composeAcceptPath(check1, check2),
+	};
 };
 
-export const getAll = <T extends WeakKey, A>(
-	f1: PathListOptics<T, A>,
-): IF<T, A[]> => {
-	return composeMemo(f1, Arr.map(Pair.snd()));
-};
+export const getAll = <T extends WeakKey, A>({
+	func: f1,
+}: PathListOptics<T, A>): IF<T, A[]> => composeMemo(f1, Arr.map(Pair.snd()));
 
 export const setAll = <T extends WeakKey, A>(
-	f1: PathListOptics<T, A>,
+	{ func: f1 }: PathListOptics<T, A>,
 	setter: IF<A, A>,
-): IF<T, T> => {
-	return composeMemo(
+): IF<T, T> =>
+	composeMemo(
 		Pair.pair(composeMemo(f1, Arr.map(Pair.second(setter))), B.identity()),
 		doAssign(),
 	);
-};
 
 export const setAllWithPath = <T extends WeakKey, A>(
-	f1: PathListOptics<T, A>,
+	{ func: f1 }: PathListOptics<T, A>,
 	setter: IF<[Path, A], A>,
-): IF<T, T> => {
-	return composeMemo(
+): IF<T, T> =>
+	composeMemo(
 		Pair.pair(
 			composeMemo(f1, Arr.map(Pair.pair(Pair.fst(), setter))),
 			B.identity(),
 		),
 		doAssign(),
 	);
-};
 
 export const assignAlgebra = <Base, T = Base, V = unknown>(
 	base: Base,
@@ -415,6 +458,7 @@ export const doAssign = <
 			dResidual,
 		);
 		const residual1 = residualSchema.apply(residual, dResidualFiltered);
+		// console.log({ residual1, byPath, dByPath, out });
 		const dAssign = getReduce(residual1).forward(byPath, dByPath, out);
 		const dResidualReapply: Patches<Result> = makeDResidualReapply(
 			dAssign,
@@ -431,7 +475,7 @@ export const mapByPathValues = <A, B>(
 ): IF<ByPath<A>, ByPath<B>> => Arr.map(Pair.second(func));
 
 export const pathListIso = <T extends WeakKey, A>(
-	toPathList: PathListOptics<T, A>,
+	{ func: toPathList }: PathListOptics<T, A>,
 	maskOut = false,
 ): IIso<T, [ByPath<A>, T]> =>
 	fromPair(

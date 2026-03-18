@@ -1,7 +1,12 @@
 import { expect } from "bun:test";
 import type { GenWithPatches } from "@test/genPatched.test";
 import fc from "fast-check";
-import { applyPatches, type Patches, reduceReplaceRoot } from "@/patch";
+import {
+	applyPatches,
+	canApplyPatches,
+	type Patches,
+	reduceReplaceRoot,
+} from "@/patch";
 import type { IF } from "@/types";
 
 export const ensurePatchCoherent = <X, Y, DX = Patches<X>>(
@@ -105,6 +110,18 @@ export const ensurePatchSplitProperty = <X, Y>(
 	const y1 = f.evaluate(x);
 	const dyLeft = f.forward(x, dxLeft, y1);
 	const xInterm = applyPatches(x, dxLeft);
+	if (!canApplyPatches(y1, dyLeft)) {
+		console.error("patch split failed", {
+			x,
+			y,
+			dx,
+			dy,
+			dxLeft,
+			dxRight,
+			dyLeft,
+		});
+		throw new Error("patch split failed");
+	}
 	const yInterm = applyPatches(y1, dyLeft);
 
 	// must call evaluate before forward on strict mode of some memos
@@ -114,6 +131,20 @@ export const ensurePatchSplitProperty = <X, Y>(
 
 	const dyCombined: Patches<Y> = [...dyLeft, ...dyRight];
 	// console.log('LOG', { y, dy, yNext, dxLeft, y1, dyLeft, xInterm, yInterm });
+	if (!canApplyPatches(y, dyCombined)) {
+		console.error({
+			x,
+			y,
+			dx,
+			dy,
+			dxLeft,
+			dxRight,
+			dyLeft,
+			yInterm,
+			dyRight,
+		});
+		throw new Error("patch split failed");
+	}
 	const yNext1 = applyPatches(y, dyCombined);
 	try {
 		expect(applyPatches(y, dyCombined)).toStrictEqual(yNext);

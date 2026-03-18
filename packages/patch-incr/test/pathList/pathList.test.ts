@@ -2,7 +2,6 @@ import { propsForIF } from "@test/props.test";
 import fc from "fast-check";
 import { atomicFunc } from "@/builder";
 import { composeMemo } from "@/builder/compose";
-import { withDebugPrint } from "@/builder/debug";
 import * as Pair from "@/builder/pair";
 import { accessPathFor, all, composeFlatMap } from "@/iso/pathList";
 import {
@@ -18,6 +17,7 @@ import {
 	liftPatches,
 	PatchBuilder,
 	type Patches,
+	PatchOp,
 	replacePatches,
 } from "@/patch";
 import * as gp from "../helpers/genPatched.test";
@@ -56,7 +56,7 @@ describe("doAssign", () => {
 	it("should reassign the input unchanged", () => {
 		fc.assert(
 			fc.property(arbRecord.arb(), ({ value }) => {
-				const entries = lens.evaluate(value);
+				const entries = lens.func.evaluate(value);
 				const reassigned = doAssign().evaluate([entries, value]);
 				expect(reassigned).toStrictEqual(value);
 			}),
@@ -70,7 +70,7 @@ describe("doAssign", () => {
 				fc.integer({ min: 0, max: 10 }),
 				fc.integer({ min: -10, max: 10 }),
 				({ value }, index, newX) => {
-					const entries = lens.evaluate(value);
+					const entries = lens.func.evaluate(value);
 					fc.pre(index > 0 && index < entries.length);
 					const entries1 = [...entries];
 					const [path] = entries1[index];
@@ -103,7 +103,7 @@ describe("doAssign", () => {
 			expect(dx1).toStrictEqual(replacePatches(3, ["a", "x"]));
 		});
 		describe("lens props for IF", () => {
-			propsForIF(it, arbRecord, () => lens);
+			propsForIF(it, arbRecord, () => lens.func);
 		});
 		describe("lens props for assign", () => {
 			const composed = composeMemo(iso.fw, iso.bw);
@@ -163,7 +163,7 @@ describe("doAssign", () => {
 		const value: XY = { x: 1, y: 2 };
 		const updateX = replacePatches(10, ["x"]) as Patches<XY>;
 		const updateY = replacePatches(20, ["y"]) as Patches<XY>;
-		const pathList = getX.evaluate(value);
+		const pathList = getX.func.evaluate(value);
 		const updateXFromPathList = replacePatches(10, [0, 0, 1]) as Patches<
 			[ByPath<number>, XY]
 		>;
@@ -208,4 +208,24 @@ describe("setAll", () => {
 	});
 
 	propsForIF(it, arbRecord, () => doubleAllX);
+});
+
+describe("arr 2D", () => {
+	const arbXY2D = gp.array(gp.array(arbXY, { maxLength: 5 }), { maxLength: 5 });
+	const allPoints = composeFlatMap(all<XY[]>(), all<XY>());
+	const allPointsIso = pathListIso(allPoints);
+	describe("assign back", () => {
+		const composed = composeMemo(allPointsIso.fw, allPointsIso.bw);
+		it("patch split property counterexample", () => {
+			const value: XY[][] = [[{ x: 10, y: -1 }]];
+			const patches: Patches<typeof value> = [
+				{ op: PatchOp.Add, path: [0], value: [] },
+				// { op: PatchOp.Add, path: [0], value: [] },
+			];
+			const y = composed.evaluate(value);
+			const dy = composed.forward(value, patches, y);
+			console.log(dy);
+		});
+		propsForIF(it, arbXY2D, () => composed);
+	});
 });
