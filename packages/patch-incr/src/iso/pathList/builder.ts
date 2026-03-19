@@ -455,7 +455,6 @@ export const doAssign = <
 			dAssign,
 			toReapply,
 		);
-		console.log("dR, dRR, dA", dResidual, dResidualReapply, dAssign);
 		return [...dResidual, ...dResidualReapply, ...dAssign];
 	};
 
