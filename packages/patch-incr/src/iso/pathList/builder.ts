@@ -25,7 +25,12 @@ import * as ps from "@/patchSchema";
 import type { IF } from "@/types";
 import { fromPair } from "../builder";
 import type { IIso } from "../types";
-import type { AcceptPath, ByPath, PathListOptics } from "./types";
+import {
+	type AcceptPath,
+	type ByPath,
+	IsParentPath,
+	type PathListOptics,
+} from "./types";
 
 const composeAcceptPath =
 	(f1: AcceptPath, f2: AcceptPath): AcceptPath =>
@@ -33,6 +38,9 @@ const composeAcceptPath =
 		const res1 = f1(path);
 		if (!res1) {
 			return null;
+		}
+		if (res1 === IsParentPath) {
+			return IsParentPath;
 		}
 
 		return f2(res1);
@@ -157,16 +165,16 @@ export const getAll = <T extends WeakKey, A>({
 }: PathListOptics<T, A>): IF<T, A[]> => composeMemo(f1, Arr.map(Pair.snd()));
 
 export const setAll = <T extends WeakKey, A>(
-	{ func: f1 }: PathListOptics<T, A>,
+	{ func: f1, acceptPath }: PathListOptics<T, A>,
 	setter: IF<A, A>,
 ): IF<T, T> =>
 	composeMemo(
 		Pair.pair(composeMemo(f1, Arr.map(Pair.second(setter))), B.identity()),
-		doAssign(),
+		doAssign(acceptPath),
 	);
 
 export const setAllWithPath = <T extends WeakKey, A>(
-	{ func: f1 }: PathListOptics<T, A>,
+	{ func: f1, acceptPath }: PathListOptics<T, A>,
 	setter: IF<[Path, A], A>,
 ): IF<T, T> =>
 	composeMemo(
@@ -174,7 +182,7 @@ export const setAllWithPath = <T extends WeakKey, A>(
 			composeMemo(f1, Arr.map(Pair.pair(Pair.fst(), setter))),
 			B.identity(),
 		),
-		doAssign(),
+		doAssign(acceptPath),
 	);
 
 export const assignAlgebra = <Base, T = Base, V = unknown>(
@@ -302,11 +310,22 @@ const getMaskedResidualChanges = <T, A>(
 const getNonOverwittenChanges = <T, A>(
 	byPath: ByPath<A>,
 	patches: Patches<T>,
-): [Patches<T>, ByPath<A>] => {
+	acceptPath: AcceptPath,
+): [Patches<T>, ByPath<A>] | null => {
 	const res: Patches<T> = [];
 	const filtered: ByPath<A> = [];
 	for (const entry of patches) {
 		const entryPath = entry.path;
+		const acceptRes = acceptPath(entryPath);
+		if (acceptRes === IsParentPath) {
+			return null;
+		}
+
+		// TODO this shouldn't warrant a replace-root
+		if (acceptRes && acceptRes.length === 0) {
+			return null;
+		}
+
 		let found = false;
 		for (const pair of byPath) {
 			const [path] = pair;
@@ -366,43 +385,13 @@ const makeDResidualReapply = <T, A>(
 	return res;
 };
 
-const maskResidualChanges = <Residual, Out>(): IF<
-	[ByPath<Out>, Residual],
-	Residual
-> => {
-	const byPathSchema = ps.atomic<ByPath<Out>>();
-	const residualSchema = ps.atomic<Residual>();
-	const pairSchema = ps.tuple(byPathSchema, residualSchema);
-	return {
-		evaluate: ([_, r]: [ByPath<Out>, Residual]): Residual => r,
-		forward: (
-			[byPath]: [ByPath<Out>, Residual],
-			dPair: Patches<[ByPath<Out>, Residual]>,
-			_1: Residual,
-		): Patches<Residual> => {
-			const res = pairSchema.analyze(dPair);
-			if (res === null) {
-				return residualSchema.empty;
-			}
-
-			if (isReplaceOnly(res)) {
-				return residualSchema.fromReplace(getReplaceOnly(res)[1]);
-			}
-
-			const dResidual = res[1]?.inner;
-			if (!dResidual) {
-				return residualSchema.empty;
-			}
-			return getMaskedResidualChanges(byPath, dResidual) as Patches;
-		},
-	};
-};
-
 export const doAssign = <
 	Result extends WeakKey,
 	Out,
 	Residual extends Result = Result,
->(): IF<[ByPath<Out>, Residual], Result> => {
+>(
+	acceptPath: AcceptPath,
+): IF<[ByPath<Out>, Residual], Result> => {
 	const resultSchema = ps.atomic<Result>();
 	const byPathSchema = ps.atomic<ByPath<Out>>();
 	const residualSchema = ps.atomic<Residual>();
@@ -453,17 +442,20 @@ export const doAssign = <
 
 		// When residual changes:
 		// Change residual then apply doAssignBind with the updated residual
-		const [dResidualFiltered, toReapply] = getNonOverwittenChanges(
-			byPath,
-			dResidual,
-		);
+		const res1 = getNonOverwittenChanges(byPath, dResidual, acceptPath);
+		if (!res1) {
+			const args1 = applyPatches(args, dArgs);
+			return resultSchema.fromReplace(evaluateDoAssign(args1));
+		}
+		const [dResidualFiltered, toReapply] = res1;
+		// dResidualFiltered commutes with dAssign
 		const residual1 = residualSchema.apply(residual, dResidualFiltered);
-		// console.log({ residual1, byPath, dByPath, out });
 		const dAssign = getReduce(residual1).forward(byPath, dByPath, out);
 		const dResidualReapply: Patches<Result> = makeDResidualReapply(
 			dAssign,
 			toReapply,
 		);
+		console.log("dR, dRR, dA", dResidual, dResidualReapply, dAssign);
 		return [...dResidual, ...dResidualReapply, ...dAssign];
 	};
 
@@ -474,16 +466,8 @@ export const mapByPathValues = <A, B>(
 	func: IF<A, B>,
 ): IF<ByPath<A>, ByPath<B>> => Arr.map(Pair.second(func));
 
-export const pathListIso = <T extends WeakKey, A>(
-	{ func: toPathList }: PathListOptics<T, A>,
-	maskOut = false,
-): IIso<T, [ByPath<A>, T]> =>
-	fromPair(
-		maskOut
-			? composeMemo(
-					Pair.pair(toPathList, B.identity()),
-					Pair.pair(Pair.fst(), maskResidualChanges<T, A>()),
-				)
-			: Pair.pair(toPathList, B.identity()),
-		doAssign<T, A, T>(),
-	);
+export const pathListIso = <T extends WeakKey, A>({
+	func,
+	acceptPath,
+}: PathListOptics<T, A>): IIso<T, [ByPath<A>, T]> =>
+	fromPair(Pair.pair(func, B.identity()), doAssign<T, A, T>(acceptPath));

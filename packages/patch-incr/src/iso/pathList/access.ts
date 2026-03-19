@@ -5,7 +5,12 @@ import * as A from "@/builder/struct/access";
 import type { Path } from "@/patch";
 import { pathEquals, pathIsPrefix } from "@/patch/helpers";
 import { empty } from "./builder";
-import type { AcceptPath, ByPath, PathListOptics } from "./types";
+import {
+	type AcceptPath,
+	type ByPath,
+	IsParentPath,
+	type PathListOptics,
+} from "./types";
 
 const acceptPathAccessPath =
 	(path: Path): AcceptPath =>
@@ -17,7 +22,7 @@ const acceptPathAccessPath =
 			return path1.slice(path.length);
 		}
 		if (pathIsPrefix(path1, path)) {
-			return [];
+			return IsParentPath;
 		}
 		return null;
 	};

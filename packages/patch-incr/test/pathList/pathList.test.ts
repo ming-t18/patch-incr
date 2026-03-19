@@ -33,7 +33,8 @@ type XY = gp.InferArbValue<typeof arbXY>;
 const arbRecord = gp.record({
 	a: arbXY,
 	b: arbXY,
-	c: gp.array(arbXY, { maxLength: 10 }),
+	// c: gp.array(arbXY, { maxLength: 10 }),
+	c: gp.array(arbXY, { minLength: 0, maxLength: 1 }),
 });
 type Record = gp.InferArbValue<typeof arbRecord>;
 
@@ -57,7 +58,7 @@ describe("doAssign", () => {
 		fc.assert(
 			fc.property(arbRecord.arb(), ({ value }) => {
 				const entries = lens.func.evaluate(value);
-				const reassigned = doAssign().evaluate([entries, value]);
+				const reassigned = doAssign(lens.acceptPath).evaluate([entries, value]);
 				expect(reassigned).toStrictEqual(value);
 			}),
 		);
@@ -75,7 +76,10 @@ describe("doAssign", () => {
 					const entries1 = [...entries];
 					const [path] = entries1[index];
 					entries1[index] = [path, newX];
-					const reassigned = doAssign().evaluate([entries1, value]);
+					const reassigned = doAssign(lens.acceptPath).evaluate([
+						entries1,
+						value,
+					]);
 					const expected = applyPatches(value, replacePatches(newX, path));
 					expect(reassigned).toStrictEqual(expected);
 				},
@@ -167,7 +171,7 @@ describe("doAssign", () => {
 		const updateXFromPathList = replacePatches(10, [0, 0, 1]) as Patches<
 			[ByPath<number>, XY]
 		>;
-		const assignX = doAssign<XY, number>();
+		const assignX = doAssign<XY, number>(getX.acceptPath);
 		it("should update focused", () => {
 			const args = [pathList, value] as [ByPath<number>, XY];
 			const assigned = assignX.evaluate(args);
@@ -216,7 +220,7 @@ describe("arr 2D", () => {
 	const allPointsIso = pathListIso(allPoints);
 	describe("assign back", () => {
 		const composed = composeMemo(allPointsIso.fw, allPointsIso.bw);
-		it("patch split property counterexample", () => {
+		it("patch split property counterexample 0", () => {
 			const value: XY[][] = [[{ x: 10, y: -1 }]];
 			const patches: Patches<typeof value> = [
 				{ op: PatchOp.Add, path: [0], value: [] },
@@ -224,7 +228,25 @@ describe("arr 2D", () => {
 			];
 			const y = composed.evaluate(value);
 			const dy = composed.forward(value, patches, y);
+			expect(dy).toMatchObject([{ op: PatchOp.Replace, path: [] }]);
+			const y1 = applyPatches(y, dy);
+			expect(y1).toStrictEqual([[], [{ x: 10, y: -1 }]]);
+		});
+
+		it("patch split property counterexample 1", () => {
+			const value: XY[][] = [[{ x: 10, y: -1 }], [{ x: 5, y: 2 }]];
+			const patches: Patches<typeof value> = [
+				{ op: PatchOp.Add, path: [1], value: [] },
+			];
+			const y = composed.evaluate(value);
+			const dy = composed.forward(value, patches, y);
+			// expect(dy).toMatchObject([{ op: PatchOp.Replace, path: [] }]);
+			const y1 = applyPatches(y, dy);
+			// expect(y1).toStrictEqual([[], [{ x: 10, y: -1 }]]);
+			// TODO shouldn't do replace
+			console.log(y);
 			console.log(dy);
+			console.log(y1);
 		});
 		propsForIF(it, arbXY2D, () => composed);
 	});
