@@ -12,6 +12,8 @@ import {
 	type PatchSchemaArray,
 	type PatchSchemaArrayEntry,
 } from "../../patchSchema/types";
+import { composeMemo } from "../compose";
+import { fst } from "../pair";
 import { forwardWithArraySchema } from "./helpers/forwardArray";
 import { scan } from "./scan";
 
@@ -172,3 +174,6 @@ export const filter = <T>(
 		forward: forwardFilter,
 	};
 };
+
+export const filterSingle = <T>(pred: (value: T) => boolean) =>
+	composeMemo(filter(pred), fst());

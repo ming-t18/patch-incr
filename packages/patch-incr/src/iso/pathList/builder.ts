@@ -288,7 +288,7 @@ export const doAssignBind = <
 		),
 	);
 
-const getMaskedResidualChanges = <T, A>(
+const _getMaskedResidualChanges = <T, A>(
 	byPath: ByPath<A>,
 	dx: Patches<T>,
 ): Patches<T> => {
@@ -326,6 +326,8 @@ const getNonOverwittenChanges = <T, A>(
 			return null;
 		}
 
+		// TODO determine displacements
+
 		let found = false;
 		for (const pair of byPath) {
 			const [path] = pair;
@@ -345,6 +347,9 @@ const getNonOverwittenChanges = <T, A>(
 	return [res, filtered];
 };
 
+/**
+ *
+ */
 const makeDResidualReapply = <T, A>(
 	dAssign: Patches<T>,
 	toReapply: ByPath<A>,

@@ -20,13 +20,23 @@ export const isJust = <A>(): IF<Option<A>, boolean> =>
 
 const unwrap = <A>(): IF<[A], A> => accessPathFor<[A]>()([0]);
 
-export const just = <A, B>(f: IF<A, B>): IF<A, Option<B>> =>
-	castOutput(tupleFor<A>()(f));
+export const just = <A, B = A>(f?: IF<A, B>): IF<A, Option<B>> =>
+	castOutput(tupleFor<A>()(f ?? (identity() as AnyIF)));
 
 export const just0 = <A>(): IF<A, Option<A>> => just(identity<A>());
 
-export const fromPred = <A>(pred: (value: A) => boolean): IF<A, Option<A>> =>
-	condSingle(pred, just0(), constant<Option<A>, A>(Nothing));
+export const nothing = <A, Input>(): IF<Input, Option<A>> =>
+	constant<Option<A>, Input>(Nothing as Option<A>);
+
+/**
+ * Given a predicate, constructs an `IF` that:
+ *  - returns a `Just` if the predicate is true
+ *  - returns `Nothing` if the predicate is false
+ */
+export const fromPred = <A, ASub extends A = A>(
+	pred: (value: A) => boolean,
+): IF<A, Option<ASub>> =>
+	condSingle(pred, just0(), constant<Option<ASub>, A>(Nothing));
 
 export const elim = <A, B>(func: IF<A, B>, ifNothing: B): IF<Option<A>, B> =>
 	condSingle<Option<A>, B, B, [A], []>(
