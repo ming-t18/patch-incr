@@ -59,7 +59,7 @@ export const withCtx =
 					func: compose3(
 						Pair.pair(Pair.fst(), ctxFunc.func),
 						Dist.distl(),
-						compose2(Arr.flatMap(func.func), Pair.fst()),
+						Arr.flatMapSingle(func.func),
 					),
 				};
 			}

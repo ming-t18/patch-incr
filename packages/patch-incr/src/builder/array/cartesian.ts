@@ -3,7 +3,7 @@ import { compose, composeWithInv } from "../compose";
 import { composeMemo } from "../compose/memo";
 import { assocRight, fst } from "../pair";
 import { distl, distr } from "./dist";
-import { flatMap } from "./flatMap";
+import { flatMap, flatMapSingle } from "./flatMap";
 
 /** Performs the Cartesian product between two arrays, with the first array being in the outer loop. */
 export const cartesian0 = <A, B>(): IF<
@@ -13,8 +13,8 @@ export const cartesian0 = <A, B>(): IF<
 
 /** Performs the Cartesian product between two arrays, with the first array being in the outer loop. */
 export const cartesian = <A, B>(): IF<[A[], B[]], [A, B][]> =>
-	composeMemo(distr(), flatMap(distl()), fst());
+	composeMemo(distr(), flatMapSingle(distl()));
 
 /** Performs the Cartesian product between two arrays, with the second array being in the outer loop. */
 export const cartesianR = <A, B>(): IF<[A[], B[]], [A, B][]> =>
-	composeMemo(distl(), flatMap(distr()), fst());
+	composeMemo(distl(), flatMapSingle(distr()));

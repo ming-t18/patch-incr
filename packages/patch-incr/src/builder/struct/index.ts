@@ -1,4 +1,11 @@
-export { access, accessFor, accessPath, accessPathFor } from "./access";
+export {
+	access,
+	accessFor,
+	accessPath,
+	accessPathFor,
+	accessPathOpt,
+	accessPathOptFor,
+} from "./access";
 export { assign } from "./assign";
 export { assignKey, assignKeyFor, merge } from "./merge";
 export { record, recordFor, recordWithSchema, tupleFor } from "./record";
