@@ -79,8 +79,11 @@ export const assignWith = <
 		dx: Patches<Input>,
 		output: Output,
 	): Patches<Output> => {
+		if (dx.length === 0) {
+			return [];
+		}
 		let dx1 = dx as Patches<Output> | null;
-		for (const { path } of dx) {
+		for (const { path } of changes) {
 			dx1 = antiProjectPatches(path, dx1 as Patches<Output>);
 			if (dx1 === null) {
 				break;
@@ -88,7 +91,8 @@ export const assignWith = <
 		}
 
 		if (dx1 === null) {
-			return replacePatches(evaluateAssignWith(input));
+			const input1 = applyPatches(input, dx);
+			return replacePatches(evaluateAssignWith(input1));
 		}
 
 		const dy: Patches<Output> = [...dx1];

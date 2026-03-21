@@ -237,6 +237,33 @@ export const propIsIdentity = <X, Z = undefined>(
 		);
 	});
 };
+export const propIsIdentitySimple = <X, Z = undefined>(
+	it: It,
+	gen: GenWithPatches<X>,
+	getIF: (value: Z) => IF<X, X>,
+	arb = fc.constant(undefined) as fc.Arbitrary<Z>,
+) => {
+	it("is effectively identity: f(x) = x", () => {
+		fc.assert(
+			fc.property(arb, gen.arb(), (z, { value: x }) => {
+				const f = getIF(z);
+				const y = f.evaluate(x);
+				expect(y).toStrictEqual(x);
+			}),
+		);
+	});
+
+	it("is effectively identity: patch coherent", () => {
+		fc.assert(
+			fc.property(arb, gen.arb(), (z, { value: x, patches: dx }) => {
+				const f = getIF(z);
+				const y = f.evaluate(x);
+				const dy = f.forward(x, dx, y);
+				expect(applyPatches(y, dy)).toStrictEqual(applyPatches(x, dx));
+			}),
+		);
+	});
+};
 
 export const ensurePatchLiftingProperty = <
 	X,

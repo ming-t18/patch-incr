@@ -20,7 +20,7 @@ import type {
 } from "../../patchSchema/types";
 import { getTrackedPath, trackedProxy } from "../../tracked";
 import { identity } from "..";
-import type { AccessPath } from "../typeHelpers";
+import type { AccessPath, AccessPathOpt } from "../typeHelpers";
 
 export const accessRecord = <
 	C extends RecordConstruction,
@@ -207,9 +207,9 @@ export const accessPathOpt = <Output, Input extends WeakKey>(
 
 export const accessPathOptFor = <Input>(): (<
 	P extends Path,
-	Output = AccessPath<Input, P>,
+	Output = AccessPathOpt<Input, P>,
 >(
-	path: Path,
+	path: P,
 ) => IF<
 	Input,
 	Output | undefined,

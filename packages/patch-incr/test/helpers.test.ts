@@ -7,6 +7,7 @@ import {
 	antiProjectPatches,
 	PatchBuilder,
 	projectPatches,
+	replacePatches,
 } from "@/patch/helpers";
 import { IndexEnd } from "@/patchSchema/types";
 
@@ -330,6 +331,10 @@ describe("projectPatches", () => {
 
 describe("antiProjectPatches", () => {
 	describe("single", () => {
+		it("should return null on a single replace-root patch", () => {
+			expect(antiProjectPatches(0, replacePatches([1, 2]))).toBeNull();
+		});
+
 		it("should filter out by key for replace child only patches, key", () => {
 			const patches = PatchBuilder.empty()
 				.replace(["key2"], "test")
@@ -365,6 +370,15 @@ describe("antiProjectPatches", () => {
 			expect(antiProjectPatches(1, patches)).toStrictEqual(patches);
 			expect(antiProjectPatches(3, patches)).toBeNull();
 			expect(antiProjectPatches(5, patches)).toBeNull();
+		});
+	});
+
+	describe("multi", () => {
+		it("should return null on a single replace-root patch", () => {
+			expect(antiProjectPatches([0], replacePatches([1, 2]))).toBeNull();
+			expect(
+				antiProjectPatches([0, 0], replacePatches([[1, 2], 3])),
+			).toBeNull();
 		});
 	});
 });

@@ -92,22 +92,20 @@ describe("merge", () => {
 	propsForIF(it, gp.tuple(arbRec, arbRec1), () => merge());
 });
 
-// TODO doesn't work due to duplicate entries
-describe.skip("fromEntries", () => {
+describe("fromEntries", () => {
 	const arbKey = gp.string({
 		minLength: 1,
 		maxLength: 2,
 		unit: "grapheme-ascii",
 	});
-	const arbMappingAtomic = gp.array(
-		gp.tuple(arbKey, gp.integer({ min: -100, max: 100 })),
+	const arbMappingAtomic = gp.entriesArray(
+		arbKey,
+		gp.integer({ min: -100, max: 100 }),
 		{
 			maxLength: 20,
 		},
 	);
-	const arbMappingStruct = gp.array(gp.tuple(arbKey, arbRec1), {
-		maxLength: 20,
-	});
+	const arbMappingStruct = gp.entriesArray(arbKey, arbRec1, { maxLength: 20 });
 	describe("atomic values", () => {
 		propsForIF(it, arbMappingAtomic, () => fromEntries());
 	});

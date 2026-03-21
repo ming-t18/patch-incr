@@ -33,9 +33,13 @@ export interface HasTypes<K extends string = string, T = unknown> {
 }
 
 /**
- * Removes `undefined` from a union.
+ * Removes `null` and `undefined` from a union.
  */
-export type Defined<T> = T extends undefined ? never : T;
+export type Defined<T> = T extends undefined
+	? never
+	: T extends null
+		? never
+		: T;
 
 /**
  * Given a key and a `HasTypes`, access its generic type by key.
@@ -61,16 +65,43 @@ export type AccessTypesTuple<K extends string, R extends HasTypes<K>[]> = {
 	[key in keyof R]: AccessTypes<K, R[key]>;
 };
 
-type Path = (string | number)[];
-export type AccessPathSingle<O, K extends string | number> = O extends {
-	[k in K]: infer V;
+/** For inferring the path access of `Map` and ImmutableJS collections. */
+export interface HasGetMethod<K, V> {
+	get(arg: K): V;
 }
-	? V
-	: K extends number
-		? O extends (infer V)[]
+
+/**
+ * An Immer `enablePatches()`-compatible JSON path.
+ *
+ * TODO: create a branded type version of Path.
+ */
+type Path = (string | number)[];
+
+export type AccessPathSingle<O, K extends string | number> =
+	O extends HasGetMethod<K, infer V>
+		? V
+		: O extends {
+					[k in K]: infer V;
+				}
 			? V
-			: never
-		: never;
+			: K extends number
+				? O extends (infer V)[]
+					? V
+					: never
+				: never;
+
+export type AccessPathOptSingle<O, K extends string | number> =
+	Defined<O> extends HasGetMethod<K, infer V | null | undefined>
+		? V
+		: Defined<O> extends {
+					[k in K]?: infer V;
+				}
+			? V
+			: K extends number
+				? Defined<O> extends (infer V)[]
+					? V
+					: never
+				: never;
 
 export type AccessPath<O, P extends Path> = P extends []
 	? O
@@ -78,7 +109,17 @@ export type AccessPath<O, P extends Path> = P extends []
 		? AccessPath<AccessPathSingle<O, K>, Rest>
 		: never;
 
-type TestObj = { a: { b: { c: string }[] }; tup: [number, bigint] };
+export type AccessPathOpt<O, P extends Path> = P extends []
+	? O
+	: P extends [infer K extends string | number, ...infer Rest extends Path]
+		? AccessPathOpt<AccessPathOptSingle<O, K>, Rest>
+		: never;
+
+interface TestObj {
+	a: { b: { c: string }[] };
+	tup: [number, bigint];
+	opt?: { b?: { c: string }[] | null };
+}
 // { c: string }[]
 type _TestAccessObj = AccessPath<TestObj, ["a", "b"]>;
 // bigint
@@ -87,6 +128,14 @@ type _TestAccessTuple = AccessPath<TestObj, ["tup", 1]>;
 type _TestAccessArray1 = AccessPath<TestObj, ["a", "b", number]>;
 // { c: string }
 type _TestAccessArraySpecific = AccessPath<TestObj, ["a", "b", 5]>;
+// { c: string }
+type _TestAccessMap = AccessPath<
+	[Map<string, { b: { c: string } }>],
+	[0, "a", "b"]
+>;
+
+// { c: string }
+type _TestAccessOpt = AccessPathOpt<TestObj, ["opt", "b", number]>;
 
 // [string, number]
 type _Test1 = AccessTypesTuple<
@@ -94,7 +143,7 @@ type _Test1 = AccessTypesTuple<
 	[HasTypes<"change", string>, HasTypes<"change", number>]
 >;
 
-// { a: string, b: number}
+// { a: string, b: number }
 type _Test2 = AccessTypesRecord<
 	"change",
 	{

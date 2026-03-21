@@ -6,6 +6,14 @@ import type { HasHints } from "./hints";
 import type { Patches } from "./patch";
 
 export type { Apply } from "./algebra";
+export type {
+	PatchEntry,
+	Patches,
+	PatchOp,
+	PatchRemove,
+	PatchReplace,
+	Path,
+} from "./patch";
 
 export interface ApplyCombineLift<T, Patch> extends ApplyCombine<T, Patch> {
 	liftObjectKey: (key: string, patch: Patch) => Patch;
