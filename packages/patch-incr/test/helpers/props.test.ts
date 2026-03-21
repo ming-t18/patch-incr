@@ -171,7 +171,7 @@ export const ensurePatchSplitProperty = <X, Y>(
 	}
 };
 
-type It = (name: string, func: () => void) => void;
+export type It = (name: string, func: () => void) => void;
 
 export const propsForIF = <X, Y, Z = undefined>(
 	it: It,

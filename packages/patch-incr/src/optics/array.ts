@@ -15,7 +15,7 @@ export const filter = <T, TSub extends T>(
 ): ITraversal<
 	T[],
 	TSub,
-	T extends TSub ? [[number], { cast: TSub }] : [number]
+	T extends TSub ? [number, { type: T }] : [number, { cast: TSub }]
 > => ({
 	kind: OpticsKind.Traversal,
 	getMulti: Arr.filterSingle(pred) satisfies IF<T[], T[]> as AnyIF,

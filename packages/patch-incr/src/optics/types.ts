@@ -58,15 +58,53 @@ export type InferOpticsOut<T extends AnyOptics> = T extends {
 	? InferIFInput<SF>
 	: never;
 
+/**
+ * In general, the setter of the optics `IOptics<T, A, F>` accepts `IF<A, A>`.
+ * Sometimes we want type-changing setter `IF<A, B>` so the outer
+ * type `T` becomes `S`.
+ *
+ * - Setter (simple): `(f: IF<A, A>) => IF<T, T>`
+ * - Setter (type-changing): `(f: IF<A, B>) => IF<T, S>`
+ *
+ * The family type `F` determines what `S` can be based on `T`.
+ *
+ * If the family type is `never`, then type changing is not allowed.
+ *
+ * If the family type resembles a `Path`, then the type `A` at the
+ * path can be changed to `B` while maintaining the overall shape
+ * of the object. (for example, `Map`s cannot be changed to a path-compatible
+ * `Record`)
+ *
+ * Family types enables the type-changing optics families in Haskell.
+ *
+ * - Haskell: `Lens s t a b`
+ * - TypeScript: `Optics<S, A, F>` can have a setter of `(f: IF<A, B>) => IF<S, T>`
+ *   based on what `F` allows `T` to be.
+ *
+ * ## Example
+ * The `Array.all()` optics gets all elements of an array.
+ *
+ * It has type of Optics<A[], A, [number]>. The family type `[number]`
+ * resembles a path, therefore it yields a type-changing setter of
+ * `(f: IF<A, B>) => IF<A[], B[]>`
+ *
+ * In Haskell, the entire optics family is `Lens [a] [b] a b`
+ */
 export type HasFamilyType<F = unknown> = { __family?: F | undefined };
+/** @see `HasFamilyType` */
 export type SetFamilyType<T, F> = Omit<T, "__family"> & {
 	__family?: F;
 };
 
+/** @see `HasFamilyType` */
 export type GetFamilyType<T> =
 	T extends HasFamilyType<infer F | undefined> ? F : never;
+
+/** @see `HasFamilyType` */
 export type ComposeFamily<A, B> = A extends unknown[]
 	? B extends unknown[]
 		? [...A, ...B]
-		: [A, B]
-	: [A, B];
+		: [...A, B]
+	: B extends unknown[]
+		? [A, ...B]
+		: [A, B];

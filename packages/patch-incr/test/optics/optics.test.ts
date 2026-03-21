@@ -5,12 +5,11 @@ import {
 } from "@test/props.test";
 import fc from "fast-check";
 import { atomicFunc, constant, identity } from "@/builder";
-import * as Arr from "@/builder/array";
-import { swap } from "@/builder/array/helpers/arrayPatch";
-import { access, record, template0 } from "@/builder/struct";
+import { access, record } from "@/builder/struct";
 import * as O from "@/optics";
 import type { IF } from "@/types";
 import * as gp from "../helpers/genPatched.test";
+import { propsForLens, propsForTraversalIF } from "./props.test";
 
 const xySchema = gp.record({
 	x: gp.integer({ min: -5, max: 5 }),
@@ -44,6 +43,111 @@ const getXY = O.compose3(
 const swapXY: IF<XY, XY> = record({
 	x: access<number, "y", XY>("y"),
 	y: access<number, "x", XY>("x"),
+});
+
+describe("XY - record with 2 integers", () => {
+	const getX = O.accessPath<XY>()(["x"] as const);
+	const getY = O.accessPath<XY>()(["y"] as const);
+	describe("getX lens", () => {
+		propsForLens(xySchema, gp.integer(), () => getX);
+		propsForTraversalIF(xySchema, gp.integer(), () => O.toTraversal(getX));
+	});
+	describe("getY lens", () => {
+		propsForLens(xySchema, gp.integer(), () => getY);
+		propsForTraversalIF(xySchema, gp.integer(), () => O.toTraversal(getY));
+	});
+});
+
+describe("array optics", () => {
+	describe("array of integers", () => {
+		const arrIntSchema = gp.array(gp.integer(), { maxLength: 10 });
+		describe("all", () => {
+			const allTrav = O.toTraversal(O.Array.all());
+			propIsIdentity(it, arrIntSchema, () => allTrav.getMulti);
+			propsForTraversalIF(arrIntSchema, gp.integer(), () => allTrav);
+		});
+
+		describe("filter even", () => {
+			const evensTrav = O.toTraversal(
+				O.Array.filter((x: number) => x % 2 === 0),
+			);
+			const evensTravWhere = O.toTraversal(
+				O.compose(
+					O.Array.all<number>(),
+					O.where((x: number) => x % 2 === 0),
+				),
+			) satisfies typeof evensTrav;
+			describe("get", () => {
+				it("should filter for even values", () => {
+					fc.assert(
+						fc.property(arrIntSchema.arb(), ({ value: xs }) => {
+							expect(evensTrav.getMulti.evaluate(xs)).toStrictEqual(
+								xs.filter((x) => x % 2 === 0),
+							);
+						}),
+					);
+				});
+				it("should be equivalent with the all/where version", () => {
+					fc.assert(
+						fc.property(arrIntSchema.arb(), ({ value: xs }) => {
+							expect(evensTrav.getMulti.evaluate(xs)).toStrictEqual(
+								evensTravWhere.getMulti.evaluate(xs),
+							);
+						}),
+					);
+				});
+			});
+			describe("set", () => {
+				it("should update only originally even values", () => {
+					fc.assert(
+						fc.property(
+							fc.integer(),
+							arrIntSchema.arb(),
+							(val1, { value: xs }) => {
+								const setter = evensTrav.set(constant(val1));
+								expect(setter.evaluate(xs)).toStrictEqual(
+									xs.map((x) => (x % 2 === 0 ? val1 : x)),
+								);
+							},
+						),
+					);
+				});
+			});
+			propsForTraversalIF(arrIntSchema, gp.integer(), () => evensTrav);
+		});
+	});
+
+	describe("2D array of integers", () => {
+		const arr2IntSchema = gp.array(gp.array(gp.integer(), { maxLength: 10 }), {
+			maxLength: 10,
+		});
+		const all = O.compose(O.Array.all<number[]>(), O.Array.all<number>());
+		describe("get all traversal", () => {
+			const allTrav = O.toTraversal(all);
+			propsForTraversalIF(arr2IntSchema, gp.integer(), () => allTrav);
+		});
+		const allEvens = O.compose(
+			all,
+			O.where((x) => x % 2 === 0),
+		);
+		describe("get all evens traversal", () => {
+			const allEvensTrav = O.toTraversal(allEvens);
+			propsForTraversalIF(arr2IntSchema, gp.integer(), () => allEvensTrav);
+		});
+		describe("negate all evens traversal", () => {
+			const negAllEvens = allEvens.set(atomicFunc((x) => -x));
+			it("should negate all values that are originally even", () => {
+				fc.assert(
+					fc.property(arr2IntSchema.arb(), ({ value: xss }) => {
+						expect(negAllEvens.evaluate(xss)).toStrictEqual(
+							xss.map((xs) => xs.map((x) => (x % 2 === 0 ? -x : x))),
+						);
+					}),
+				);
+			});
+			propsForIF(it, arr2IntSchema, () => negAllEvens);
+		});
+	});
 });
 
 describe("getXY traversal", () => {
@@ -81,6 +185,14 @@ describe("getXY traversal", () => {
 	});
 	describe("setter with constant", () => {
 		const withConst = getXY.set(constant({ x: 0, y: 0 }));
+		it("should be idempotent", () => {
+			fc.assert(
+				fc.property(schema.arb(), ({ value }) => {
+					const y = withConst.evaluate(value);
+					return expect(withConst.evaluate(y)).toStrictEqual(y);
+				}),
+			);
+		});
 		propsForIF(it, schema, () => withConst);
 	});
 	describe("setter with id - effectively identity", () => {
