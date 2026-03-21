@@ -1,16 +1,23 @@
 import * as Arr from "@/builder/array";
 import { condSingle } from "@/builder/cond";
+import type { AnyIF, IF } from "@/types";
 import { identity } from "../builder";
 import { type ITraversal, OpticsKind } from "./types";
 
-export const all = <T>(): ITraversal<T[], T> => ({
+export const all = <T>(): ITraversal<T[], T, [number]> => ({
 	kind: OpticsKind.Traversal,
 	getMulti: identity<T[]>(),
 	set: Arr.map,
 });
 
-export const filter = <T>(pred: (input: T) => boolean): ITraversal<T[], T> => ({
+export const filter = <T, TSub extends T>(
+	pred: (input: T) => boolean,
+): ITraversal<
+	T[],
+	TSub,
+	T extends TSub ? [[number], { cast: TSub }] : [number]
+> => ({
 	kind: OpticsKind.Traversal,
-	getMulti: Arr.filterSingle(pred),
+	getMulti: Arr.filterSingle(pred) satisfies IF<T[], T[]> as AnyIF,
 	set: (f) => Arr.map(condSingle(pred, f, identity())),
 });

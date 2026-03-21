@@ -6,6 +6,7 @@ import { tupleFor } from "@/builder/struct";
 import type { IIso } from "@/iso/types";
 import type { IF } from "@/types";
 import {
+	type ComposeFamily,
 	type ILens,
 	type IOptics,
 	type IPrism,
@@ -14,13 +15,15 @@ import {
 	OpticsKind,
 } from "./types";
 
-export const identity = <T>(): ILens<T, T> => ({
+export const identity = <T>(): ILens<T, T, []> => ({
 	kind: OpticsKind.Lens,
 	get: id(),
 	set: (f) => f,
 });
 
-export const toPrism = <T, A>(o1: ILens<T, A> | IPrism<T, A>): IPrism<T, A> => {
+export const toPrism = <T, A, F = never>(
+	o1: ILens<T, A, F> | IPrism<T, A, F>,
+): IPrism<T, A, F> => {
 	if (o1.kind === OpticsKind.Prism) {
 		return o1;
 	}
@@ -34,7 +37,9 @@ export const toPrism = <T, A>(o1: ILens<T, A> | IPrism<T, A>): IPrism<T, A> => {
 	throw new Error("toPrism: not allowed");
 };
 
-export const toTraversal = <T, A>(o1: IOptics<T, A>): ITraversal<T, A> => {
+export const toTraversal = <T, A, F = never>(
+	o1: IOptics<T, A, F>,
+): ITraversal<T, A, F> => {
 	if (o1.kind === OpticsKind.Traversal) {
 		return o1;
 	}
@@ -55,10 +60,10 @@ export const toTraversal = <T, A>(o1: IOptics<T, A>): ITraversal<T, A> => {
 	throw new Error();
 };
 
-export const compose = <T extends WeakKey, A, B>(
-	o1: IOptics<T, A>,
-	o2: IOptics<A, B>,
-): IOptics<T, B> => {
+export const compose = <T extends WeakKey, A, B, F1 = never, F2 = never>(
+	o1: IOptics<T, A, F1>,
+	o2: IOptics<A, B, F2>,
+): IOptics<T, B, ComposeFamily<F1, F2>> => {
 	const set: ISetter<T, B> = (func: IF<B, B>): IF<T, T> => o1.set(o2.set(func));
 	if (o1.kind === OpticsKind.Traversal) {
 		if (o2.kind === OpticsKind.Traversal || o2.kind === OpticsKind.Prism) {
@@ -120,10 +125,26 @@ export const compose = <T extends WeakKey, A, B>(
 	};
 };
 
-export const composeIso = <T extends WeakKey, A extends WeakKey, B>(
-	o: IOptics<T, A>,
+export const compose3 = <
+	T extends WeakKey,
+	A,
+	B,
+	C,
+	F1 = never,
+	F2 = never,
+	F3 = never,
+>(
+	o1: IOptics<T, A, F1>,
+	o2: IOptics<A, B, F2>,
+	o3: IOptics<B, C, F3>,
+): IOptics<T, C, ComposeFamily<ComposeFamily<F1, F2>, F3>> => {
+	return compose(compose(o1, o2), o3);
+};
+
+export const composeIso = <T extends WeakKey, A extends WeakKey, B, F = never>(
+	o: IOptics<T, A, F>,
 	{ fw, bw }: IIso<A, B>,
-): IOptics<T, B> => {
+): IOptics<T, B, { cast: B }> => {
 	// Duplicate of {Lens,Prism,Traversal}.composeIso
 	const set = (f: IF<B, B>): IF<T, T> => o.set(composeMemo(fw, f, bw));
 	if (o.kind === OpticsKind.Traversal) {

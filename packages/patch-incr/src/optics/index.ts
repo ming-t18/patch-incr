@@ -5,5 +5,7 @@ export * as Either from "./either";
 export * as Lens from "./lens";
 export * as Pair from "./pair";
 export * as Prism from "./prism";
+export { where } from "./prism";
 export * as Traversal from "./traversal";
+export { empty, plus } from "./traversal";
 export * from "./types";
