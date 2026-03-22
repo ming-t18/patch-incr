@@ -31,7 +31,7 @@ export const propSetSet =
 	(t: T, v: A) => {
 		const set = l.set(constant(v));
 		const t1 = set.evaluate(t);
-		expect(set.evaluate(t1)).toStrictEqual(t);
+		expect(set.evaluate(t1)).toStrictEqual(t1);
 	};
 
 export const propsForLens = <T, A, F = never, Z = undefined>(
