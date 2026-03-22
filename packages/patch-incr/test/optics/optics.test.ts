@@ -31,11 +31,13 @@ interface Input extends gp.InferArbValue<typeof schema> {}
 interface Item extends gp.InferArbValue<typeof itemSchema> {}
 interface XY extends gp.InferArbValue<typeof xySchema> {}
 
-const getPos1 = O.accessPath<Item>()(["pos1"] as const);
-const getPos2 = O.accessPath<Item>()(["pos2"] as const);
+const _item = O.accessPath<Item>();
+const _input = O.accessPath<Input>();
+const getPos1 = _item(["pos1"] as const);
+const getPos2 = _item(["pos2"] as const);
 const pred = ({ x, y }: XY) => y > x;
 const getXY = O.compose(
-	O.accessPath<Input>()(["items"] as const),
+	_input(["items"] as const),
 	O.Array.all<Item>(),
 	O.plus<Item>()(getPos1, getPos2),
 	O.where<XY>(pred),

@@ -65,7 +65,7 @@ export const propsForLens = <T, A, F = never, Z = undefined>(
 				genL,
 				genT.arb(),
 				genA.arb(),
-				(l, { value: t }, { value: v }) => propSetGet(l)(t, v),
+				(l, { value: t }, { value: v }) => propSetSet(l)(t, v),
 			),
 		);
 	});
