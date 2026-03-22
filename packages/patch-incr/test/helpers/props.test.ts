@@ -178,7 +178,7 @@ export const propsForIF = <X, Y, Z = undefined>(
 	getIF: (value: Z) => IF<X, Y>,
 	arb0 = undefined as fc.Arbitrary<Z> | undefined,
 ) => {
-	const arb = arb0 ?? fc.constant(undefined);
+	const arb = arb0 ?? fc.constant(undefined as Z);
 	let cached: IF<X, Y>;
 	const getIF_ = arb0
 		? getIF
