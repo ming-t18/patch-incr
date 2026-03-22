@@ -1,7 +1,7 @@
 import type { IF } from "@/types";
 import { compose, composeWithInv } from "../compose";
 import { composeMemo } from "../compose/memo";
-import { assocRight, fst } from "../pair";
+import { assocRight } from "../pair";
 import { distl, distr } from "./dist";
 import { flatMap, flatMapSingle } from "./flatMap";
 

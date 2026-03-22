@@ -209,7 +209,7 @@ export const accessPathOptFor = <Input>(): (<
 	P extends Path,
 	Output = AccessPathOpt<Input, P>,
 >(
-	path: P,
+	path: [...P],
 ) => IF<
 	Input,
 	Output | undefined,

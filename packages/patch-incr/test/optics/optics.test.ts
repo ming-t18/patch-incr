@@ -34,8 +34,9 @@ interface XY extends gp.InferArbValue<typeof xySchema> {}
 const getPos1 = O.accessPath<Item>()(["pos1"] as const);
 const getPos2 = O.accessPath<Item>()(["pos2"] as const);
 const pred = ({ x, y }: XY) => y > x;
-const getXY = O.compose3(
-	O.compose(O.accessPath<Input>()(["items"] as const), O.Array.all()),
+const getXY = O.compose(
+	O.accessPath<Input>()(["items"] as const),
+	O.Array.all<Item>(),
 	O.plus<Item>()(getPos1, getPos2),
 	O.where<XY>(pred),
 );

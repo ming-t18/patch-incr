@@ -27,7 +27,7 @@ const makeSetter =
 export const accessPath =
 	<Input extends WeakKey>() =>
 	<P extends Path, Output extends AccessPath<Input, P> = AccessPath<Input, P>>(
-		path: P,
+		path: [...P],
 	): ILens<Input, Output, P> => ({
 		kind: OpticsKind.Lens,
 		get: S.accessPathFor<Input>()<Path, Output>(path),
@@ -40,7 +40,7 @@ export const accessPathOpt1 =
 		P extends Path,
 		Output extends AccessPathOpt<Input, P> = AccessPathOpt<Input, P>,
 	>(
-		path: P,
+		path: [...P],
 	): IPrism<Input, Output, { opt: P }> => ({
 		kind: OpticsKind.Prism,
 		getOpt: composeMemo(

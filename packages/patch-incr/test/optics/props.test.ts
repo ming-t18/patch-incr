@@ -1,14 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import type { GenWithPatches } from "@test/genPatched.test";
-import { type It, propsForIF } from "@test/props.test";
+import { propsForIF } from "@test/props.test";
 import fc from "fast-check";
 import { constant, identity } from "@/builder";
-import {
-	type ILens,
-	type IOptics,
-	type ITraversal,
-	toTraversal,
-} from "@/optics";
+import type { ILens, ITraversal } from "@/optics";
 import type { IF } from "@/types";
 
 export const propSetId =

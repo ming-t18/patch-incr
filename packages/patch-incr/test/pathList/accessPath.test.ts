@@ -1,32 +1,8 @@
-import { propsForIF } from "@test/props.test";
-import fc from "fast-check";
-import { atomicFunc } from "@/builder";
-import { composeMemo } from "@/builder/compose";
-import * as Pair from "@/builder/pair";
-import { accessPath, accessPathFor, all, composeFlatMap } from "@/iso/pathList";
-import {
-	doAssign,
-	mapByPathValues,
-	pathListIso,
-	plus,
-	setAll,
-} from "@/iso/pathList/builder";
-import {
-	type ByPath,
-	IsParentPath,
-	type PathListOptics,
-} from "@/iso/pathList/types";
-import {
-	applyPatches,
-	liftPatches,
-	PatchBuilder,
-	type Patches,
-	PatchOp,
-	replacePatches,
-} from "@/patch";
+import { accessPath, all } from "@/iso/pathList";
+import { IsParentPath } from "@/iso/pathList/types";
 import * as gp from "../helpers/genPatched.test";
 
-const arbRecord = gp.record({
+const _arbRecord = gp.record({
 	a: gp.record({
 		b: gp.record({
 			x: gp.integer({ min: -5, max: 5 }),

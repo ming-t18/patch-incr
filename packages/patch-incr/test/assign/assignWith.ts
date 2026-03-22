@@ -1,8 +1,5 @@
-import { atomicFunc, constant, identity } from "@/builder";
-import { record, template } from "@/builder/struct";
-import { assign, assignWith } from "@/builder/struct/assign";
-import { entries, fromEntries, keys } from "@/builder/struct/entries";
-import { merge } from "@/builder/struct/merge";
+import { atomicFunc } from "@/builder";
+import { assignWith } from "@/builder/struct/assign";
 import type { AnyIF } from "@/types";
 import * as gp from "../helpers/genPatched.test";
 import { propsForIF } from "../helpers/props.test";

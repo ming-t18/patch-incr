@@ -25,7 +25,7 @@ export type TypesKey = "~types";
  * }
  *
  * // string
- * type SchmeaInput = AccessTypes<'input', Schema<string, number>>
+ * type SchemaInput = AccessTypes<'input', Schema<string, number>>
  * ```
  */
 export interface HasTypes<K extends string = string, T = unknown> {

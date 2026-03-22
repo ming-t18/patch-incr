@@ -6,6 +6,7 @@ import { tupleFor } from "@/builder/struct";
 import type { IIso } from "@/iso/types";
 import type { IF } from "@/types";
 import {
+	type AnyOptics,
 	type ComposeFamily,
 	type ILens,
 	type IOptics,
@@ -60,7 +61,38 @@ export const toTraversal = <T, A, F = never>(
 	throw new Error();
 };
 
-export const compose = <T extends WeakKey, A, B, F1 = never, F2 = never>(
+export const toOptics = <T, A, F = never>(
+	o: IOptics<T, A, F>,
+): IOptics<T, A, F> => o;
+
+export const composeIso = <T extends WeakKey, A extends WeakKey, B, F = never>(
+	o: IOptics<T, A, F>,
+	{ fw, bw }: IIso<A, B>,
+): IOptics<T, B, { cast: B }> => {
+	// Duplicate of {Lens,Prism,Traversal}.composeIso
+	const set = (f: IF<B, B>): IF<T, T> => o.set(composeMemo(fw, f, bw));
+	if (o.kind === OpticsKind.Traversal) {
+		return {
+			kind: OpticsKind.Traversal,
+			getMulti: composeMemo(o.getMulti, Arr.map(fw)),
+			set,
+		};
+	}
+	if (o.kind === OpticsKind.Prism) {
+		return {
+			kind: OpticsKind.Prism,
+			getOpt: composeMemo(o.getOpt, Option.map(fw)),
+			set,
+		};
+	}
+	return {
+		kind: OpticsKind.Lens,
+		get: composeMemo(o.get, fw),
+		set,
+	};
+};
+
+export const compose2 = <T extends WeakKey, A, B, F1 = never, F2 = never>(
 	o1: IOptics<T, A, F1>,
 	o2: IOptics<A, B, F2>,
 ): IOptics<T, B, ComposeFamily<F1, F2>> => {
@@ -137,33 +169,127 @@ export const compose3 = <
 	o1: IOptics<T, A, F1>,
 	o2: IOptics<A, B, F2>,
 	o3: IOptics<B, C, F3>,
-): IOptics<T, C, ComposeFamily<ComposeFamily<F1, F2>, F3>> => {
-	return compose(compose(o1, o2), o3);
-};
+): IOptics<T, C, ComposeFamily<ComposeFamily<F1, F2>, F3>> =>
+	compose2(compose2(o1, o2), o3);
 
-export const composeIso = <T extends WeakKey, A extends WeakKey, B, F = never>(
-	o: IOptics<T, A, F>,
-	{ fw, bw }: IIso<A, B>,
-): IOptics<T, B, { cast: B }> => {
-	// Duplicate of {Lens,Prism,Traversal}.composeIso
-	const set = (f: IF<B, B>): IF<T, T> => o.set(composeMemo(fw, f, bw));
-	if (o.kind === OpticsKind.Traversal) {
-		return {
-			kind: OpticsKind.Traversal,
-			getMulti: composeMemo(o.getMulti, Arr.map(fw)),
-			set,
-		};
+export const compose4 = <
+	T extends WeakKey,
+	A,
+	B,
+	C,
+	D,
+	F1 = never,
+	F2 = never,
+	F3 = never,
+	F4 = never,
+>(
+	o1: IOptics<T, A, F1>,
+	o2: IOptics<A, B, F2>,
+	o3: IOptics<B, C, F3>,
+	o4: IOptics<C, D, F4>,
+): IOptics<T, D, ComposeFamily<ComposeFamily<ComposeFamily<F1, F2>, F3>, F4>> =>
+	compose2(compose2(compose2(o1, o2), o3), o4);
+
+export const compose5 = <
+	T extends WeakKey,
+	A,
+	B,
+	C,
+	D,
+	E,
+	F1 = never,
+	F2 = never,
+	F3 = never,
+	F4 = never,
+	F5 = never,
+>(
+	o1: IOptics<T, A, F1>,
+	o2: IOptics<A, B, F2>,
+	o3: IOptics<B, C, F3>,
+	o4: IOptics<C, D, F4>,
+	o5: IOptics<D, E, F5>,
+): IOptics<
+	T,
+	E,
+	ComposeFamily<ComposeFamily<ComposeFamily<ComposeFamily<F1, F2>, F3>, F4>, F5>
+> => compose2(compose2(compose2(compose2(o1, o2), o3), o4), o5);
+
+export interface Compose {
+	<T extends WeakKey>(): IOptics<T, T, []>;
+	<T extends WeakKey, A, F>(o: IOptics<T, A, F>): IOptics<T, A, F>;
+	<T extends WeakKey, A, B, F1 = never, F2 = never>(
+		o1: IOptics<T, A, F1>,
+		o2: IOptics<A, B, F2>,
+	): IOptics<T, B, ComposeFamily<F1, F2>>;
+	<T extends WeakKey, A, B, C, F1 = never, F2 = never, F3 = never>(
+		o1: IOptics<T, A, F1>,
+		o2: IOptics<A, B, F2>,
+		o3: IOptics<B, C, F3>,
+	): IOptics<T, C, ComposeFamily<ComposeFamily<F1, F2>, F3>>;
+	<
+		T extends WeakKey,
+		A,
+		B,
+		C,
+		D,
+		F1 = never,
+		F2 = never,
+		F3 = never,
+		F4 = never,
+	>(
+		o1: IOptics<T, A, F1>,
+		o2: IOptics<A, B, F2>,
+		o3: IOptics<B, C, F3>,
+		o4: IOptics<C, D, F4>,
+	): IOptics<T, D, ComposeFamily<ComposeFamily<ComposeFamily<F1, F2>, F3>, F4>>;
+	<
+		T extends WeakKey,
+		A,
+		B,
+		C,
+		D,
+		E,
+		F1 = never,
+		F2 = never,
+		F3 = never,
+		F4 = never,
+		F5 = never,
+	>(
+		o1: IOptics<T, A, F1>,
+		o2: IOptics<A, B, F2>,
+		o3: IOptics<B, C, F3>,
+		o4: IOptics<C, D, F4>,
+		o5: IOptics<D, E, F5>,
+	): IOptics<
+		T,
+		E,
+		ComposeFamily<
+			ComposeFamily<ComposeFamily<ComposeFamily<F1, F2>, F3>, F4>,
+			F5
+		>
+	>;
+}
+export const compose = ((...fs: AnyOptics[]): AnyOptics => {
+	if (fs.length === 0) {
+		return identity();
 	}
-	if (o.kind === OpticsKind.Prism) {
-		return {
-			kind: OpticsKind.Prism,
-			getOpt: composeMemo(o.getOpt, Option.map(fw)),
-			set,
-		};
+	if (fs.length === 1) {
+		return fs[0];
 	}
-	return {
-		kind: OpticsKind.Lens,
-		get: composeMemo(o.get, fw),
-		set,
-	};
-};
+	if (fs.length === 2) {
+		return compose2(...(fs as [AnyOptics, AnyOptics]));
+	}
+	if (fs.length === 3) {
+		return compose3(...(fs as [AnyOptics, AnyOptics, AnyOptics]));
+	}
+	if (fs.length === 4) {
+		return compose4(...(fs as [AnyOptics, AnyOptics, AnyOptics, AnyOptics]));
+	}
+	if (fs.length === 5) {
+		return compose5(
+			...(fs as [AnyOptics, AnyOptics, AnyOptics, AnyOptics, AnyOptics]),
+		);
+	}
+	// @ts-expect-error Can't be checked
+	return compose(compose(...fs.slice(0, 5)), ...fs.slice(5));
+}) as Compose;
