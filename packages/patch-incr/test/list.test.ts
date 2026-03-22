@@ -713,12 +713,11 @@ describe("flatMap", () => {
 
 describe("slice", () => {
 	describe("no ends", () => {
-		propsForIF(it, gp.array(arbElem, { maxLength: 5 }), () => slice());
+		propsForIF(gp.array(arbElem, { maxLength: 5 }), () => slice());
 	});
 
 	describe("start only", () => {
 		propsForIF(
-			it,
 			gp.array(arbElem, { maxLength: 5 }),
 			(start) => slice(start),
 			fc.integer({ min: 0, max: 8 }),
@@ -727,7 +726,6 @@ describe("slice", () => {
 
 	describe("end only", () => {
 		propsForIF(
-			it,
 			gp.array(arbElem, { maxLength: 5 }),
 			(end) => slice(undefined, end),
 			fc.integer({ min: 0, max: 8 }),
@@ -736,7 +734,6 @@ describe("slice", () => {
 
 	describe("both ends", () => {
 		propsForIF(
-			it,
 			gp.array(arbElem, { maxLength: 5 }),
 			({ start, end }) => slice(start, end),
 			fc.record({
@@ -762,7 +759,7 @@ describe("seq", () => {
 				);
 			});
 		});
-		propsForIF(it, gp.integer({ min: 0, max: 10 }), () => seq());
+		propsForIF(gp.integer({ min: 0, max: 10 }), () => seq());
 	});
 
 	describe("any base, step 1", () => {
@@ -785,7 +782,6 @@ describe("seq", () => {
 		});
 
 		propsForIF(
-			it,
 			gp.integer({ min: 0, max: 10 }),
 			(base) => seq(base),
 			fc.integer({ min: -5, max: 5 }),
@@ -813,7 +809,6 @@ describe("seq", () => {
 		});
 
 		propsForIF(
-			it,
 			gp.integer({ min: 0, max: 10 }),
 			([base, step]) => seq(base, step),
 			fc.tuple(
@@ -825,7 +820,7 @@ describe("seq", () => {
 });
 
 describe("zip", () => {
-	propsForIF(it, gp.tuple(gp.array(arbElem), gp.array(arbElem)), () => zip());
+	propsForIF(gp.tuple(gp.array(arbElem), gp.array(arbElem)), () => zip());
 });
 
 describe("sort", () => {
@@ -907,13 +902,11 @@ describe("sort", () => {
 	});
 
 	describe("sort integers", () => {
-		propsForIF(it, gp.array(gp.integer({ min: -50, max: 50 })), () =>
-			sort(asc),
-		);
+		propsForIF(gp.array(gp.integer({ min: -50, max: 50 })), () => sort(asc));
 	});
 
 	describe("sort records, comprehensive compare fn", () => {
-		propsForIF(it, gp.array(arbElem), () =>
+		propsForIF(gp.array(arbElem), () =>
 			sort((x, y) => {
 				const c1 = x.num - y.num;
 				if (c1 !== 0) {

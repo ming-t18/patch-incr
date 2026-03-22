@@ -16,7 +16,7 @@ const genInput = gp.oneof(
 );
 
 describe("ifExists", () => {
-	propsForIF(it, genInput, () => ifExists(accessFor<{ a: number }>()("a")));
+	propsForIF(genInput, () => ifExists(accessFor<{ a: number }>()("a")));
 });
 
 type Left = { type: "left"; value: { a: number } };
@@ -52,7 +52,7 @@ const genUnion = gp.oneof(
 );
 
 describe("matchUnion", () => {
-	propsForIF(it, genUnion, () =>
+	propsForIF(genUnion, () =>
 		matchUnionFor<"type", Union>("type")({
 			left: accessWithFor<Left>()((x) => x.value.a),
 			middle: accessWithFor<Middle>()((x) => x.value.b),

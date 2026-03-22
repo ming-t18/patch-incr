@@ -27,13 +27,13 @@ const arbEntries = gp.entriesArray(
 
 describe("reduce", () => {
 	describe("sum number", () => {
-		propsForIF(it, arbIntegers, () => reduce(sumWith((x) => x.value)));
+		propsForIF(arbIntegers, () => reduce(sumWith((x) => x.value)));
 	});
 	describe("sum bigint", () => {
-		propsForIF(it, arbWithBigint, () => reduce(sumBigint()));
+		propsForIF(arbWithBigint, () => reduce(sumBigint()));
 	});
 	describe("merge maps non-patching", () => {
-		propsForIF(it, arbEntries, () =>
+		propsForIF(arbEntries, () =>
 			reduce(objectFromEntriesAlgebra<string, { a: number; b: string[] }>({})),
 		);
 	});
@@ -41,7 +41,7 @@ describe("reduce", () => {
 
 describe("reduceInc", () => {
 	describe("merge maps patching", () => {
-		propsForIF(it, arbEntries, () =>
+		propsForIF(arbEntries, () =>
 			reduceInc(
 				objectFromEntriesAlgebra<string, { a: number; b: string[] }>({}),
 			),

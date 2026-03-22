@@ -91,7 +91,7 @@ const testPropsForIF = <T = unknown>(
 	// biome-ignore lint/suspicious/noExplicitAny: Ignore return type of IF
 	getIF: <T1 extends T>() => IF<T1, any>,
 ) => {
-	forEachArb(arbs, (arb) => propsForIF(it, arb, getIF));
+	forEachArb(arbs, (arb) => propsForIF(arb, getIF));
 };
 
 const testPropsForIFArray = <T = unknown>(
@@ -99,7 +99,7 @@ const testPropsForIFArray = <T = unknown>(
 	// biome-ignore lint/suspicious/noExplicitAny: Ignore return type of IF
 	getIF: <T1 extends T>() => IF<T1[], any>,
 ) => {
-	forEachArb(arbs, (arb) => propsForIF(it, arb, getIF));
+	forEachArb(arbs, (arb) => propsForIF(arb, getIF));
 };
 
 const testPropsForIFConcat = <T = unknown>(
@@ -107,7 +107,7 @@ const testPropsForIFConcat = <T = unknown>(
 	// biome-ignore lint/suspicious/noExplicitAny: Ignore return type of IF
 	getIF: <T1 extends T>() => IF<T1[][], any>,
 ) => {
-	forEachArb(arbs, (arb) => propsForIF(it, arb, getIF));
+	forEachArb(arbs, (arb) => propsForIF(arb, getIF));
 };
 
 describe("identity", () => {
@@ -120,7 +120,7 @@ describe("identity", () => {
 
 describe("constant", () => {
 	forEachArb(arbs, (arb) =>
-		propsForIF(it, arb, <T>(z: string) => constant<string, T>(z), fc.string()),
+		propsForIF(arb, <T>(z: string) => constant<string, T>(z), fc.string()),
 	);
 });
 
@@ -145,12 +145,12 @@ describe("compose", () => {
 		atomicFunc((xss): number => xss.reduce((s, a) => s + a.length, 0)),
 	);
 	describe("total length from mapped arrays", () => {
-		propsForIF(it, arrayRecordIntStr, () => composed);
+		propsForIF(arrayRecordIntStr, () => composed);
 	});
 });
 
 describe("atomicFunc", () => {
-	propsForIF(it, arbRecordIntStr, () =>
+	propsForIF(arbRecordIntStr, () =>
 		atomicFunc(
 			({ int, str }: gp.InferArbValue<typeof arbRecordIntStr>) =>
 				int + str.length,
@@ -161,7 +161,7 @@ describe("atomicFunc", () => {
 describe("composeWithInv", () => {
 	describe("comm . comm", () => {
 		forEachArb([["arbTupleIntStr", arbTupleIntStr]], (arb) =>
-			propsForIF(it, arb, () => composeWithInv(comm(), comm())),
+			propsForIF(arb, () => composeWithInv(comm(), comm())),
 		);
 
 		forEachArb([["arbTupleIntStr", arbTupleIntStr]], (arb) =>
@@ -184,7 +184,6 @@ describe("list", () => {
 		describe("map const", () => {
 			forEachArb(arbsArray, (arb) =>
 				propsForIF(
-					it,
 					arb,
 					(z: string) => map(constant<string, unknown>(z)),
 					fc.string(),
@@ -194,10 +193,10 @@ describe("list", () => {
 	});
 
 	describe("concat", () => {
-		forEachArb(arbsArrayConcat, (arb) => propsForIF(it, arb, () => concat()));
+		forEachArb(arbsArrayConcat, (arb) => propsForIF(arb, () => concat()));
 
 		describe("concat from number", () => {
-			propsForIF(it, gp.array(gp.integer({ min: 0, max: 5 })), () =>
+			propsForIF(gp.array(gp.integer({ min: 0, max: 5 })), () =>
 				compose(
 					map(
 						atomicFunc((n: number) =>
@@ -212,7 +211,7 @@ describe("list", () => {
 		});
 
 		describe("concat from map record", () => {
-			propsForIF(it, arrayRecordIntStr, () =>
+			propsForIF(arrayRecordIntStr, () =>
 				compose(
 					map(
 						atomicFunc(

@@ -1,4 +1,4 @@
-import { expect } from "bun:test";
+import { expect, it } from "bun:test";
 import type { GenWithPatches } from "@test/genPatched.test";
 import fc from "fast-check";
 import {
@@ -174,15 +174,24 @@ export const ensurePatchSplitProperty = <X, Y>(
 export type It = (name: string, func: () => void) => void;
 
 export const propsForIF = <X, Y, Z = undefined>(
-	it: It,
 	gen: GenWithPatches<X>,
 	getIF: (value: Z) => IF<X, Y>,
-	arb = fc.constant(undefined) as fc.Arbitrary<Z>,
+	arb0 = undefined as fc.Arbitrary<Z> | undefined,
 ) => {
+	const arb = arb0 ?? fc.constant(undefined);
+	let cached: IF<X, Y>;
+	const getIF_ = arb0
+		? getIF
+		: (_: Z) => {
+				if (!cached) {
+					cached = getIF(undefined as Z);
+				}
+				return cached;
+			};
 	it("identity patch: f'([]) = []: F(id) = id", () => {
 		fc.assert(
 			fc.property(arb, gen.arb(), (z, { value: x }) => {
-				const f = getIF(z);
+				const f = getIF_(z);
 				const y = f.evaluate(x);
 				const dy = f.forward(x, [], y);
 				expect(dy).toStrictEqual([]);
@@ -193,7 +202,7 @@ export const propsForIF = <X, Y, Z = undefined>(
 	it("patch coherent", () => {
 		fc.assert(
 			fc.property(arb, gen.arb(), (z, { value, patches }) => {
-				const f = getIF(z);
+				const f = getIF_(z);
 				ensurePatchCoherent(value, patches, f);
 			}),
 		);
@@ -202,7 +211,7 @@ export const propsForIF = <X, Y, Z = undefined>(
 	it("patch split: f'(dx1) @ f'(dx2) = f'(dx1 @ dx2): F(g) . F(f) = F(g . f)", () => {
 		fc.assert(
 			fc.property(arb, gen.arb(), (z, { value, patches }) => {
-				const f = getIF(z);
+				const f = getIF_(z);
 				ensurePatchSplitProperty(value, patches, f);
 			}),
 		);

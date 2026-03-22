@@ -80,7 +80,7 @@ const arbTodoStateDispatch = gp.record({
 });
 
 describe("renderTodo", () => {
-	propsForIF(it, arbTodoStateDispatch, () =>
+	propsForIF(arbTodoStateDispatch, () =>
 		composer<StateDispatch<TodoState, TodoAction>, ElementConstruction>(
 			renderTodoApp,
 		)

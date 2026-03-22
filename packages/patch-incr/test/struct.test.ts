@@ -36,7 +36,7 @@ describe("assign", () => {
 		],
 	);
 
-	propsForIF(it, gp.integer(), () => af);
+	propsForIF(gp.integer(), () => af);
 });
 
 describe("template", () => {
@@ -57,7 +57,7 @@ describe("template", () => {
 		}),
 	);
 
-	propsForIF(it, gp.integer(), () => af);
+	propsForIF(gp.integer(), () => af);
 });
 
 const arbRec = gp.record(
@@ -81,15 +81,15 @@ const arbRec1 = gp.record(
 );
 
 describe("keys", () => {
-	propsForIF(it, arbRec, () => keys());
+	propsForIF(arbRec, () => keys());
 });
 
 describe("entries", () => {
-	propsForIF(it, arbRec, () => entries());
+	propsForIF(arbRec, () => entries());
 });
 
 describe("merge", () => {
-	propsForIF(it, gp.tuple(arbRec, arbRec1), () => merge());
+	propsForIF(gp.tuple(arbRec, arbRec1), () => merge());
 });
 
 describe("fromEntries", () => {
@@ -107,10 +107,10 @@ describe("fromEntries", () => {
 	);
 	const arbMappingStruct = gp.entriesArray(arbKey, arbRec1, { maxLength: 20 });
 	describe("atomic values", () => {
-		propsForIF(it, arbMappingAtomic, () => fromEntries());
+		propsForIF(arbMappingAtomic, () => fromEntries());
 	});
 
 	describe("structural values", () => {
-		propsForIF(it, arbMappingStruct, () => fromEntries());
+		propsForIF(arbMappingStruct, () => fromEntries());
 	});
 });

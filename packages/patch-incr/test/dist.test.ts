@@ -17,35 +17,35 @@ const genDistDeep = gp.tuple(
 describe("distl", () => {
 	describe("atomic dist", () => {
 		const genDist = gp.string();
-		propsForIF(it, gp.tuple(genDist, gp.array(genElem)), () => distl());
+		propsForIF(gp.tuple(genDist, gp.array(genElem)), () => distl());
 	});
 
 	describe("deep dist", () => {
 		const genDist = genDistDeep;
-		propsForIF(it, gp.tuple(genDist, gp.array(genElem)), () => distl());
+		propsForIF(gp.tuple(genDist, gp.array(genElem)), () => distl());
 	});
 });
 
 describe("distr", () => {
 	describe("atomic dist", () => {
 		const genDist = gp.string();
-		propsForIF(it, gp.tuple(gp.array(genElem), genDist), () => distr());
+		propsForIF(gp.tuple(gp.array(genElem), genDist), () => distr());
 	});
 
 	describe("deep dist", () => {
 		const genDist = genDistDeep;
-		propsForIF(it, gp.tuple(gp.array(genElem), genDist), () => distr());
+		propsForIF(gp.tuple(gp.array(genElem), genDist), () => distr());
 	});
 });
 
 describe("distAssign", () => {
 	describe("atomic dist", () => {
 		const genDist = gp.string();
-		propsForIF(it, gp.tuple(gp.array(genElem), genDist), () => distAssign("d"));
+		propsForIF(gp.tuple(gp.array(genElem), genDist), () => distAssign("d"));
 	});
 
 	describe("deep dist", () => {
 		const genDist = genDistDeep;
-		propsForIF(it, gp.tuple(gp.array(genElem), genDist), () => distAssign("d"));
+		propsForIF(gp.tuple(gp.array(genElem), genDist), () => distAssign("d"));
 	});
 });

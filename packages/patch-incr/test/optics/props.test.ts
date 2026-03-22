@@ -78,7 +78,7 @@ export const propsForTraversalIF = <T, A, F = never, Z = undefined>(
 	arb = fc.constant(undefined) as fc.Arbitrary<Z>,
 ) => {
 	describe("get", () => {
-		propsForIF(it, genT, (z: Z) => getOptics(z).getMulti, arb);
+		propsForIF(genT, (z: Z) => getOptics(z).getMulti, arb);
 	});
 	describe("set", () => {
 		const entries: [string, fc.Arbitrary<IF<A, A>>][] = [
@@ -87,7 +87,6 @@ export const propsForTraversalIF = <T, A, F = never, Z = undefined>(
 		];
 		describe.each(entries)("%s", (_name, genF) => {
 			propsForIF(
-				it,
 				genT,
 				([z, f]): IF<T, T> => getOptics(z).set(f),
 				fc.tuple(arb, genF),

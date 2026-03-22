@@ -23,7 +23,7 @@ describe("assignWith", () => {
 				getValue: atomicFunc(([x]: [number, number]) => -x) as AnyIF,
 			},
 		]);
-		propsForIF(it, arbPair, () => assignOnPair);
+		propsForIF(arbPair, () => assignOnPair);
 	});
 	describe("simple nested", () => {
 		const assignOnSimpleNested = assignWith([
@@ -32,6 +32,6 @@ describe("assignWith", () => {
 				getValue: atomicFunc((x: Nested) => -x.a.b) as AnyIF,
 			},
 		]);
-		propsForIF(it, arbSimpleNested, () => assignOnSimpleNested);
+		propsForIF(arbSimpleNested, () => assignOnSimpleNested);
 	});
 });

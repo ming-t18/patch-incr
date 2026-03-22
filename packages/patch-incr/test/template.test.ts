@@ -46,7 +46,7 @@ describe("template", () => {
 	});
 
 	describe("example function", () => {
-		propsForIF(it, genInput, getFunc);
+		propsForIF(genInput, getFunc);
 
 		it("no replace root", () => {
 			const func = getFunc();

@@ -148,7 +148,7 @@ describe("array optics", () => {
 					}),
 				);
 			});
-			propsForIF(it, arr2IntSchema, () => negAllEvens);
+			propsForIF(arr2IntSchema, () => negAllEvens);
 		});
 	});
 });
@@ -184,7 +184,7 @@ describe("getXY traversal", () => {
 				),
 			);
 		});
-		propsForIF(it, schema, () => O.toTraversal(getXY).getMulti);
+		propsForIF(schema, () => O.toTraversal(getXY).getMulti);
 	});
 	describe("setter with constant", () => {
 		const withConst = getXY.set(constant({ x: 0, y: 0 }));
@@ -196,12 +196,12 @@ describe("getXY traversal", () => {
 				}),
 			);
 		});
-		propsForIF(it, schema, () => withConst);
+		propsForIF(schema, () => withConst);
 	});
 	describe("setter with id - effectively identity", () => {
 		const effId = getXY.set(identity());
 		propIsIdentitySimple(it, schema, () => effId);
-		propsForIF(it, schema, () => effId);
+		propsForIF(schema, () => effId);
 	});
 	describe("setter - swap x and y on all y > x", () => {
 		const swapper = getXY.set(swapXY);
@@ -211,6 +211,6 @@ describe("getXY traversal", () => {
 				console.log(value.items, swapper.evaluate(value).items);
 			}
 		});
-		propsForIF(it, schema, () => swapper);
+		propsForIF(schema, () => swapper);
 	});
 });

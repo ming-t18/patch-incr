@@ -49,9 +49,9 @@ describe("accessRecord", () => {
 	const accessA = accessRecord("a", patchSchema);
 	const accessB = accessRecord("b", patchSchema);
 	const accessC = accessRecord("c", patchSchema);
-	propsForIF(it, gen, () => accessA);
-	propsForIF(it, gen, () => accessB);
-	propsForIF(it, gen, () => accessC);
+	propsForIF(gen, () => accessA);
+	propsForIF(gen, () => accessB);
+	propsForIF(gen, () => accessC);
 });
 
 describe("accessPath", () => {
@@ -67,7 +67,7 @@ describe("accessPath", () => {
 			[["d", "f", 1]],
 		])(`accessPath(%j)`, (path) => {
 			const access1 = _A(path);
-			propsForIF(it, gen, () => access1);
+			propsForIF(gen, () => access1);
 		});
 	});
 
@@ -121,29 +121,29 @@ describe("accessPathOpt", () => {
 			expect(f1.evaluate({ opt1: { a: 1 } })).toBe(1);
 			expect(f1.evaluate({ opt1: undefined })).toBeUndefined();
 		});
-		propsForIF(it, arbWithOpt, () => f1);
+		propsForIF(arbWithOpt, () => f1);
 	});
 
 	describe("on array 2D of numbers", () => {
 		const _A = accessPathOptFor<number[][]>();
 		describe("[2, 1]", () => {
-			propsForIF(it, arbArr2D, () => _A([2, 1]));
+			propsForIF(arbArr2D, () => _A([2, 1]));
 		});
 	});
 
 	describe("on array 2D of records", () => {
 		const _A = accessPathOptFor<{ x: number }[][]>();
 		describe("[0]", () => {
-			propsForIF(it, arbArr2DObj, () => _A([0]));
+			propsForIF(arbArr2DObj, () => _A([0]));
 		});
 		describe("[0, 0]", () => {
-			propsForIF(it, arbArr2DObj, () => _A([0, 0]));
+			propsForIF(arbArr2DObj, () => _A([0, 0]));
 		});
 		describe("[2, 1]", () => {
-			propsForIF(it, arbArr2DObj, () => _A([2, 1]));
+			propsForIF(arbArr2DObj, () => _A([2, 1]));
 		});
 		describe("[2, 1, x]", () => {
-			propsForIF(it, arbArr2DObj, () => _A([2, 1, "x"]));
+			propsForIF(arbArr2DObj, () => _A([2, 1, "x"]));
 		});
 	});
 });
@@ -157,11 +157,11 @@ describe("accessWith", () => {
 	const access5 = _A((x) => x.d.e);
 	const access6 = _A((x) => x.d.f[0]);
 	const access7 = _A((x) => x.d.f[1]);
-	propsForIF(it, gen, () => access1);
-	propsForIF(it, gen, () => access2);
-	propsForIF(it, gen, () => access3);
-	propsForIF(it, gen, () => access4);
-	propsForIF(it, gen, () => access5);
-	propsForIF(it, gen, () => access6);
-	propsForIF(it, gen, () => access7);
+	propsForIF(gen, () => access1);
+	propsForIF(gen, () => access2);
+	propsForIF(gen, () => access3);
+	propsForIF(gen, () => access4);
+	propsForIF(gen, () => access5);
+	propsForIF(gen, () => access6);
+	propsForIF(gen, () => access7);
 });

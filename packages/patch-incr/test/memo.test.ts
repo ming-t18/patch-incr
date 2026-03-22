@@ -71,7 +71,7 @@ describe("memoInterm", () => {
 		const fm = flatMap(memoComposed);
 		const fm1 = memoInterm(fm, undefined, true);
 
-		propsForIF(it, gp.array(arbEntry, { maxLength: 5 }), () => fm1);
+		propsForIF(gp.array(arbEntry, { maxLength: 5 }), () => fm1);
 	});
 });
 

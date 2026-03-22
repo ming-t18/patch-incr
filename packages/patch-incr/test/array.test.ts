@@ -16,7 +16,7 @@ describe("length", () => {
 		expect(length().evaluate([])).toBe(0);
 		expect(length().evaluate([1, 2, 3])).toBe(3);
 	});
-	propsForIF(it, arb, length);
+	propsForIF(arb, length);
 });
 
 describe("last", () => {
@@ -25,10 +25,10 @@ describe("last", () => {
 		expect(last().evaluate([1, 2, 3])).toBe(3);
 	});
 
-	propsForIF(it, arb, last);
+	propsForIF(arb, last);
 });
 
 describe("indexed", () => {
 	// TODO failing with patches related to '-'
-	propsForIF(it, arb, indexed);
+	propsForIF(arb, indexed);
 });

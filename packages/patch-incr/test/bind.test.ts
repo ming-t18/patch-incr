@@ -39,7 +39,7 @@ describe("bind", () => {
 			);
 		};
 
-		propsForIF(it, arbRecord, getBind);
+		propsForIF(arbRecord, getBind);
 
 		it("forward should not return a replace-patch if the binding part did not change", () => {
 			const f = getBind();

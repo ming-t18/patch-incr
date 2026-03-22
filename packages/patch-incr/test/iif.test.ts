@@ -33,10 +33,10 @@ describe("operators", () => {
 					b: gp.atomic(fc.integer().filter((x) => x !== 0)),
 				});
 				propEval(arbPair1, id1);
-				propsForIF(it, arbPair1, () => id1);
+				propsForIF(arbPair1, () => id1);
 			} else {
 				propEval(arbPair, id1);
-				propsForIF(it, arbPair, () => id1);
+				propsForIF(arbPair, () => id1);
 			}
 		});
 	});
@@ -68,19 +68,19 @@ describe("iif", () => {
 		describe("identity function from iif", () => {
 			const id1: IIF<Item, Item> = iif((x: Item): Item => x);
 			propEval(arbRecord, id1);
-			propsForIF(it, arbRecord, () => id1);
+			propsForIF(arbRecord, () => id1);
 		});
 
 		describe("access str from iif", () => {
 			const getStr: IIF<Item, string> = iif((x: Item) => x.str);
 			propEval(arbRecord, getStr);
-			propsForIF(it, arbRecord, () => getStr);
+			propsForIF(arbRecord, () => getStr);
 		});
 
 		describe("access nested field from iif", () => {
 			const getNested: IIF<Item, boolean> = iif((x: Item) => x.nested.bool);
 			propEval(arbRecord, getNested);
-			propsForIF(it, arbRecord, () => getNested);
+			propsForIF(arbRecord, () => getNested);
 		});
 	});
 
@@ -89,7 +89,7 @@ describe("iif", () => {
 			mult: I.mult(I.length(x.arr1), I.length(x.nested.arr)),
 		}));
 		propEval(arbRecord, ifunc);
-		propsForIF(it, arbRecord, () => ifunc);
+		propsForIF(arbRecord, () => ifunc);
 	});
 
 	describe("returning nested objects", () => {
@@ -99,26 +99,26 @@ describe("iif", () => {
 			nested: { arr: x.arr1, str2: x.str },
 		}));
 		propEval(arbRecord, ifunc);
-		propsForIF(it, arbRecord, () => ifunc);
+		propsForIF(arbRecord, () => ifunc);
 	});
 
 	describe("array ops", () => {
 		describe("getting array length", () => {
 			const ifunc = iif((x: Item) => I.length(x.arr1));
 			propEval(arbRecord, ifunc);
-			propsForIF(it, arbRecord, () => ifunc);
+			propsForIF(arbRecord, () => ifunc);
 		});
 
 		describe("performing array map", () => {
 			const ifunc = iif((x: Item) => x.arr1.map((x) => x.id));
 			propEval(arbRecord, ifunc);
-			propsForIF(it, arbRecord, () => ifunc);
+			propsForIF(arbRecord, () => ifunc);
 		});
 
 		describe("performing array filter", () => {
 			const ifunc = iif((x: Item) => x.arr1.filter((x) => x.done));
 			propEval(arbRecord, ifunc);
-			propsForIF(it, arbRecord, () => ifunc);
+			propsForIF(arbRecord, () => ifunc);
 		});
 
 		describe("performing maps and filters", () => {
@@ -140,7 +140,7 @@ describe("iif", () => {
 					})),
 			}));
 			propEval(arbRecord, ifunc);
-			propsForIF(it, arbRecord, () => ifunc);
+			propsForIF(arbRecord, () => ifunc);
 		});
 
 		const arbExample = gp.record({
@@ -169,7 +169,7 @@ describe("iif", () => {
 					items.filter(({ id }) => id === idToFind),
 				);
 				propEval(arbExample, ifunc);
-				propsForIF(it, arbExample, () => ifunc);
+				propsForIF(arbExample, () => ifunc);
 			});
 		});
 	});
