@@ -1,5 +1,4 @@
 import type { AnyTuple } from "@/patchSchema/types";
-import type { AssignSingleTuple } from "./assignSingleTuple";
 
 export const TypesKey = "~types" as const;
 export type TypesKey = "~types";
@@ -66,6 +65,10 @@ export type AccessPathSingle<O, K extends string | number> =
 					? V
 					: never
 				: never;
+
+export type AssignSingleTuple<O extends AnyTuple, K extends number, V1> = {
+	[key in keyof O]: key extends `${K}` ? V1 : O[key];
+};
 
 export type AccessPathOptSingle<O, K extends string | number> =
 	Defined<O> extends HasGetMethod<K, infer V | null | undefined>
