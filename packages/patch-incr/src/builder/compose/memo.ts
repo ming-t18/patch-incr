@@ -379,6 +379,21 @@ export const composeMemo: ComposeMemo = (...args: unknown[]): AnyIF => {
 	return composeMemoGeneric(funcs, map, inS, outS);
 };
 
+/** Given a list of endomorphisms (`IF<A, A>`), compose them with `composeMemo`. */
+export const composeMemoEndo = <A extends WeakKey>(
+	args: IF<A, A>[],
+): IF<A, A> => {
+	type F = IF<A, A>;
+	if (args.length <= 4) {
+		return composeMemo(...(args as [F, F, F, F]));
+	}
+
+	return composeMemo(
+		composeMemo(...(args.slice(0, 4) as [IF<A, A>])),
+		composeMemoEndo(args.slice(4)),
+	);
+};
+
 export interface Create {
 	<A extends WeakKey>(): MemoComposer<A>;
 	<A extends WeakKey, B>(f: IF<A, B>): MemoComposer<A, B>;

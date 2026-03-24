@@ -3,47 +3,54 @@ import type { AnyIF, IF, InferIFInput } from "@/types";
 export enum OpticsKind {
 	/** Single result, `T -> A` */
 	Lens = "Lens",
-	/** Zero or one result, `T -> Option<A>`. */
+	/** Zero or one result, `T -> Option<A>`. Also includes affine traversals. */
 	Prism = "Prism",
 	/** Any number of results, `T -> A[]` */
 	Traversal = "Traversal",
 }
 
-/**
- * An incremental optics setter. It is a functional that converts an `IF` on the focused type `A`
- * to an `IF` on the all focused values of `T`.
- *
- * ## Properties
- *  - identity: `l.set(identity()) === identity()`
- *  - compose: `l.set(f) >>> l.set(g) === l.set(f >>> g)`
- */
+export type ISet<T, A> = IF<[T, A], T>;
+
 export type IOver<T, A> = (updater: IF<A, A>) => IF<T, T>;
 
+export type IOverCtx<T, A> = <Ctx>(updater: IF<[A, Ctx], A>) => IF<[T, Ctx], T>;
+
+export interface ISetters<T, A> {
+	/** An `IF` to set all of focused values based on the second argument. */
+	set: ISet<T, A>;
+	/** An `IF` to apply a function on the focused value(s). */
+	over: IOver<T, A>;
+	/** An `IF` to apply a function on the focused value(s), while passing a context parameter. */
+	overCtx: IOverCtx<T, A>;
+}
+
 /** An incremental lens focuses on a single value of type `A` inside `T`. */
-export interface ILens<T, A, F = never> {
+export interface ILens<T, A, F = never> extends ISetters<T, A> {
 	kind: OpticsKind.Lens;
 	get: IF<T, A>;
-	over: IOver<T, A>;
 	__family?: F;
 }
 
 /** An incremental prism focuses on a single value of type `A` inside `T` if it's present. */
-export interface IPrism<T, A, F = never> {
+export interface IPrism<T, A, F = never> extends ISetters<T, A> {
 	kind: OpticsKind.Prism;
 	getOpt: IF<T, [] | [A]>;
-	over: IOver<T, A>;
 	__family?: F;
 }
 
 /** An incremental traversal focuses on a zero or more values in a particular order of type `A` inside `T`. */
-export interface ITraversal<T, A, F = never> {
+export interface ITraversal<T, A, F = never> extends ISetters<T, A> {
 	kind: OpticsKind.Traversal;
 	getMulti: IF<T, A[]>;
-	over: IOver<T, A>;
 	__family?: F;
 }
 
-/** Incremental optics. Represented as a tagged union of `ILens | IPrism | ITraversal`. */
+/**
+ * Incremental optics.
+ * Represented as a tagged union of `ILens | IPrism | ITraversal`.
+ * @see `OpticsKind` for more details on each subtype.
+ * @see `HasFamilyType` for the third type parameter `F`.
+ */
 export type IOptics<T, A, F = never> =
 	| ILens<T, A, F>
 	| IPrism<T, A, F>

@@ -7,7 +7,6 @@ import {
 	type Path,
 	replacePatches,
 } from "../../patch";
-import type { Merged } from "./merge";
 
 /**
  * Given an initial object and a mapping of changes,
@@ -56,15 +55,11 @@ export const assign = <Input, Output>(
 	};
 };
 
-export const assignWith = <
-	Input extends Record<string, unknown>,
-	Merge extends Record<string, unknown>,
->(
+export const assignWith = <Input extends WeakKey, InputPostAssign>(
 	changes: { path: Path; getValue: IF<Input, unknown> }[],
-): IF<Input, Merged<Input, Merge>> => {
-	type Output = Merged<Input, Merge>;
+): IF<Input, InputPostAssign> => {
 	const evaluateAssignWith = (input: Input) => {
-		let value = input as Output;
+		let value = input as never as InputPostAssign;
 		for (const { path, getValue } of changes) {
 			value = applyPatches(
 				value,
@@ -77,14 +72,14 @@ export const assignWith = <
 	const forwardAssignWith = (
 		input: Input,
 		dx: Patches<Input>,
-		output: Output,
-	): Patches<Output> => {
+		output: InputPostAssign,
+	): Patches<InputPostAssign> => {
 		if (dx.length === 0) {
 			return [];
 		}
-		let dx1 = dx as Patches<Output> | null;
+		let dx1 = dx as Patches<InputPostAssign> | null;
 		for (const { path } of changes) {
-			dx1 = antiProjectPatches(path, dx1 as Patches<Output>);
+			dx1 = antiProjectPatches(path, dx1 as Patches<InputPostAssign>);
 			if (dx1 === null) {
 				break;
 			}
@@ -95,7 +90,7 @@ export const assignWith = <
 			return replacePatches(evaluateAssignWith(input1));
 		}
 
-		const dy: Patches<Output> = [...dx1];
+		const dy: Patches<InputPostAssign> = [...dx1];
 		for (const { path, getValue } of changes) {
 			const dy1 = getValue.forward(input, dx, applyGet(output, path));
 			for (const entry of dy1) {

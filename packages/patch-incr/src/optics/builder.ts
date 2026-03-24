@@ -2,16 +2,16 @@ import { castOutput, identity as id } from "@/builder";
 import * as Arr from "@/builder/array";
 import { composeMemo } from "@/builder/compose";
 import * as Option from "@/builder/option";
+import * as Pair from "@/builder/pair";
 import { tupleFor } from "@/builder/struct";
-import type { IIso } from "@/iso/types";
 import type { IF } from "@/types";
 import {
 	type AnyOptics,
 	type ComposeFamily,
 	type ILens,
 	type IOptics,
-	type IOver,
 	type IPrism,
+	type ISetters,
 	type ITraversal,
 	OpticsKind,
 } from "./types";
@@ -19,7 +19,9 @@ import {
 export const identity = <T>(): ILens<T, T, []> => ({
 	kind: OpticsKind.Lens,
 	get: id(),
-	over: (f) => f,
+	over: id,
+	set: Pair.snd(),
+	overCtx: Pair.fst,
 });
 
 export const toPrism = <T, A, F = never>(
@@ -29,10 +31,11 @@ export const toPrism = <T, A, F = never>(
 		return o1;
 	}
 	if (o1.kind === OpticsKind.Lens) {
+		const { kind: _, get, ...rest } = o1;
 		return {
 			kind: OpticsKind.Prism,
 			getOpt: castOutput(tupleFor<T>()(o1.get)),
-			over: o1.over,
+			...rest,
 		};
 	}
 	throw new Error("toPrism: not allowed");
@@ -45,50 +48,38 @@ export const toTraversal = <T, A, F = never>(
 		return o1;
 	}
 	if (o1.kind === OpticsKind.Prism) {
+		const { kind: _, getOpt, ...rest } = o1;
 		return {
 			kind: OpticsKind.Traversal,
-			over: o1.over,
-			getMulti: castOutput(o1.getOpt),
+			getMulti: castOutput(getOpt),
+			...rest,
 		};
 	}
 	if (o1.kind === OpticsKind.Lens) {
+		const { kind: _, get, ...rest } = o1;
 		return {
 			kind: OpticsKind.Traversal,
-			over: o1.over,
-			getMulti: castOutput(tupleFor<T>()(o1.get)),
+			getMulti: castOutput(tupleFor<T>()(get)),
+			...rest,
 		};
 	}
 	throw new Error();
 };
 
+export { composeIso } from "./iso";
 export const toOptics = <T, A, F = never>(
 	o: IOptics<T, A, F>,
 ): IOptics<T, A, F> => o;
 
-export const composeIso = <T extends WeakKey, A extends WeakKey, B, F = never>(
-	o: IOptics<T, A, F>,
-	{ fw, bw }: IIso<A, B>,
-): IOptics<T, B, { cast: B }> => {
-	// Duplicate of {Lens,Prism,Traversal}.composeIso
-	const set = (f: IF<B, B>): IF<T, T> => o.over(composeMemo(fw, f, bw));
-	if (o.kind === OpticsKind.Traversal) {
-		return {
-			kind: OpticsKind.Traversal,
-			getMulti: composeMemo(o.getMulti, Arr.map(fw)),
-			over: set,
-		};
-	}
-	if (o.kind === OpticsKind.Prism) {
-		return {
-			kind: OpticsKind.Prism,
-			getOpt: composeMemo(o.getOpt, Option.map(fw)),
-			over: set,
-		};
-	}
+const composeSetters = <T, A, B>(
+	o1: ISetters<T, A>,
+	o2: ISetters<A, B>,
+): ISetters<T, B> => {
 	return {
-		kind: OpticsKind.Lens,
-		get: composeMemo(o.get, fw),
-		over: set,
+		set: o1.overCtx(o2.set),
+		over: (func) => o1.over(o2.over(func)),
+		overCtx: <Ctx>(func: IF<[B, Ctx], B>): IF<[T, Ctx], T> =>
+			o1.overCtx(o2.overCtx(func)),
 	};
 };
 
@@ -96,20 +87,20 @@ export const compose2 = <T extends WeakKey, A, B, F1 = never, F2 = never>(
 	o1: IOptics<T, A, F1>,
 	o2: IOptics<A, B, F2>,
 ): IOptics<T, B, ComposeFamily<F1, F2>> => {
-	const set: IOver<T, B> = (func: IF<B, B>): IF<T, T> => o1.over(o2.over(func));
+	const setters = composeSetters(o1, o2);
 	if (o1.kind === OpticsKind.Traversal) {
 		if (o2.kind === OpticsKind.Traversal || o2.kind === OpticsKind.Prism) {
 			const o3 = toTraversal(o2);
 			return {
 				kind: OpticsKind.Traversal,
 				getMulti: composeMemo(o1.getMulti, Arr.flatMapSingle(o3.getMulti)),
-				over: set,
+				...setters,
 			};
 		}
 		return {
 			kind: OpticsKind.Traversal,
 			getMulti: composeMemo(o1.getMulti, Arr.map(o2.get)),
-			over: set,
+			...setters,
 		};
 	}
 
@@ -119,20 +110,20 @@ export const compose2 = <T extends WeakKey, A, B, F1 = never, F2 = never>(
 			return {
 				kind: OpticsKind.Traversal,
 				getMulti: composeMemo(o3.getMulti, Arr.flatMapSingle(o2.getMulti)),
-				over: set,
+				...setters,
 			};
 		}
 		if (o2.kind === OpticsKind.Prism) {
 			return {
 				kind: OpticsKind.Prism,
 				getOpt: Option.compose(o1.getOpt, o2.getOpt),
-				over: set,
+				...setters,
 			};
 		}
 		return {
 			kind: OpticsKind.Prism,
 			getOpt: composeMemo(o1.getOpt, Option.map(o2.get)),
-			over: set,
+			...setters,
 		};
 	}
 
@@ -140,20 +131,20 @@ export const compose2 = <T extends WeakKey, A, B, F1 = never, F2 = never>(
 		return {
 			kind: OpticsKind.Traversal,
 			getMulti: composeMemo(o1.get, o2.getMulti),
-			over: set,
+			...setters,
 		};
 	}
 	if (o2.kind === OpticsKind.Prism) {
 		return {
 			kind: OpticsKind.Prism,
 			getOpt: composeMemo(o1.get, o2.getOpt),
-			over: set,
+			...setters,
 		};
 	}
 	return {
 		kind: OpticsKind.Lens,
 		get: composeMemo(o1.get, o2.get),
-		over: set,
+		...setters,
 	};
 };
 

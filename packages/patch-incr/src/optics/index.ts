@@ -2,6 +2,7 @@ export * from "./access";
 export * as Array from "./array";
 export * from "./builder";
 export * as Either from "./either";
+export * as Iso from "./iso";
 export * as Lens from "./lens";
 export * as Pair from "./pair";
 export * as Prism from "./prism";
