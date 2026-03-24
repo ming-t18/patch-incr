@@ -1,4 +1,6 @@
 import type { IF } from "@/types";
+import { identity } from "..";
+import { condSingle } from "../cond";
 import { forwardMapPatches } from "./helpers/forwardArray";
 
 export const map = <Input, Output>(
@@ -11,3 +13,8 @@ export const map = <Input, Output>(
 		forward: fmp,
 	};
 };
+
+export const mapWhere = <Input, InputSub extends Input>(
+	pred: (input: Input) => boolean,
+	f: IF<InputSub, Input>,
+): IF<Input[], Input[]> => map(condSingle(pred, f, identity<Input>()));

@@ -5,7 +5,7 @@ export { findIndex, findLastIndex } from "./find";
 export { flatMap, flatMapSingle } from "./flatMap";
 export { last } from "./last";
 export { length } from "./length";
-export { map } from "./map";
+export { map, mapWhere } from "./map";
 export { scan } from "./scan";
 export { seq } from "./seq";
 export { slice } from "./slice";
