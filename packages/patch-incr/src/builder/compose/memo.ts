@@ -283,7 +283,7 @@ export interface ComposeMemo {
 		f1: IF<In, A1, DIn, DA1>,
 		f2: IF<A1, A2, DA1, DA2>,
 		f3: IF<A2, A3, DA2, DA3>,
-		f4: IF<A3, Out, DA2, DOut>,
+		f4: IF<A3, Out, DA3, DOut>,
 	): IF<In, Out, DIn, DOut, NoForwardOutput>;
 
 	// 5-way
@@ -305,7 +305,7 @@ export interface ComposeMemo {
 		f2: IF<A1, A2, DA1, DA2>,
 		f3: IF<A2, A3, DA2, DA3>,
 		f4: IF<A3, A4, DA3, DA4>,
-		f5: IF<A4, Out, DA2, DOut>,
+		f5: IF<A4, Out, DA4, DOut>,
 	): IF<In, Out, DIn, DOut, NoForwardOutput>;
 
 	// 6-way
