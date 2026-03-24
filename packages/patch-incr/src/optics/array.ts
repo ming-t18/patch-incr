@@ -7,7 +7,7 @@ import { type ITraversal, OpticsKind } from "./types";
 export const all = <T>(): ITraversal<T[], T, [number]> => ({
 	kind: OpticsKind.Traversal,
 	getMulti: identity<T[]>(),
-	set: Arr.map,
+	over: Arr.map,
 });
 
 export const filter = <T, TSub extends T>(
@@ -19,5 +19,5 @@ export const filter = <T, TSub extends T>(
 > => ({
 	kind: OpticsKind.Traversal,
 	getMulti: Arr.filterSingle(pred) satisfies IF<T[], T[]> as AnyIF,
-	set: (f) => Arr.map(condSingle(pred, f, identity())),
+	over: (f) => Arr.map(condSingle(pred, f, identity())),
 });

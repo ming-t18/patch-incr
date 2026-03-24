@@ -17,13 +17,13 @@ export enum OpticsKind {
  *  - identity: `l.set(identity()) === identity()`
  *  - compose: `l.set(f) >>> l.set(g) === l.set(f >>> g)`
  */
-export type ISetter<T, A> = (updater: IF<A, A>) => IF<T, T>;
+export type IOver<T, A> = (updater: IF<A, A>) => IF<T, T>;
 
 /** An incremental lens focuses on a single value of type `A` inside `T`. */
 export interface ILens<T, A, F = never> {
 	kind: OpticsKind.Lens;
 	get: IF<T, A>;
-	set: ISetter<T, A>;
+	over: IOver<T, A>;
 	__family?: F;
 }
 
@@ -31,7 +31,7 @@ export interface ILens<T, A, F = never> {
 export interface IPrism<T, A, F = never> {
 	kind: OpticsKind.Prism;
 	getOpt: IF<T, [] | [A]>;
-	set: ISetter<T, A>;
+	over: IOver<T, A>;
 	__family?: F;
 }
 
@@ -39,7 +39,7 @@ export interface IPrism<T, A, F = never> {
 export interface ITraversal<T, A, F = never> {
 	kind: OpticsKind.Traversal;
 	getMulti: IF<T, A[]>;
-	set: ISetter<T, A>;
+	over: IOver<T, A>;
 	__family?: F;
 }
 
@@ -53,7 +53,7 @@ export type IOptics<T, A, F = never> =
 export type AnyOptics = IOptics<any, any, any>;
 
 export type InferOpticsOut<T extends AnyOptics> = T extends {
-	set: (func: infer SF extends AnyIF) => unknown;
+	over: (func: infer SF extends AnyIF) => unknown;
 }
 	? InferIFInput<SF>
 	: never;

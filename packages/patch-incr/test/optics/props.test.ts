@@ -9,27 +9,27 @@ import type { IF } from "@/types";
 export const propSetId =
 	<T, A, F = never>(l: ILens<T, A, F>) =>
 	(t: T) => {
-		expect(l.set(identity()).evaluate(t)).toStrictEqual(t);
+		expect(l.over(identity()).evaluate(t)).toStrictEqual(t);
 	};
 
 export const propGetSet =
 	<T, A, F = never>(l: ILens<T, A, F>) =>
 	(t: T) => {
 		const v = l.get.evaluate(t);
-		expect(l.set(constant(v)).evaluate(t)).toStrictEqual(t);
+		expect(l.over(constant(v)).evaluate(t)).toStrictEqual(t);
 	};
 
 export const propSetGet =
 	<T, A, F = never>(l: ILens<T, A, F>) =>
 	(t: T) => {
-		const setGet = l.set(constant(l.get.evaluate(t)));
+		const setGet = l.over(constant(l.get.evaluate(t)));
 		expect(setGet.evaluate(t)).toStrictEqual(t);
 	};
 
 export const propSetSet =
 	<T, A, F = never>(l: ILens<T, A, F>) =>
 	(t: T, v: A) => {
-		const set = l.set(constant(v));
+		const set = l.over(constant(v));
 		const t1 = set.evaluate(t);
 		expect(set.evaluate(t1)).toStrictEqual(t1);
 	};
@@ -88,7 +88,7 @@ export const propsForTraversalIF = <T, A, F = never, Z = undefined>(
 		describe.each(entries)("%s", (_name, genF) => {
 			propsForIF(
 				genT,
-				([z, f]): IF<T, T> => getOptics(z).set(f),
+				([z, f]): IF<T, T> => getOptics(z).over(f),
 				fc.tuple(arb, genF),
 			);
 		});

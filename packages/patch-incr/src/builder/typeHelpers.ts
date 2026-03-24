@@ -1,32 +1,11 @@
+import type { AnyTuple } from "@/patchSchema/types";
+import type { AssignSingleTuple } from "./assignSingleTuple";
+
 export const TypesKey = "~types" as const;
 export type TypesKey = "~types";
 
 /**
- * In TypeScript generic interfaces, we often want helpers to
- * retrieve the generic parameters.
- *
- * The `~types` key is used to hold the generic parameters
- * assigned at object creation. It's optional so it has
- * absolutely no runtime representation.
- *
- * It also simplifies the access of the generic parameters,
- * avoiding complicated `infer` expressions.
- *
- * The [Standard Schema](https://standardschema.dev) uses a
- * similar technique to house type parameters in the
- * `['types']` property.
- *
- * Example:
- * ```typescript
- * interface Schema<Input, T> {
- *     validate(value: T): boolean;
- *     convert(input: Input): T;
- *     ['~types']?: { input: Input, type: T }
- * }
- *
- * // string
- * type SchemaInput = AccessTypes<'input', Schema<string, number>>
- * ```
+ * Object containing an optional field to hold type parameters.
  */
 export interface HasTypes<K extends string = string, T = unknown> {
 	[TypesKey]?: Record<K, T> | undefined;
@@ -80,9 +59,7 @@ type Path = (string | number)[];
 export type AccessPathSingle<O, K extends string | number> =
 	O extends HasGetMethod<K, infer V>
 		? V
-		: O extends {
-					[k in K]: infer V;
-				}
+		: O extends Record<K, infer V>
 			? V
 			: K extends number
 				? O extends (infer V)[]
@@ -93,9 +70,7 @@ export type AccessPathSingle<O, K extends string | number> =
 export type AccessPathOptSingle<O, K extends string | number> =
 	Defined<O> extends HasGetMethod<K, infer V | null | undefined>
 		? V
-		: Defined<O> extends {
-					[k in K]?: infer V;
-				}
+		: Defined<O> extends Partial<Record<K, infer V>>
 			? V
 			: K extends number
 				? Defined<O> extends (infer V)[]
@@ -115,11 +90,33 @@ export type AccessPathOpt<O, P extends Path> = P extends []
 		? AccessPathOpt<AccessPathOptSingle<O, K>, Rest>
 		: never;
 
+export type AssignSingleNumber<O, K extends number, V1> = O extends AnyTuple
+	? AssignSingleTuple<O, K, V1>
+	: O extends (infer V)[]
+		? (V | V1)[]
+		: never;
+
+export type AssignSingle<O, K extends string | number, V1> =
+	O extends HasGetMethod<K, infer V>
+		? Omit<O, "get"> & HasGetMethod<K, V | V1>
+		: K extends number
+			? AssignSingleNumber<O, K, V1>
+			: O extends Record<K, infer _V>
+				? { [key in keyof O]: key extends K ? V1 : O[key] }
+				: O;
+
+export type AssignPath<O, P extends Path, V> = P extends []
+	? V
+	: P extends [infer K extends string | number, ...infer Rest extends Path]
+		? AssignSingle<O, K, AssignPath<AccessPathSingle<O, K>, Rest, V>>
+		: never;
+
 interface TestObj {
 	a: { b: { c: string }[] };
 	tup: [number, bigint];
 	opt?: { b?: { c: string }[] | null };
 }
+
 // { c: string }[]
 type _TestAccessObj = AccessPath<TestObj, ["a", "b"]>;
 // bigint
@@ -151,3 +148,22 @@ type _Test2 = AccessTypesRecord<
 		b: HasTypes<"change", number>;
 	}
 >;
+
+// { a: string, ... }
+type _TestAssign1 = AssignSingle<TestObj, "a", string>;
+
+// [number, bigint, null, { x: 1 }, 'y']
+type _TestAssign2 = AssignPath<
+	[number, bigint, null, "test", "y"],
+	[3],
+	{ x: 1 }
+>;
+
+// { a: { b: bigint }, ... }
+type _TestAssign3 = AssignPath<TestObj, ["a", "b"], bigint>;
+
+// { a: { b: (bigint | { c: ... })[] }, ... }
+type _TestAssign4 = AssignPath<TestObj, ["a", "b", number], bigint>;
+
+// { a: { b: { c: bigint }[] }, ... }
+type _TestAssign5 = AssignPath<TestObj, ["a", "b", number, "c"], bigint>;

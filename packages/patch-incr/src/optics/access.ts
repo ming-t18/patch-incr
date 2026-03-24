@@ -31,7 +31,7 @@ export const accessPath =
 	): ILens<Input, Output, P> => ({
 		kind: OpticsKind.Lens,
 		get: S.accessPathFor<Input>()<Path, Output>(path),
-		set: makeSetter(path),
+		over: makeSetter(path),
 	});
 
 export const accessPathOpt1 =
@@ -47,7 +47,7 @@ export const accessPathOpt1 =
 			S.accessPathOpt<Output, Input>(path),
 			Option.fromDefined(),
 		),
-		set: (func: IF<Output, Output>): IF<Input, Input> =>
+		over: (func: IF<Output, Output>): IF<Input, Input> =>
 			condSingle(
 				(input: Input) => applyGetOpt(input, path) !== undefined,
 				makeSetter<Input, Output>(path)(func),

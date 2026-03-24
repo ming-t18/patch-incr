@@ -15,7 +15,7 @@ import {
 export const empty = <T, A>(): ITraversal<T, A> => ({
 	kind: OpticsKind.Traversal,
 	getMulti: constant<A[], T>([]),
-	set: (_f) => id(),
+	over: (_f) => id(),
 });
 
 const plusMany = <T extends WeakKey, A>(...fs: IF<T, A[]>[]): IF<T, A[]> =>
@@ -32,6 +32,6 @@ export const plus =
 			kind: OpticsKind.Traversal,
 			getMulti: plusMany(...ts.map((x) => x.getMulti)),
 			// @ts-expect-error Spread of same types
-			set: (f) => composeMemo(...ts.map((t) => t.set(f))),
+			over: (f) => composeMemo(...ts.map((t) => t.over(f))),
 		};
 	};

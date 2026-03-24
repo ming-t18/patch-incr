@@ -9,7 +9,7 @@ import { type IPrism, OpticsKind } from "./types";
 export const empty = <T, A, F = never>(): IPrism<T, A, F> => ({
 	kind: OpticsKind.Prism,
 	getOpt: constant<Option.Option<A>, T>(Option.Nothing),
-	set: (_f) => id(),
+	over: (_f) => id(),
 });
 
 export const where = <T, TSub extends T = T>(
@@ -17,17 +17,17 @@ export const where = <T, TSub extends T = T>(
 ): IPrism<T, TSub, T extends TSub ? { type: T } : { cast: TSub }> => ({
 	kind: OpticsKind.Prism,
 	getOpt: castOutput(Option.fromPred<T, TSub>(pred)),
-	set: (f) => condSingle(pred, f, id()),
+	over: (f) => condSingle(pred, f, id()),
 });
 
 export const composeIso = <T extends WeakKey, A extends WeakKey, B>(
 	o: IPrism<T, A>,
 	{ fw, bw }: IIso<A, B>,
 ): IPrism<T, B, [{ type: B }]> => {
-	const set = (f: IF<B, B>): IF<T, T> => o.set(composeMemo(fw, f, bw));
+	const set = (f: IF<B, B>): IF<T, T> => o.over(composeMemo(fw, f, bw));
 	return {
 		kind: OpticsKind.Prism,
 		getOpt: composeMemo(o.getOpt, Option.map(fw)),
-		set,
+		over: set,
 	};
 };
