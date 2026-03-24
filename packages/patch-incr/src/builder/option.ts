@@ -48,6 +48,10 @@ export const elim = <A, B>(func: IF<A, B>, ifNothing: B): IF<Option<A>, B> =>
 export const map = <A, B>(func: IF<A, B>): IF<Option<A>, Option<B>> =>
 	elim<A, Option<B>>(just(func), Nothing as Option<B>);
 
+export const flatMap = <A, B>(
+	func: IF<A, Option<B>>,
+): IF<Option<A>, Option<B>> => elim<A, Option<B>>(func, Nothing as Option<B>);
+
 export const fromDefined = <
 	A,
 	AN extends A | null | undefined = A | null | undefined,

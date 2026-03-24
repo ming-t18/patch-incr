@@ -1,10 +1,14 @@
 import { castOutput, identity as id } from "@/builder";
 import * as Arr from "@/builder/array";
 import { composeMemo } from "@/builder/compose";
+import type * as Either from "@/builder/either";
 import * as Option from "@/builder/option";
 import * as Pair from "@/builder/pair";
 import { tupleFor } from "@/builder/struct";
+import type { IIso } from "@/iso/types";
 import type { IF } from "@/types";
+import { composeIsoPrism } from "./iso";
+import * as OPair from "./pair";
 import {
 	type AnyOptics,
 	type ComposeFamily,
@@ -284,3 +288,22 @@ export const compose = ((...fs: AnyOptics[]): AnyOptics => {
 	// @ts-expect-error Can't be checked
 	return compose(compose(...fs.slice(0, 5)), ...fs.slice(5));
 }) as Compose;
+
+export const composeIsoAffine = <
+	T extends WeakKey,
+	A extends WeakKey,
+	B,
+	R,
+	S,
+	F = never,
+>(
+	o: IOptics<T, A, F>,
+	iso: IIso<A, Either.Either<[B, R], S>>,
+): IOptics<T, B, [F, { cast: B }]> => {
+	const o1 = composeIsoPrism(o, iso);
+	return compose(o1, OPair.fst()) satisfies IOptics<
+		T,
+		B,
+		[F, { cast: [B, R] }, 0]
+	> as IOptics<T, B, never>;
+};

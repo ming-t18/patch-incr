@@ -186,7 +186,7 @@ describe("getXY traversal", () => {
 		});
 		propsForIF(schema, () => O.toTraversal(getXY).getMulti);
 	});
-	describe("setter with constant", () => {
+	describe("over with constant", () => {
 		const withConst = getXY.over(constant({ x: 0, y: 0 }));
 		it("should be idempotent", () => {
 			fc.assert(
@@ -198,12 +198,12 @@ describe("getXY traversal", () => {
 		});
 		propsForIF(schema, () => withConst);
 	});
-	describe("setter with id - effectively identity", () => {
+	describe("over with id - effectively identity", () => {
 		const effId = getXY.over(identity());
 		propIsIdentitySimple(it, schema, () => effId);
 		propsForIF(schema, () => effId);
 	});
-	describe("setter - swap x and y on all y > x", () => {
+	describe("over - swap x and y on all y > x", () => {
 		const swapper = getXY.over(swapXY);
 		it.skip("examples", () => {
 			const values = fc.sample(schema.arb(), { numRuns: 3, seed: 0 });

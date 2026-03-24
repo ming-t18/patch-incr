@@ -1,7 +1,8 @@
 import type { AnyIF, AnyIFInv, IF, IFInv } from "../types";
-import { atomicFunc, atomicFuncInv, identity } from ".";
+import { atomicFunc, atomicFuncInv, constant, identity } from ".";
 import { composeReeval, composeWithInv } from "./compose";
 import { cond, condSingle } from "./cond";
+import { just0, Nothing, type Option } from "./option";
 import * as Pair from "./pair";
 import { access } from "./struct/access";
 import { template0 } from "./struct/template";
@@ -143,14 +144,24 @@ export const distLeft = <A, B, C>(): IF<
 > => {
 	// [C, [boolean, A|B]] -> [boolean, [C, A|B]]
 	// = [false, [A, C]] | [true, [B, C]]
-	const pairOp = Pair.abc_bac<C, boolean, A | B>();
-	return pairOp as AnyIFInv;
+	return Pair.abc_bac<C, boolean, A | B>() satisfies IFInv<
+		[C, [boolean, A | B]],
+		[boolean, [C, A | B]]
+	> as AnyIFInv;
 };
 
 /** `C * A + C * B -> C * (A + B)` */
 export const factorLeft = <A, B, C>(): IF<
 	Either<[C, A], [C, B]>,
 	[C, Either<A, B>]
-> => {
-	return Pair.abc_bac() as AnyIFInv;
-};
+> =>
+	Pair.abc_bac() satisfies IF<
+		[boolean, [C, A | B]],
+		[C, [boolean, A | B]]
+	> as AnyIFInv;
+
+export const optionLeft = <A, B>(): IF<Either<A, B>, [A] | []> =>
+	elim(just0(), constant(Nothing as Option<A>));
+
+export const optionRight = <A, B>(): IF<Either<A, B>, [B] | []> =>
+	elim(constant(Nothing as Option<B>), just0());
