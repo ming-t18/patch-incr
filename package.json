@@ -4,6 +4,7 @@
   "workspaces": [
     "packages/patch-incr",
     "packages/patch-incr-immutable-js",
+    "packages/patch-incr-arrow",
     "packages/patch-incr-adt",
     "packages/patch-incr-ijq",
     "packages/patcher",

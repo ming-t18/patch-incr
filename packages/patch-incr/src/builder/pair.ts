@@ -78,3 +78,12 @@ export const acdb_abcd = <A, B, C, D>(): IFInv<
 		firstInv(Tuple.assocRight()),
 		abc_acb<A, [C, D], B>(),
 	);
+
+export const distr = <A, B, C>(): IF<[[A, B], C], [[A, C], [B, C]]> =>
+	pair(first(fst()), first(snd()));
+
+export const distrl = <A, B, C>(): IF<[[A, B], C], [[A, C], B]> =>
+	pair(first(fst()), composeReeval(fst(), snd()));
+
+export const distrr = <A, B, C>(): IF<[[A, B], C], [A, [B, C]]> =>
+	pair(composeReeval(fst(), fst()), first(snd()));

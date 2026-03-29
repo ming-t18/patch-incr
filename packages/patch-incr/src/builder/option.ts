@@ -1,4 +1,5 @@
 import { atomicFunc, castOutput, constant, identity } from "@/builder";
+import * as D from "@/builder/array/dist";
 import { composeMemo } from "@/builder/compose";
 import { condSingle } from "@/builder/cond";
 import { accessPathFor, tupleFor } from "@/builder/struct";
@@ -69,3 +70,6 @@ export const compose = <A extends WeakKey, B, C>(
 	f1: IF<A, Option<B>>,
 	f2: IF<B, Option<C>>,
 ): IF<A, Option<C>> => composeMemo(f1, elim(f2, Nothing));
+
+export const distr = <A, B>(): IF<[Option<A>, B], Option<[A, B]>> =>
+	D.distr() satisfies IF<[A[], B], [A, B][]> as AnyIF;
