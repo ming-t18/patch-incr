@@ -16,6 +16,7 @@ import type {
 	IFInv,
 	NoForwardOutput,
 } from "../types";
+import { tupleFor } from "./struct";
 
 /**
  * Placeholder for type checking by checking the inferred type params. Throws an exception when called.
@@ -166,3 +167,6 @@ export const patchesBuilder: StructuralChangeBuilder<any, Patches> = {
 };
 
 export { recurse } from "./recurse";
+
+export const singleton = <T>(): IF<T, T[]> =>
+	castOutput(tupleFor<T>()(identity<T>()) satisfies IF<T, [T]>);
