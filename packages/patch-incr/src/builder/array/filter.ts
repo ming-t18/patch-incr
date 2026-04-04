@@ -38,12 +38,7 @@ const forwardFilterInternal = <T, S extends PatchSchema<T>>(
 		return outArraySchema.liftIndex(index1, dInner);
 	}
 	if (prev && !next) {
-		return outArraySchema.fromPatchEntries([
-			{
-				op: PatchOp.Remove,
-				path: [index1],
-			},
-		]);
+		return outArraySchema.remove(index1);
 	}
 
 	// !prev && next
@@ -77,13 +72,7 @@ const forwardFilterSingleListOp = <T, S extends PatchSchema<T>>(
 		const prev = pred(xs[index]);
 		const next = pred(entry.value);
 		if (prev !== next) {
-			return schema.fromPatchEntries([
-				{
-					op: next ? PatchOp.Add : PatchOp.Remove,
-					path: [index1],
-					value: entry.value,
-				},
-			]);
+			return next ? schema.add(index1, entry.value) : schema.remove(index1);
 		}
 		if (!prev) {
 			return schema.empty;

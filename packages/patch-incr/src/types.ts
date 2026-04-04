@@ -39,6 +39,21 @@ export type Forward<
 	? (input: Input, change: InputChange, output?: Output) => OutputChange
 	: (input: Input, change: InputChange, output: Output) => OutputChange;
 
+/** Like `Forward`, except the assignability for the `ForwardOutput` parameter is `never`. */
+export type ForwardAnyOutput<
+	Input,
+	Output,
+	InputChange = Patches<Input>,
+	OutputChange = Patches<Output>,
+> = Forward<Input, Output, InputChange, OutputChange, never>;
+
+export type ForwardHasOutput<
+	Input,
+	Output,
+	InputChange = Patches<Input>,
+	OutputChange = Patches<Output>,
+> = Forward<Input, Output, InputChange, OutputChange, HasForwardOutput>;
+
 export type ForwardNoOutput<
 	Input,
 	Output,
@@ -100,6 +115,20 @@ export type IF<
 	InputChange,
 	OutputChange,
 	ForwardOutput
+>;
+
+/** @see IF, IncrementalFunction */
+export type IFNoForwardOutput<
+	Input,
+	Output,
+	InputChange = Patches<Input>,
+	OutputChange = Patches<Output>,
+> = IncrementalFunction<
+	Input,
+	Output,
+	InputChange,
+	OutputChange,
+	NoForwardOutput
 >;
 
 export interface InverseEvaluate<Input, Output> {

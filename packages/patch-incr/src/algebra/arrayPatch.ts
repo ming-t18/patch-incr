@@ -1,10 +1,9 @@
-import type { Patch } from "immer";
 import { CannotReduce, liftPatches, PatchOp } from "@/patch";
 import * as ps from "@/patchSchema";
-import type { IndexEnd, PatchSchemaArray } from "@/patchSchema/types";
+import type { IndexEnd } from "@/patchSchema/types";
 import type {
 	Evaluate,
-	Forward,
+	ForwardHasOutput,
 	ForwardNoOutput,
 	PatchEntry,
 	Patches,
@@ -143,7 +142,7 @@ export const reduceArrayPatches1 = <X, Y>(
 export const reduceArrayPatches2 = <X, Y>(
 	reducer: ArrayPatchReducer2<X, Y>,
 	evaluate: Evaluate<X[], Y>,
-): Forward<X[], Y> => {
+): ForwardHasOutput<X[], Y> => {
 	const xsSchema = ps.array(ps.atomic<X>());
 	const ysSchema = ps.atomic<Y>();
 	return (xs: X[], dxs: Patches<X[]>, y: Y): Patches<Y> => {
