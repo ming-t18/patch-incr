@@ -1,5 +1,4 @@
 import {
-	type ArrayPatchReducer0,
 	type ArrayPatchReducer1,
 	type ArrayPatchReducer2,
 	reduceArrayPatches1,
@@ -10,8 +9,6 @@ import * as ps from "@/patchSchema";
 import type { IndexEnd } from "@/patchSchema/types";
 import type {
 	ForwardAnyOutput,
-	ForwardHasOutput,
-	ForwardNoOutput,
 	HasForwardOutput,
 	IF,
 	IFNoForwardOutput,
