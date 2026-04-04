@@ -1,19 +1,34 @@
+import { PatchOp } from "@/types";
 import { PatchSchemaArrayImpl } from "./array";
 import { PatchSchemaAtomicImpl } from "./atomic";
 import { PatchSchemaMappingImpl } from "./mapping";
 import { PatchSchemaRecordImpl } from "./record";
 import { PatchSchemaTupleImpl } from "./tuple";
-import type {
-	AnyPatchSchema,
-	PatchSchema,
-	PatchSchemaArray,
-	PatchSchemaMapping,
-	PatchSchemaRecord,
-	PatchSchemaReplaceOnly,
-	PatchSchemaTuple,
-	RecordConstruction,
-	TupleConstruction,
+import {
+	type AnyPatchSchema,
+	IndexEnd,
+	type PatchSchema,
+	type PatchSchemaArray,
+	type PatchSchemaArrayEntry,
+	type PatchSchemaMapping,
+	type PatchSchemaRecord,
+	type PatchSchemaReplaceOnly,
+	type PatchSchemaTuple,
+	type RecordConstruction,
+	type TupleConstruction,
 } from "./types";
+
+export const mapArrayPatchIndex = <T = unknown>(
+	xs: Pick<T[], "length">,
+	entry: PatchSchemaArrayEntry<T>,
+) =>
+	"inner" in entry
+		? entry.path[0]
+		: entry.path[0] === IndexEnd
+			? entry.op === PatchOp.Remove
+				? xs.length - 1
+				: xs.length
+			: entry.path[0];
 
 // TODO technically PatchSchemaReplaceOnlyImpl should exist
 export const replaceOnly = <T>(): PatchSchemaReplaceOnly<T> =>

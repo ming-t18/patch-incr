@@ -1,6 +1,6 @@
 import { CannotReduce, liftPatches, PatchOp } from "@/patch";
 import * as ps from "@/patchSchema";
-import type { IndexEnd } from "@/patchSchema/types";
+import type { IndexEnd, PatchSchemaArrayEntry } from "@/patchSchema/types";
 import type {
 	Evaluate,
 	ForwardHasOutput,
@@ -12,14 +12,14 @@ import { getReplaceOnly, isReplaceOnly } from "./replaceOnly";
 
 export interface ArrayPatchReducer<
 	T,
-	R extends unknown[],
-	DT = Patches<T>,
-	DR = R,
+	Args extends unknown[] = [],
+	DT = PatchEntry<T>,
+	Return = void,
 > {
-	apply(index: number, change: DT, ...r: R): DR | CannotReduce;
-	add(index: number | IndexEnd, value: T, ...r: R): DR | CannotReduce;
-	replace(index: number, value: T, ...r: R): DR | CannotReduce;
-	remove(index: number | IndexEnd, ...r: R): DR | CannotReduce;
+	apply(index: number, change: DT, ...args: Args): Return | CannotReduce;
+	add(index: number | IndexEnd, value: T, ...args: Args): Return | CannotReduce;
+	replace(index: number, value: T, ...args: Args): Return | CannotReduce;
+	remove(index: number | IndexEnd, ...args: Args): Return | CannotReduce;
 }
 
 export type ArrayPatchReducer0<
@@ -185,6 +185,72 @@ export const reduceArrayPatches2 = <X, Y>(
 					: [entry],
 			);
 			y1 = ysSchema.apply(y1, dy);
+			out = ysSchema.combine(out, dy);
+		}
+
+		return out;
+	};
+};
+
+export const reduceArrayPatchesGeneric = <
+	X,
+	Y,
+	Args extends unknown[],
+	State,
+	Ret = State,
+>({
+	reducer,
+	evaluate,
+	stateToArgs,
+	getInitial,
+	stateReducer,
+}: {
+	reducer: ArrayPatchReducer<X, Args, PatchEntry<X>, Ret>;
+	evaluate: Evaluate<X[], Y>;
+	stateToArgs: (entry: PatchSchemaArrayEntry<X>, state: State) => Args;
+	getInitial: (input: X[], dxs: Patches<X[]>, output: Y) => State;
+	stateReducer: (
+		state: State,
+		entry: PatchSchemaArrayEntry<X>,
+		ret: Ret,
+	) => [Patches<Y>, State];
+}): ForwardHasOutput<X[], Y> => {
+	const xsSchema = ps.array(ps.atomic<X>());
+	const ysSchema = ps.atomic<Y>();
+	return (xs: X[], dxs: Patches<X[]>, y: Y): Patches<Y> => {
+		const res = xsSchema.analyze(dxs);
+		if (res === null) {
+			return ysSchema.empty;
+		}
+		if (isReplaceOnly(res)) {
+			return ysSchema.fromReplace(evaluate(getReplaceOnly(res)));
+		}
+
+		let state: State = getInitial(xs, dxs, y);
+		let out: Patches<Y> = ysSchema.empty;
+		for (const entry of res) {
+			let r: Ret | CannotReduce;
+			const args = stateToArgs(entry, state);
+			if ("inner" in entry) {
+				const index = entry.path[0];
+				r = reducer.apply(index, entry.inner, ...args);
+			} else if (entry.op === PatchOp.Add) {
+				const index = entry.path[0];
+				r = reducer.add(index, entry.value, ...args);
+			} else if (entry.op === PatchOp.Remove) {
+				const index = entry.path[0];
+				r = reducer.remove(index, ...args);
+			} else if (entry.op === PatchOp.Replace) {
+				const index = entry.path[0];
+				r = reducer.replace(index, entry.value, ...args);
+			} else {
+				throw new Error("invalid entry.op");
+			}
+			if (r === CannotReduce) {
+				return ysSchema.fromReplace(evaluate(xsSchema.apply(xs, dxs)));
+			}
+			const [dy, state1] = stateReducer(state, entry, r);
+			state = state1;
 			out = ysSchema.combine(out, dy);
 		}
 
