@@ -7,11 +7,12 @@ import {
 	type List,
 	ListKind,
 	type ListMultiple,
+	type ListOptional,
 	type ListT$,
 	type ListTRepr,
 } from "./types";
 
-const toMultiple =
+export const toMultiple =
 	<T>(Option: IAOption<T>) =>
 	<A, B>(f1: ListTRepr<T, A, B>): ListMultiple<T, A, B> => {
 		if (f1.kind === ListKind.Multiple) {
@@ -37,9 +38,30 @@ const toMultiple =
 		};
 	};
 
+export const toOptional =
+	<T>(Option: IAOption<T>) =>
+	<A, B>(
+		f1: Exclude<ListTRepr<T, A, B>, ListMultiple<T, A, B>>,
+	): ListOptional<T, A, B> => {
+		if (f1.kind === ListKind.Optional) {
+			return f1;
+		}
+		return {
+			kind: ListKind.Optional,
+			getOpt: Option.just(f1.get) satisfies $2<T, A, [B]> as never,
+		};
+	};
+
 export const single = <T, A, B>(get: $2<T, A, B>): ListTRepr<T, A, B> => ({
 	kind: ListKind.Single,
 	get,
+});
+
+export const multiple = <T, A, B>(
+	getMulti: $2<T, A, B[]>,
+): ListTRepr<T, A, B> => ({
+	kind: ListKind.Multiple,
+	getMulti,
 });
 
 export const runList =
@@ -110,16 +132,131 @@ export const compose =
 		};
 	};
 
-export const collect =
-	<T>({ compose: { compose: compose_, fromIF } }: ImplsArrowListInput<T>) =>
-	<A extends WeakKey, B>(f: $2<ListT$<T>, A, B>): $2<ListT$<T>, A, B[]> => {
-		if (f.kind === ListKind.Multiple) {
-			return single(f.getMulti);
+export const composeReeval =
+	<T>({
+		compose: { composeReeval: compose_ },
+		Option,
+		Arr,
+	}: ImplsArrowListInput<T>) =>
+	<A, B, C>(
+		f1: ListTRepr<T, A, B>,
+		f2: ListTRepr<T, B, C>,
+	): ListTRepr<T, A, C> => {
+		if (f1.kind === ListKind.Multiple) {
+			if (f2.kind === ListKind.Multiple || f2.kind === ListKind.Optional) {
+				const o3 = toMultiple(Option)(f2);
+				return {
+					kind: ListKind.Multiple,
+					getMulti: compose_(f1.getMulti, Arr.flatMap(o3.getMulti)),
+				};
+			}
+			return {
+				kind: ListKind.Multiple,
+				getMulti: compose_(f1.getMulti, Arr.map(f2.get)),
+			};
 		}
-		if (f.kind === ListKind.Optional) {
-			return single(
-				f.getOpt satisfies $2<T, A, Option<B>> as never as $2<T, A, B[]>,
-			);
+
+		if (f1.kind === ListKind.Optional) {
+			if (f2.kind === ListKind.Multiple) {
+				const o3 = toMultiple(Option)(f1);
+				return {
+					kind: ListKind.Multiple,
+					getMulti: compose_(o3.getMulti, Arr.flatMap(f2.getMulti)),
+				};
+			}
+			if (f2.kind === ListKind.Optional) {
+				return {
+					kind: ListKind.Optional,
+					getOpt: Option.composeReeval(f1.getOpt, f2.getOpt),
+				};
+			}
+			return {
+				kind: ListKind.Optional,
+				getOpt: compose_(f1.getOpt, Option.map(f2.get)),
+			};
 		}
-		return single(compose_(f.get, fromIF(singleton<B>())));
+
+		if (f2.kind === ListKind.Multiple) {
+			return {
+				kind: ListKind.Multiple,
+				getMulti: compose_(f1.get, f2.getMulti),
+			};
+		}
+		if (f2.kind === ListKind.Optional) {
+			return {
+				kind: ListKind.Optional,
+				getOpt: compose_(f1.get, f2.getOpt),
+			};
+		}
+		return {
+			kind: ListKind.Single,
+			get: compose_(f1.get, f2.get),
+		};
+	};
+
+export const composeResidual =
+	<T>({
+		compose: { composeResidual: compose_ },
+		Option: _1,
+		Arr: _2,
+	}: ImplsArrowListInput<T>) =>
+	<A, B, C>(
+		f1: ListTRepr<T, A, B>,
+		f2: ListTRepr<T, B, C>,
+	): ListTRepr<T, A, [C, unknown]> => {
+		/*
+		if (f1.kind === ListKind.Multiple) {
+			if (f2.kind === ListKind.Multiple || f2.kind === ListKind.Optional) {
+				const o3 = toMultiple(Option)(f2);
+				return {
+					kind: ListKind.Multiple,
+					getMulti: compose_(f1.getMulti, Arr.flatMap(o3.getMulti)),
+				};
+			}
+			return {
+				kind: ListKind.Multiple,
+				getMulti: compose_(f1.getMulti, Arr.map(f2.get)),
+			};
+		}
+
+		if (f1.kind === ListKind.Optional) {
+			if (f2.kind === ListKind.Multiple) {
+				const o3 = toMultiple(Option)(f1);
+				return {
+					kind: ListKind.Multiple,
+					getMulti: compose_(o3.getMulti, Arr.flatMap(f2.getMulti)),
+				};
+			}
+			if (f2.kind === ListKind.Optional) {
+				return {
+					kind: ListKind.Optional,
+					getOpt: Option.composeReeval(f1.getOpt, f2.getOpt),
+				};
+			}
+			return {
+				kind: ListKind.Optional,
+				getOpt: compose_(f1.getOpt, Option.map(f2.get)),
+			};
+		}
+
+		if (f2.kind === ListKind.Multiple) {
+			return {
+				kind: ListKind.Multiple,
+				getMulti: compose_(f1.get, f2.getMulti),
+			};
+		}
+		if (f2.kind === ListKind.Optional) {
+			return {
+				kind: ListKind.Optional,
+				getOpt: compose_(f1.get, f2.getOpt),
+			};
+		}
+		*/
+		if (!(f1.kind === ListKind.Single && f2.kind === ListKind.Single)) {
+			throw new Error("TODO");
+		}
+		return {
+			kind: ListKind.Single,
+			get: compose_(f1.get, f2.get),
+		};
 	};

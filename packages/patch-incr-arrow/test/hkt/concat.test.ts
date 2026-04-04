@@ -1,3 +1,5 @@
+// TODO commented out because it freezes language server
+/*
 import type { AnyTuple } from "patch-incr/patchSchema/types";
 import type { $1, $2 } from "@/hkt/app";
 
@@ -83,3 +85,4 @@ export const _concatTest3_FAIL: ConcatTest3 = [
 	Symbol.for("test"),
 ];
 export const _concatTest5: ConcatTest5 = ["x", "y", -5, Symbol.for("test")];
+//*/

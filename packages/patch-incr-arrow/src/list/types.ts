@@ -1,9 +1,17 @@
 import type { Option } from "patch-incr/builder/option";
-import type { IAArray, IACompose, IAOption, IAPair } from "@/arrow";
-import type { IAAddList, IATrans } from "@/arrowTransformer";
+import type {
+	IAArray,
+	IACompose,
+	IAImpls,
+	IAOption,
+	IAPair,
+	IAPlus,
+} from "@/arrow";
+import type { IAAddList, IAList, IATrans } from "@/arrowTransformer";
 import type { $1, $2 } from "@/hkt";
 
 export const List = "List";
+/** `List : A -> A` */
 export type List = typeof List;
 
 export type ListT$<T> = $1<List, T>;
@@ -43,8 +51,15 @@ export interface ImplsArrowListInput<T> {
 	Arr: IAArray<T>;
 }
 
-export interface ImplsArrowListOutput<T> {
+export interface ImplsArrowListOutputBasic<T> {
 	trans: IATrans<T, List>;
 	compose: IACompose<ListT$<T>>;
 	add: IAAddList<T, ListT$<T>>;
+}
+
+export interface ImplsArrowListOutput<T>
+	extends ImplsArrowListOutputBasic<T>,
+		Pick<IAImpls<ListT$<T>>, "Pair"> {
+	plus: IAPlus<ListT$<T>>;
+	list: IAList<ListT$<T>>;
 }

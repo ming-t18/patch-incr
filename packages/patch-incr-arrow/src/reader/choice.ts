@@ -10,15 +10,15 @@ import type {
 export const implChoice = <Ctx, T>(
 	args: ImplsArrowReaderInput<T> &
 		Pick<ImplsArrowReaderOutputBasic<Ctx, T>, "trans" | "add"> & {
-			choice: IAChoice<T>;
-			pair: IAPair<T>;
+			Choice: IAChoice<T>;
+			Pair: IAPair<T>;
 		},
 ): IAChoice<ReaderT$<Ctx, T>> => {
 	const {
 		trans: { lift },
 		compose: { composeReeval: composeReeval_ },
-		choice: Choice,
-		pair: Pair,
+		Choice,
+		Pair,
 		add: { intro },
 	} = args;
 	type F = ReaderT$<Ctx, T>;

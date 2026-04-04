@@ -53,6 +53,16 @@ export type $3<F, T0, T1, T2> =
 export type $4<F, T0, T1, T2, T3> = $Brand<F, [T0, T1, T2, T3]> &
 	ResolveType4<F, T0, T1, T2, T3>;
 
+export type $<F, args extends ValidAppArgs> = args extends [infer T0]
+	? $1<F, T0>
+	: args extends [infer T0, infer T1]
+		? $2<F, T0, T1>
+		: args extends [infer T0, infer T1, infer T2]
+			? $3<F, T0, T1, T2>
+			: args extends [infer T0, infer T1, infer T2, infer T3]
+				? $4<F, T0, T1, T2, T3>
+				: never;
+
 export interface $Map1<T0 = unknown> {
 	Tuple: [T0];
 }
@@ -106,21 +116,6 @@ export type ResolveType4<F, T0, T1, T2, T3> = F extends keyof $Map4
 type _Tuple1 = $2<"Tuple", number, string>;
 // [number, string, boolean, symbol]
 type _ResolveTupleTest = $2<$2<"Tuple", number, string>, boolean, symbol>;
-
-export const makePrjInj1 = <F>() => ({
-	prj: <A>($a: $1<F, A>): ResolveType1<F, A> => $a as never,
-	inj: <A>($a: ResolveType1<F, A>): $1<F, A> => $a as never,
-});
-
-export const makePrjInj2 = <F>() => ({
-	prj: <A, B>($a: $2<F, A, B>): ResolveType2<F, A, B> => $a as never,
-	inj: <A, B>($a: ResolveType2<F, A, B>): $2<F, A, B> => $a as never,
-});
-
-export const makePrjInj3 = <F>() => ({
-	prj: <A, B, C>($a: $3<F, A, B, C>): ResolveType3<F, A, B, C> => $a as never,
-	inj: <A, B, C>($a: ResolveType3<F, A, B, C>): $3<F, A, B, C> => $a as never,
-});
 
 export type Unbrand<T extends $Brand<unknown, ValidAppArgs>> =
 	T extends infer T1 & $Brand<infer _F, infer _Args>

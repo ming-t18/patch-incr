@@ -13,7 +13,7 @@ export const implArray = <Ctx, T>(
 	const {
 		trans: { lift },
 		compose: { compose: compose_ },
-		array: Arr,
+		Arr,
 		add: { intro },
 	} = args;
 	type F = ReaderT$<Ctx, T>;

@@ -1,6 +1,9 @@
 import { atomicFunc, castOutput, constant, identity } from "@/builder";
 import * as D from "@/builder/array/dist";
-import { composeMemo } from "@/builder/compose";
+import {
+	composeMemo,
+	composeReeval as composeReeval_,
+} from "@/builder/compose";
 import { condSingle } from "@/builder/cond";
 import { accessPathFor, tupleFor } from "@/builder/struct";
 import type { AnyIF, IF } from "@/types";
@@ -71,5 +74,16 @@ export const compose = <A extends WeakKey, B, C>(
 	f2: IF<B, Option<C>>,
 ): IF<A, Option<C>> => composeMemo(f1, elim(f2, Nothing));
 
+export const composeReeval = <A, B, C>(
+	f1: IF<A, Option<B>>,
+	f2: IF<B, Option<C>>,
+): IF<A, Option<C>> => composeReeval_(f1, elim(f2, Nothing));
+
 export const distr = <A, B>(): IF<[Option<A>, B], Option<[A, B]>> =>
 	D.distr() satisfies IF<[A[], B], [A, B][]> as AnyIF;
+
+export const distl = <A, B>(): IF<[A, Option<B>], Option<[A, B]>> =>
+	D.distl() satisfies IF<[A, B[]], [A, B][]> as AnyIF;
+
+export const prod = <A, B>(): IF<[Option<A>, Option<B>], Option<[A, B]>> =>
+	composeReeval_(distr(), flatMap(distl()));

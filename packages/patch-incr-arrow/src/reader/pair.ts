@@ -9,9 +9,9 @@ import type {
 
 export const firstSecond = <Ctx, T>({
 	compose: { compose: compose_, fromIF: fromIF_ },
-	pair: Pair,
 	trans: { lift },
 	add: { intro },
+	Pair,
 }: ImplsArrowReaderInput<T> &
 	Pick<ImplsArrowReaderOutputBasic<Ctx, T>, "trans" | "add">) => {
 	type F = ReaderT$<Ctx, T>;
@@ -49,13 +49,16 @@ export const firstSecond = <Ctx, T>({
 
 export const pair = <Ctx, T>({
 	compose: { composeReeval: composeReeval_ },
-	pair: Pair,
 	trans: { lift },
 	add: { intro },
+	Pair,
 }: ImplsArrowReaderInput<T> &
 	Pick<ImplsArrowReaderOutputBasic<Ctx, T>, "trans" | "add">) => {
 	type F = ReaderT$<Ctx, T>;
-	return <I, A, B>(f1: $2<F, I, A>, f2: $2<F, I, B>): $2<F, I, [A, B]> => {
+	return <I extends WeakKey, A, B>(
+		f1: $2<F, I, A>,
+		f2: $2<F, I, B>,
+	): $2<F, I, [A, B]> => {
 		if (f1.reads) {
 			if (f2.reads) {
 				return intro(Pair.pair(f1.reader, f2.reader));
@@ -76,7 +79,7 @@ export const implPair = <Ctx, T>(
 	const {
 		trans: { lift },
 		compose: { identity: id },
-		pair: Pair,
+		Pair,
 	} = args;
 	type F = ReaderT$<Ctx, T>;
 	return {

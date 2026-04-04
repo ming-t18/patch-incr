@@ -1,4 +1,4 @@
-import { identity as id } from "patch-incr/builder";
+import { identity } from "patch-incr/builder";
 import * as Arr from "patch-incr/builder/array";
 import { distr } from "patch-incr/builder/array/dist";
 import {
@@ -10,14 +10,7 @@ import * as Either from "patch-incr/builder/either";
 import * as Option from "patch-incr/builder/option";
 import * as Pair from "patch-incr/builder/pair";
 import type { IF } from "patch-incr/types";
-import type {
-	IAArray,
-	IAChoice,
-	IACompose,
-	IAComposeResidual,
-	IAOption,
-	IAPair,
-} from "@/arrow";
+import type { IAArray, IAChoice, IACompose, IAOption, IAPair } from "@/arrow";
 import type { Identity } from "@/hkt";
 
 declare module "@/hkt/app" {
@@ -28,7 +21,6 @@ declare module "@/hkt/app" {
 
 export const fromIF = <A, B>(x: IF<A, B>) => x;
 export const compose = composeMemo;
-export const identity = id;
 
 export const composeResidual = composeR;
 
@@ -36,11 +28,8 @@ export const arrowCompose: IACompose<Identity> = {
 	fromIF,
 	compose,
 	composeReeval,
+	composeResidual,
 	identity,
-};
-
-export const arrowComposeResidual: IAComposeResidual<Identity> = {
-	composeR,
 };
 
 export const arrowPair: IAPair<Identity> = {
@@ -64,6 +53,7 @@ export const arrowChoice: IAChoice<Identity> = {
 export const arrowOption: IAOption<Identity> = {
 	just: Option.just,
 	compose: Option.compose,
+	composeReeval: Option.composeReeval,
 	map: Option.map,
 	flatMap: Option.flatMap,
 	distr: Option.distr,
@@ -73,4 +63,12 @@ export const arrowArray: IAArray<Identity> = {
 	map: Arr.map,
 	flatMap: Arr.flatMapSingle,
 	distr,
+};
+
+export const impls = {
+	compose: arrowCompose,
+	Arr: arrowArray,
+	Choice: arrowChoice,
+	Pair: arrowPair,
+	Option: arrowOption,
 };

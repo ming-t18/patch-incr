@@ -3,7 +3,13 @@ import type { IACompose } from "@/arrow";
 import type { IAAddReader, IATrans } from "@/arrowTransformer";
 import type { $1, $2, $3 } from "@/hkt";
 import { implArray } from "./array";
-import { compose, composeReeval, runReader } from "./builder";
+import {
+	compose,
+	composeReeval,
+	composeResidual,
+	implAReader,
+	runReader,
+} from "./builder";
 import { implChoice } from "./choice";
 import { implOption } from "./option";
 import { implPair } from "./pair";
@@ -18,8 +24,12 @@ import type {
 export const implArrowCompose = <Ctx, T>(
 	args: ImplsArrowReaderInput<T>,
 ): IACompose<ReaderT$<Ctx, T>> => {
-	const compose1 = compose(args.compose.compose, args.pair);
-	const composeReeval1 = composeReeval(args.compose.composeReeval, args.pair);
+	const compose1 = compose(args.compose.compose, args.Pair);
+	const composeReeval1 = composeReeval(args.compose.composeReeval, args.Pair);
+	const composeResidual1 = composeResidual(
+		args.compose.composeResidual,
+		args.Pair,
+	);
 	const { identity, fromIF } = args.compose;
 	return {
 		identity: <A>(): $2<ReaderT$<Ctx, T>, A, A> => ({
@@ -38,6 +48,11 @@ export const implArrowCompose = <Ctx, T>(
 			f1: $2<ReaderT$<Ctx, T>, A, B>,
 			f2: $2<ReaderT$<Ctx, T>, B, C>,
 		): $2<ReaderT$<Ctx, T>, A, C> => composeReeval1<Ctx, A, B, C>(f1, f2),
+		composeResidual: <A, B, C>(
+			f1: $2<ReaderT$<Ctx, T>, A, B>,
+			f2: $2<ReaderT$<Ctx, T>, B, C>,
+		): $2<ReaderT$<Ctx, T>, A, [C, unknown]> =>
+			composeResidual1<Ctx, A, B, C>(f1, f2),
 	};
 };
 
@@ -50,16 +65,16 @@ export const implArrowTrans = <Ctx, T>(): IATrans<T, $1<Reader, Ctx>> => ({
 
 export const implArrowAddReader = <Ctx, T>({
 	compose,
-	pair,
+	Pair,
 }: ImplsArrowReaderInput<T>): IAAddReader<Ctx, T, ReaderT$<Ctx, T>> => ({
 	intro: <A, B>(f: $2<T, [A, Ctx], B>): $2<ReaderT$<Ctx, T>, A, B> => ({
 		reads: true,
 		reader: f,
 	}),
-	elim: runReader<Ctx, T>(compose, pair),
+	elim: runReader<Ctx, T>(compose, Pair),
 });
 
-export const implsArrowReader = <Ctx, T>(
+export const implsArrowReaderBasic = <Ctx, T>(
 	args: ImplsArrowReaderInput<T>,
 ): ImplsArrowReaderOutputBasic<Ctx, T> => {
 	return {
@@ -69,24 +84,26 @@ export const implsArrowReader = <Ctx, T>(
 	};
 };
 
-export const implsArrowReader1 = <Ctx, T>(
+export const implsArrowReader = <Ctx, T>(
 	args: ImplsArrowReaderInput<T>,
 ): ImplsArrowReaderOutput<Ctx, T> => {
-	const { trans, add, compose } = implsArrowReader<Ctx, T>(args);
+	const reader = implAReader<Ctx, T>(args);
+	const { trans, add, compose } = implsArrowReaderBasic<Ctx, T>(args);
 	const args1 = {
 		...args,
 		trans,
 		add,
-		option: args.option,
-		choice: args.choice,
+		Option: args.Option,
+		Choice: args.Choice,
 	};
 	return {
 		trans,
 		compose,
 		add,
-		pair: implPair(args1),
-		option: implOption(args1),
-		choice: implChoice(args1),
-		array: implArray(args1),
+		reader,
+		Pair: implPair(args1),
+		Option: implOption(args1),
+		Choice: implChoice(args1),
+		Arr: implArray(args1),
 	};
 };

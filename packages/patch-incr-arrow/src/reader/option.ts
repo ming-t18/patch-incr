@@ -10,15 +10,15 @@ import type {
 const optionCompose = <Ctx, T>(
 	args: ImplsArrowReaderInput<T> &
 		Pick<ImplsArrowReaderOutputBasic<Ctx, T>, "trans" | "add"> & {
-			option: IAOption<T>;
+			Option: IAOption<T>;
 		},
 ) => {
 	type F = ReaderT$<Ctx, T>;
 	const {
 		trans: { lift },
 		compose: { compose: compose_ },
-		option: Option,
-		pair: Pair,
+		Option,
+		Pair,
 		add: { intro },
 	} = args;
 	return <A extends WeakKey, B, C>(
@@ -48,16 +48,57 @@ const optionCompose = <Ctx, T>(
 	};
 };
 
+const optionComposeReeval = <Ctx, T>(
+	args: ImplsArrowReaderInput<T> &
+		Pick<ImplsArrowReaderOutputBasic<Ctx, T>, "trans" | "add"> & {
+			Option: IAOption<T>;
+		},
+) => {
+	type F = ReaderT$<Ctx, T>;
+	const {
+		trans: { lift },
+		compose: { composeReeval: compose_ },
+		Option,
+		Pair,
+		add: { intro },
+	} = args;
+	return <A, B, C>(
+		f1: $2<F, A, Option<B>>,
+		f2: $2<F, B, Option<C>>,
+	): $2<F, A, Option<C>> => {
+		if (f1.reads) {
+			if (f2.reads) {
+				return intro(
+					Option.composeReeval(
+						compose_(Pair.pair(f1.reader, Pair.snd()), Option.distr()),
+						f2.reader,
+					),
+				);
+			}
+			return intro(Option.composeReeval(f1.reader, f2.reader));
+		}
+		if (f2.reads) {
+			return intro(
+				Option.composeReeval(
+					compose_(Pair.first(f1.reader), Option.distr()),
+					f2.reader,
+				),
+			);
+		}
+		return lift(Option.composeReeval(f1.reader, f2.reader));
+	};
+};
+
 export const implOption = <Ctx, T>(
 	args: ImplsArrowReaderInput<T> &
 		Pick<ImplsArrowReaderOutputBasic<Ctx, T>, "trans" | "add"> & {
-			option: IAOption<T>;
+			Option: IAOption<T>;
 		},
 ): IAOption<ReaderT$<Ctx, T>> => {
 	const {
 		trans: { lift },
 		compose: { composeReeval: composeReeval_ },
-		option: Option,
+		Option,
 		add: { intro },
 	} = args;
 	type F = ReaderT$<Ctx, T>;
@@ -69,6 +110,7 @@ export const implOption = <Ctx, T>(
 			return lift(Option.just(f1.reader));
 		},
 		compose: optionCompose(args),
+		composeReeval: optionComposeReeval(args),
 		map: <A, B>(f1: $2<F, A, B>): $2<F, Option<A>, Option<B>> => {
 			if (f1.reads) {
 				return intro(composeReeval_(Option.distr(), Option.map(f1.reader)));

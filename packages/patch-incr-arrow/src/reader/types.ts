@@ -1,8 +1,9 @@
-import type { IACompose, IAImpls, IAPair } from "@/arrow";
-import type { IAAddReader, IATrans } from "@/arrowTransformer";
+import type { IACompose, IAImpls } from "@/arrow";
+import type { IAAddReader, IAReader, IATrans } from "@/arrowTransformer";
 import type { $1, $2 } from "@/hkt";
 
 export const Reader = "Reader";
+/** `Reader : * -> (A -> A)` */
 export type Reader = typeof Reader;
 
 export interface ReaderId<T, A, B> {
@@ -30,8 +31,8 @@ export type R$<Ctx> = $1<Reader, Ctx>;
 
 export interface ImplsArrowReaderInput<T> extends IAImpls<T> {
 	compose: IACompose<T>;
-	pair: IAPair<T>;
 }
+
 export interface ImplsArrowReaderOutputBasic<Ctx, T> {
 	trans: IATrans<T, $1<Reader, Ctx>>;
 	compose: IACompose<ReaderT$<Ctx, T>>;
@@ -40,4 +41,6 @@ export interface ImplsArrowReaderOutputBasic<Ctx, T> {
 
 export interface ImplsArrowReaderOutput<Ctx, T>
 	extends ImplsArrowReaderOutputBasic<Ctx, T>,
-		IAImpls<$2<Reader, Ctx, T>> {}
+		IAImpls<$2<Reader, Ctx, T>> {
+	reader: IAReader<Ctx, ReaderT$<Ctx, T>>;
+}

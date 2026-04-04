@@ -27,6 +27,35 @@ through higher-kinded types from 1 to 4 elements.
 type Test1 = $2<'Tuple', string, number>
 ```
 
+## Kind Notation
+
+Kinds are "types of types", and a higher-kinded type is a "function on types".
+
+`*` is a concrete type. 
+For all value `x` and its type `T`, `T` must have the kind of `*`. (`x : T, T : *`)
+
+A higher-kind type has a signature described in a function-like notation `Args -> Ret`,
+where `Args` are the argument types are `Ret` is the returning kind.
+
+A generic collection type (such as array) has kind `* -> *`.
+
+If `*` is repeated multiple times, a number is appened after it: `*1, *2, *3` and so on.
+
+An arrow has kind of `*2 -> *`. The `2` stands for `*` repeated twice.
+
+The kind alias for incremental arrow `*2 -> *` is `A`.
+
+An arrow transformer has kind `A -> A`, or `(*2 -> *) -> (*2 -> *)`. Examples of arrow transformers:
+ - `$<Reader, [Ctx]>`
+ - `List`
+ - `$<Writer, [W]>`
+ - `$<Residual, [R]>`
+ - `$<State, [S]>`
+
+The reader arrow transformer has `* -> A -> A`.
+
+This library cannot check for kind-correctness.
+
 ## Currying
 
 It is possible to partially apply higher-kinded types as long as there is
