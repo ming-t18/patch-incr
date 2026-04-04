@@ -138,5 +138,8 @@ export interface PatchSchemaArray<
 		patches: Patches<Elem[]>,
 	) => DRO<Elem[]> | PatchSchemaArrayEntry<Elem>[];
 	fromEntries: (entries: PatchSchemaArrayEntry<Elem>[]) => Patches<Elem[]>;
+	add: (index: number | IndexEnd, elem: Elem) => Patches<Elem[]>;
+	replace: (index: number | IndexEnd, elem: Elem) => Patches<Elem[]>;
+	remove: (index: number | IndexEnd) => Patches<Elem[]>;
 	liftIndex: (index: number, change: Patches<Elem>) => Patches<Elem[]>;
 }

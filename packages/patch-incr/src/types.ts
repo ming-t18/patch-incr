@@ -9,11 +9,11 @@ export type { Apply } from "./algebra";
 export type {
 	PatchEntry,
 	Patches,
-	PatchOp,
 	PatchRemove,
 	PatchReplace,
 	Path,
 } from "./patch";
+export { PatchOp } from "./patch";
 
 export interface ApplyCombineLift<T, Patch> extends ApplyCombine<T, Patch> {
 	liftObjectKey: (key: string, patch: Patch) => Patch;
@@ -38,6 +38,13 @@ export type Forward<
 > = ForwardOutput extends NoForwardOutput
 	? (input: Input, change: InputChange, output?: Output) => OutputChange
 	: (input: Input, change: InputChange, output: Output) => OutputChange;
+
+export type ForwardNoOutput<
+	Input,
+	Output,
+	InputChange = Patches<Input>,
+	OutputChange = Patches<Output>,
+> = Forward<Input, Output, InputChange, OutputChange, NoForwardOutput>;
 
 /**
  * A patch-based incremental function.

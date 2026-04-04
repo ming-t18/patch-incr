@@ -12,7 +12,7 @@ import type {
 	IF,
 	InferIFOutput,
 } from "../types";
-import { constant } from ".";
+import { constant } from "./constant";
 
 export type CondOutput<A, B> = [true, A] | [false, B];
 

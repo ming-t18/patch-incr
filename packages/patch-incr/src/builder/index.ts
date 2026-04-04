@@ -1,4 +1,3 @@
-import { HINT_CONSTANT, HINT_IDENTITY, HINT_TRIVIAL } from "../hints";
 import {
 	applyPatches,
 	liftPatches,
@@ -8,15 +7,7 @@ import {
 	replacePatches,
 	type Targeted,
 } from "../patch";
-import type {
-	AnyIF,
-	Evaluate,
-	HasForwardOutput,
-	IF,
-	IFInv,
-	NoForwardOutput,
-} from "../types";
-import { tupleFor } from "./struct";
+import type { AnyIF, Evaluate, HasForwardOutput, IF, IFInv } from "../types";
 
 /**
  * Placeholder for type checking by checking the inferred type params. Throws an exception when called.
@@ -41,38 +32,7 @@ export const castOutput = <
 	func: IF<Input, Output, DInput, Patches<Output>, F>,
 ): IF<Input, Super, DInput, Patches<Super>, F> => func as AnyIF;
 
-const _identity = <T>(x: T) => x;
-
-export const identity = <Input, Change = Patches<Input>>(): IFInv<
-	Input,
-	Input,
-	Change,
-	Change
-> => {
-	return {
-		evaluate: _identity,
-		inverseEvaluate: _identity,
-		forward: (_1, d) => d,
-		hints: HINT_IDENTITY | HINT_TRIVIAL,
-	};
-};
-
-export const constant = <
-	T,
-	Input = unknown,
-	InputChange = Patches<Input>,
-	OutputChange = Patches<T>,
->(
-	value: T,
-	empty = [] as OutputChange,
-): IF<Input, T, InputChange, OutputChange, NoForwardOutput> => {
-	const forwardConstant = (_1: Input, _2: InputChange): OutputChange => empty;
-	return {
-		evaluate: (_: Input) => value,
-		forward: forwardConstant,
-		hints: HINT_CONSTANT | HINT_TRIVIAL,
-	};
-};
+export { constant } from "./constant";
 
 export const atomicFunc = <Input, Output>(
 	evaluate: Evaluate<Input, Output>,
@@ -166,7 +126,6 @@ export const patchesBuilder: StructuralChangeBuilder<any, Patches> = {
 	): Patches<Record<K, T>> => liftPatches(key, p),
 };
 
+export { identity } from "./identity";
 export { recurse } from "./recurse";
-
-export const singleton = <T>(): IF<T, T[]> =>
-	castOutput(tupleFor<T>()(identity<T>()) satisfies IF<T, [T]>);
+export { singleton } from "./tuple";

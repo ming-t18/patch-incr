@@ -1,10 +1,13 @@
 import type { DRO, InferApplyType } from "../algebra";
 import { makeReplaceOnly } from "../algebra/replaceOnly";
 import {
+	addPatches,
 	type PatchEntry,
 	type Patches,
 	PatchOp,
 	reduceReplaceRoot,
+	removePatches,
+	replacePatches,
 } from "../patch";
 import { BasePatchSchema } from "./base";
 import {
@@ -78,6 +81,16 @@ export class PatchSchemaArrayImpl<
 
 			return e as PatchEntry<Elem[]>;
 		});
+	}
+
+	add(index: number | IndexEnd, value: Elem): Patches<Elem[]> {
+		return addPatches(value, [index]);
+	}
+	replace(index: number | IndexEnd, value: Elem): Patches<Elem[]> {
+		return replacePatches(value, [index]);
+	}
+	remove(index: number | IndexEnd): Patches<Elem[]> {
+		return removePatches([index]);
 	}
 
 	liftIndex(index: number, change: Patches<Elem>): Patches<Elem[]> {

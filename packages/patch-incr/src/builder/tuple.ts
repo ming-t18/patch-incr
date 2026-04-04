@@ -7,7 +7,9 @@ import {
 	type Patches,
 	PatchOp,
 } from "../patch";
-import type { IFInv } from "../types";
+import type { AnyIF, IF, IFInv } from "../types";
+import { identity } from "./identity";
+import { tupleFor } from "./struct/record";
 
 const evaluateComm = <A, B>([a, b]: [A, B]): [B, A] => [b, a];
 
@@ -168,3 +170,6 @@ export const assocLeft = <A, B, C>(): IFInv<[A, [B, C]], [[A, B], C]> => {
 		hints: HINT_TRIVIAL,
 	};
 };
+
+export const singleton = <T>(): IF<T, T[]> =>
+	tupleFor<T>()(identity<T>()) satisfies IF<T, [T]> as AnyIF;
