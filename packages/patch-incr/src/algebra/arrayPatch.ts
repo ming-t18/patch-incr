@@ -1,4 +1,11 @@
-import { CannotReduce, liftPatches, PatchOp } from "@/patch";
+import {
+	addPatches,
+	CannotReduce,
+	liftPatches,
+	PatchOp,
+	removePatches,
+	replacePatches,
+} from "@/patch";
 import * as ps from "@/patchSchema";
 import type { IndexEnd, PatchSchemaArrayEntry } from "@/patchSchema/types";
 import type {
@@ -10,6 +17,11 @@ import type {
 } from "@/types";
 import { getReplaceOnly, isReplaceOnly } from "./replaceOnly";
 
+/**
+ * An `ArrayPatchReducer` handles the `forward` function
+ * of incremental functions on arrays, `IF<T[], Y>`.
+ *
+ */
 export interface ArrayPatchReducer<
 	T,
 	Args extends unknown[] = [],
@@ -42,6 +54,73 @@ export type ArrayPatchReducer2<
 	DX = Patches<X>,
 	DY = Patches<Y>,
 > = ArrayPatchReducer<X, [xsCurr: X[], yCurr: Y], DX, DY>;
+
+/**
+ * Creates the PatchReducer for an `IF<T[], T[]>`
+ * that remaps the index (examples: slice, reverse, sort).
+ */
+export const makeIndexRemappingReducer = <T>(
+	remapper: (
+		index: number | IndexEnd,
+		arr: T[],
+	) => number | null | CannotReduce,
+): ArrayPatchReducer<T, [T[]], PatchEntry<T>, Patches<T[]>> => ({
+	apply: (
+		index: number,
+		change: PatchEntry<T>,
+		arr: T[],
+	): typeof CannotReduce | Patches<T[]> => {
+		const index1 = remapper(index, arr);
+		if (index1 === CannotReduce) {
+			return CannotReduce;
+		}
+		if (index1 === null) {
+			return [];
+		}
+		return liftPatches(index1, [change]);
+	},
+	add: (
+		index: number | IndexEnd,
+		value: T,
+		arr: T[],
+	): typeof CannotReduce | Patches<T[]> => {
+		const index1 = remapper(index, arr);
+		if (index1 === CannotReduce) {
+			return CannotReduce;
+		}
+		if (index1 === null) {
+			return [];
+		}
+		return addPatches(value, [index1]);
+	},
+	replace: (
+		index: number,
+		value: T,
+		arr: T[],
+	): typeof CannotReduce | Patches<T[]> => {
+		const index1 = remapper(index, arr);
+		if (index1 === CannotReduce) {
+			return CannotReduce;
+		}
+		if (index1 === null) {
+			return [];
+		}
+		return replacePatches(value, [index1]);
+	},
+	remove: (
+		index: number | IndexEnd,
+		arr: T[],
+	): typeof CannotReduce | Patches<T[]> => {
+		const index1 = remapper(index, arr);
+		if (index1 === CannotReduce) {
+			return CannotReduce;
+		}
+		if (index1 === null) {
+			return [];
+		}
+		return removePatches([index1]);
+	},
+});
 
 export const reduceArrayPatches0 = <X, Y>(
 	reducer: ArrayPatchReducer0<X, Y>,
