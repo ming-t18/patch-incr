@@ -2,9 +2,7 @@
 	"name": "patch-incr-adt",
 	"module": "src/index.ts",
 	"type": "module",
-	"dependencies": {
-		"patch-incr": "*"
-	},
+	"dependencies": {},
 	"devDependencies": {
 		"@types/bun": "latest",
 		"patch-incr": "workspace:*"
