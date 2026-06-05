@@ -41,7 +41,7 @@ export interface Union$<
 	Key extends keyof Map = keyof Map,
 > extends UnionApply<Map, Key> {
 	readonly $type: "union";
-	readonly $: Readonly<Map>;
+	readonly shape: Readonly<Map>;
 	readonly getDiscrimant: (value: InferApplyValue<UnionApply<Map, Key>>) => Key;
 	readonly fromChangeCase: <K extends Key>(
 		type: K,

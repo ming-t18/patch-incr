@@ -9,7 +9,6 @@ import type {
 	DeriveUnionChange,
 	DeriveUnionValue,
 	Union$,
-	UnionApply,
 	UnionChangeEntry,
 } from "./types";
 
@@ -26,17 +25,22 @@ export class UnionCaseError extends TypeError {
 
 export type * from "./types";
 
-export const unionApply = <
+export class AUnion<
 	Map extends Record<Key, AnyApply>,
 	Key extends keyof Map = keyof Map,
->(
-	shape: Map,
-	getDiscrimant: (value: DeriveUnionValue<Map, Key>) => Key,
-): UnionApply<Map, Key> => {
-	type U = DeriveUnionValue<Map, Key>;
-	type DU = DeriveUnionChange<Map, Key>;
+> implements Union$<Map, Key>
+{
+	public readonly $type = "union";
+	public readonly empty: DeriveUnionChange<Map, Key> = null;
+	public constructor(
+		public readonly shape: Map,
+		public readonly getDiscrimant: (value: DeriveUnionValue<Map, Key>) => Key,
+	) {}
 
-	const apply = (value: U, change: DU): U => {
+	apply(
+		value: DeriveUnionValue<Map, Key>,
+		change: DeriveUnionChange<Map, Key>,
+	): DeriveUnionValue<Map, Key> {
 		if (change === null) {
 			return value;
 		}
@@ -45,65 +49,91 @@ export const unionApply = <
 		}
 
 		const changeDisc: Key = change.type;
-		const disc: Key = getDiscrimant(value);
+		const disc: Key = this.getDiscrimant(value);
 		if (disc !== changeDisc) {
 			throw new UnionCaseError(disc, changeDisc);
 		}
 
-		return shape[disc].apply(value, change.change as never);
-	};
+		return this.shape[disc].apply(value, change.change as never);
+	}
 
-	return {
-		apply,
-		fromReplace: makeReplaceOnly,
-		isReplace: (d: DU): ReplaceOnly<U> | null => {
-			if (d === null) {
-				return null;
-			}
-			if (isReplaceOnly(d)) {
-				return d;
-			}
+	fromReplace(value: DeriveUnionValue<Map, Key>): DeriveUnionChange<Map, Key> {
+		return getReplaceOnly(value);
+	}
+
+	isReplace(
+		d: DeriveUnionChange<Map, Key>,
+	): ReplaceOnly<DeriveUnionValue<Map, Key>> | null {
+		if (d === null) {
 			return null;
-		},
-		empty: null,
-		combine: (d1: DU, d2: DU): DU => {
-			if (d1 === null) {
-				return d2;
-			}
-			if (d2 === null) {
-				return d1;
-			}
-			if (isReplaceOnly(d2)) {
-				return d2;
-			}
-			if (isReplaceOnly(d1)) {
-				return makeReplaceOnly(apply(getReplaceOnly(d1), d2));
-			}
+		}
+		if (isReplaceOnly(d)) {
+			return d;
+		}
+		return null;
+	}
 
-			const disc1: Key = d1.type;
-			const disc2: Key = d2.type;
-			if (disc1 !== disc2) {
-				throw new UnionCaseError(disc1, disc2);
-			}
-			return {
-				// @ts-expect-error Can't be checked (existential type)
-				type: disc1,
-				change: shape[disc1].combine(d1.change, d2.change),
-			};
-		},
-		isEmpty: (change: DU): boolean => {
-			if (change === null) {
-				return true;
-			}
-			if (isReplaceOnly(change)) {
-				return false;
-			}
+	combine(
+		d1: DeriveUnionChange<Map, Key>,
+		d2: DeriveUnionChange<Map, Key>,
+	): DeriveUnionChange<Map, Key> {
+		if (d1 === null) {
+			return d2;
+		}
+		if (d2 === null) {
+			return d1;
+		}
+		if (isReplaceOnly(d2)) {
+			return d2;
+		}
+		if (isReplaceOnly(d1)) {
+			return makeReplaceOnly(this.apply(getReplaceOnly(d1), d2));
+		}
 
-			const disc: Key = change.type;
-			return shape[disc].isEmpty(change.change);
-		},
-	};
-};
+		const disc1: Key = d1.type;
+		const disc2: Key = d2.type;
+		if (disc1 !== disc2) {
+			throw new UnionCaseError(disc1, disc2);
+		}
+		return {
+			// @ts-expect-error Can't be checked (existential type)
+			type: disc1,
+			change: this.shape[disc1].combine(d1.change, d2.change),
+		};
+	}
+
+	isEmpty(change: DeriveUnionChange<Map, Key>): boolean {
+		if (change === null) {
+			return true;
+		}
+		if (isReplaceOnly(change)) {
+			return false;
+		}
+
+		const disc: Key = change.type;
+		return this.shape[disc].isEmpty(change.change);
+	}
+
+	fromChangeCase<K extends Key>(
+		type: K,
+		change: InferApplyChange<Map[K]>,
+	): UnionChangeEntry<K, InferApplyChange<Map[K]>> {
+		return {
+			type,
+			change,
+		};
+	}
+
+	fromReplaceCase<K extends Key>(
+		type: K,
+		replace: InferApplyValue<Map[K]>,
+	): UnionChangeEntry<K, InferApplyChange<Map[K]>> {
+		return {
+			type,
+			change: this.shape[type].fromReplace(replace),
+		};
+	}
+}
 
 export const union = <
 	Map extends Record<Key, AnyApply>,
@@ -111,25 +141,4 @@ export const union = <
 >(
 	map: Map,
 	getDiscrimant: (value: DeriveUnionValue<Map, Key>) => Key,
-): Union$<Map, Key> => {
-	return {
-		$type: "union",
-		$: map,
-		getDiscrimant,
-		fromChangeCase: <K extends Key>(
-			type: K,
-			change: InferApplyChange<Map[K]>,
-		): UnionChangeEntry<K, InferApplyChange<Map[K]>> => ({
-			type,
-			change,
-		}),
-		fromReplaceCase: <K extends Key>(
-			type: K,
-			replace: InferApplyValue<Map[K]>,
-		): UnionChangeEntry<K, InferApplyChange<Map[K]>> => ({
-			type,
-			change: map[type].fromReplace(replace),
-		}),
-		...unionApply(map, getDiscrimant),
-	};
-};
+) => new AUnion(map, getDiscrimant);

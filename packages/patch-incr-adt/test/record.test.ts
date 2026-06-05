@@ -27,9 +27,9 @@ describe("TEST", () => {
 		};
 		const r1 = item.fromReplace(item0);
 		console.log(r1);
-		console.log(item.$.description.fromReplace("abc"));
+		console.log(item.shape.description.fromReplace("abc"));
 		console.log(
-			item.fromMap({ description: item.$.description.fromReplace("abc") }),
+			item.fromMap({ description: item.shape.description.fromReplace("abc") }),
 		);
 		expect(
 			item.apply(
