@@ -13,12 +13,6 @@ export type DeriveRecordValue<
 	readonly [key in Key]: InferApplyValue<Map[key]>;
 };
 
-// { name: string, done: boolean }
-type _TestDRV = DeriveRecordValue<{
-	name: Apply<string, "name1">;
-	done: Apply<boolean, "flip">;
-}>;
-
 export type DeriveRecordChange<
 	Map extends Record<Key, AnyApply>,
 	Key extends keyof Map = keyof Map,

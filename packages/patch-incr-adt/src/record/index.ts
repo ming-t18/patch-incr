@@ -12,11 +12,11 @@ export class ARecord<
 	Key extends keyof Map = keyof Map,
 > implements Record$<Map, Key>
 {
-	readonly keys: Key[];
-	public readonly $type = "record";
-	public constructor(public readonly shape: Map) {
-		this.keys = Object.keys(shape) as never[];
-	}
+	readonly $type = "record";
+	constructor(
+		readonly shape: Map,
+		readonly keys: Key[] = Object.keys(shape) as never[],
+	) {}
 	apply(
 		value: DeriveRecordValue<Map, Key>,
 		change: DeriveRecordChange<Map, Key>,
@@ -31,7 +31,9 @@ export class ARecord<
 		const { shape, keys } = this;
 		let changed = false;
 		type R = DeriveRecordValue<Map, Key>;
-		const value1: Partial<R> = { ...value };
+		const value1: Partial<R> = Array.isArray(value)
+			? /* for tuple case */ ([...value] as never)
+			: { ...value };
 		for (const key of keys) {
 			if (!Object.hasOwn(change, key)) {
 				continue;

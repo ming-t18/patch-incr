@@ -13,17 +13,26 @@ export interface Change<in out T, in out DT> extends Monoid<DT> {
 	readonly isReplace: (value: DT) => ReplaceOnly<T> | null;
 }
 
-export interface BaseApply<Shape = never> {
+export interface BaseApply {
+	/**
+	 * The type tag for an `Apply`.
+	 *  - constant
+	 *  - atomic
+	 *  - record
+	 *  - product
+	 *  - union
+	 *  - optional
+	 */
 	$type: string;
-	$isRecursive?: boolean;
-	$: Shape;
 }
 
 export interface Apply<in out T, in out DT = DRO<T>> extends Change<T, DT> {
 	readonly apply: (value: T, change: DT) => T;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: intentional
 export type AnyApply = Apply<any, any>;
+// biome-ignore lint/suspicious/noExplicitAny: intentional
 export type AnyApplyOf<T> = Apply<T, any>;
 
 export type InferApplyValue<A> = A extends AnyApply
