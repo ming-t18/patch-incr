@@ -1,109 +1,42 @@
-import { getReplaceOnly, isReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
+import { BaseProductShaped } from "@/product/shaped";
 import type {
 	AnyApply,
 	InferApplyChange,
 	InferApplyValue,
-	ReplaceOnly,
 } from "@/types/algebra";
 import type { DeriveRecordChange, DeriveRecordValue, Record$ } from "./types";
 
 export class ARecord<
-	Map extends Record<Key, AnyApply>,
-	Key extends keyof Map = keyof Map,
-> implements Record$<Map, Key>
+		Map extends Record<Key, AnyApply>,
+		Key extends keyof Map = keyof Map,
+	>
+	extends BaseProductShaped<DeriveRecordValue<Map, Key>, Map, Key>
+	implements Record$<Map, Key>
 {
 	readonly $type = "record";
-	constructor(
-		readonly shape: Map,
-		readonly keys: Key[] = Object.keys(shape) as never[],
-	) {}
-	apply(
+	constructor(shape: Map, keys: Key[] = Object.keys(shape) as never[]) {
+		super(shape, keys);
+	}
+
+	override assign(
 		value: DeriveRecordValue<Map, Key>,
-		change: DeriveRecordChange<Map, Key>,
+		change: Readonly<Partial<{ [k in Key]: InferApplyValue<Map[k]> }>>,
 	): DeriveRecordValue<Map, Key> {
-		if (change === null) {
-			return value;
+		const value1: typeof value = Array.isArray(value)
+			? ([...value] as never)
+			: ({ ...value } as never);
+		for (const key of Object.keys(change)) {
+			// @ts-expect-error Bypassing readonly
+			value1[key] = change[key];
 		}
-		if (isReplaceOnly(change)) {
-			return getReplaceOnly(change);
-		}
-
-		const { shape, keys } = this;
-		let changed = false;
-		type R = DeriveRecordValue<Map, Key>;
-		const value1: Partial<R> = Array.isArray(value)
-			? /* for tuple case */ ([...value] as never)
-			: { ...value };
-		for (const key of keys) {
-			if (!Object.hasOwn(change, key)) {
-				continue;
-			}
-			const subChange = change[key];
-			if (shape[key].isEmpty(subChange)) {
-				continue;
-			}
-			value1[key] = shape[key].apply(value1[key], subChange);
-			changed = true;
-		}
-
-		if (!changed) {
-			return value;
-		}
-		return value1 as R;
-	}
-	fromReplace(d: DeriveRecordValue<Map, Key>): DeriveRecordChange<Map, Key> {
-		return makeReplaceOnly(d);
+		return value1;
 	}
 
-	isReplace(
-		d: DeriveRecordChange<Map, Key>,
-	): ReplaceOnly<DeriveRecordValue<Map, Key>> | null {
-		if (d === null) {
-			return null;
-		}
-		if (isReplaceOnly(d)) {
-			return d;
-		}
-		return null;
-	}
-	public readonly empty: DeriveRecordChange<Map, Key> = null;
-	combine(
-		d1: DeriveRecordChange<Map, Key>,
-		d2: DeriveRecordChange<Map, Key>,
-	): DeriveRecordChange<Map, Key> {
-		if (d1 === null) {
-			return d2;
-		}
-		if (d2 === null) {
-			return d1;
-		}
-		if (isReplaceOnly(d2)) {
-			return d2;
-		}
-		if (isReplaceOnly(d1)) {
-			return makeReplaceOnly(this.apply(getReplaceOnly(d1), d2));
-		}
-
-		const { keys, shape } = this;
-		const d3: Partial<DeriveRecordChange<Map, Key>> = { ...d1 };
-		for (const key of keys) {
-			// @ts-expect-error Can't be checked (existential type)
-			d3[key] = d2[key] ? shape[key].combine(d1[key], d2[key]) : d1[key];
-		}
-		return d3 as DeriveRecordChange<Map, Key>;
-	}
-	isEmpty(change: DeriveRecordChange<Map, Key>): boolean {
-		if (change === null) {
-			return true;
-		}
-		if (isReplaceOnly(change)) {
-			return false;
-		}
-
-		const { shape, keys } = this;
-		return keys.every(
-			(k) => !Object.hasOwn(change, k) || shape[k].isEmpty(change[k]),
-		);
+	override get<K extends Key>(
+		value: DeriveRecordValue<Map, Key>,
+		key: K,
+	): InferApplyValue<Map[K]> {
+		return value[key];
 	}
 
 	fromMap(

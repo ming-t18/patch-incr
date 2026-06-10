@@ -1,26 +1,27 @@
+import type { DeriveProductChange, DeriveProductShapedChange } from "@/product";
 import type {
 	AnyApply,
 	Apply,
-	DRO,
 	InferApplyChange,
 	InferApplyValue,
 } from "@/types/algebra";
 
 export type DeriveRecordValue<
+	Shape extends Record<Key, AnyApply>,
+	Key extends keyof Shape = keyof Shape,
+> = {
+	readonly [key in Key]: InferApplyValue<Shape[key]>;
+};
+
+export type DeriveRecordChangeNoReplace<
 	Map extends Record<Key, AnyApply>,
 	Key extends keyof Map = keyof Map,
-> = {
-	readonly [key in Key]: InferApplyValue<Map[key]>;
-};
+> = DeriveProductShapedChange<Map, Key>;
 
 export type DeriveRecordChange<
 	Map extends Record<Key, AnyApply>,
 	Key extends keyof Map = keyof Map,
-> =
-	| {
-			readonly [key in Key]?: InferApplyChange<Map[key]>;
-	  }
-	| DRO<DeriveRecordValue<Map, Key>>;
+> = DeriveProductChange<DeriveRecordValue<Map, Key>, Map, Key>;
 
 // { name: ..., done: ... } | DRO<...>
 type _TestDRC = DeriveRecordChange<{
@@ -29,25 +30,26 @@ type _TestDRC = DeriveRecordChange<{
 }>;
 
 export type RecordApply<
-	Map extends Record<Key, AnyApply>,
-	Key extends keyof Map = keyof Map,
-> = Apply<DeriveRecordValue<Map, Key>, DeriveRecordChange<Map, Key>>;
+	Shape extends Record<Key, AnyApply>,
+	Key extends keyof Shape = keyof Shape,
+> = Apply<DeriveRecordValue<Shape, Key>, DeriveRecordChange<Shape, Key>>;
 
+/**
+ * A record type is an object with a finite and fixed set of keys
+ * of type `Key`.
+ * If the set of keys is not defined ahead of time, use
+ * `mapping` instead.
+ */
 export interface Record$<
-	Map extends Record<Key, AnyApply>,
-	Key extends keyof Map = keyof Map,
-> extends RecordApply<Map, Key> {
+	Shape extends Record<Key, AnyApply>,
+	Key extends keyof Shape = keyof Shape,
+> extends RecordApply<Shape, Key> {
 	readonly $type: "record";
-	readonly shape: Readonly<Map>;
+	readonly shape: Readonly<Shape>;
 	readonly fromMap: (
-		change: { readonly [k in Key]?: InferApplyChange<Map[k]> },
-	) => DeriveRecordChange<Map, Key>;
+		change: { readonly [k in Key]?: InferApplyChange<Shape[k]> },
+	) => DeriveRecordChange<Shape, Key>;
 	readonly fromMapReplace: (
-		change: { readonly [k in Key]?: InferApplyValue<Map[k]> },
-	) => DeriveRecordChange<Map, Key>;
+		change: { readonly [k in Key]?: InferApplyValue<Shape[k]> },
+	) => DeriveRecordChange<Shape, Key>;
 }
-
-type _TestDRA = RecordApply<{
-	name: Apply<string, "name1">;
-	done: Apply<boolean, "flip">;
-}>;

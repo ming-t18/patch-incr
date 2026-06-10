@@ -16,7 +16,7 @@ export const merged = s.merge(item, {
 
 // { id: string, done: boolean, description: string }
 type Item = s.infer<typeof item>;
-type ItemChange = s.inferChange<typeof item>;
+type _ItemChange = s.inferChange<typeof item>;
 
 describe("TEST", () => {
 	it("examples", () => {

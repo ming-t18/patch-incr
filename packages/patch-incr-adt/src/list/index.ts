@@ -4,13 +4,13 @@ import type { RecordApply } from "@/record/types";
 import type { AnyApply, Apply, DRO, InferApplyChange } from "@/types/algebra";
 import { type UnionApply, union } from "@/union";
 
-export type ListShape<TA extends AnyApply, Rec extends AnyApply> = {
+export interface ListShape<TA extends AnyApply, Rec extends AnyApply> {
 	nil: Apply<null, null>;
 	cons: RecordApply<{
 		head: TA;
 		tail: Rec;
 	}>;
-};
+}
 
 export interface ListApply<A extends AnyApply>
 	extends UnionApply<ListShape<A, ListApply<A>>> {}

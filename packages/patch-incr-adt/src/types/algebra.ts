@@ -13,7 +13,7 @@ export interface Change<in out T, in out DT> extends Monoid<DT> {
 	readonly isReplace: (value: DT) => ReplaceOnly<T> | null;
 }
 
-export interface BaseApply {
+export interface BaseApply<TypeTag extends string = string> {
 	/**
 	 * The type tag for an `Apply`.
 	 *  - constant
@@ -23,9 +23,10 @@ export interface BaseApply {
 	 *  - union
 	 *  - optional
 	 */
-	$type: string;
+	$type: TypeTag;
 }
 
+/** A change-type applier. */
 export interface Apply<in out T, in out DT = DRO<T>> extends Change<T, DT> {
 	readonly apply: (value: T, change: DT) => T;
 }
