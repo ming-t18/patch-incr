@@ -14,8 +14,8 @@ import type {
 
 export class UnionCaseError extends TypeError {
 	constructor(
-		public readonly case1: string | number | symbol,
-		public readonly case2: string | number | symbol,
+		readonly case1: string | number | symbol,
+		readonly case2: string | number | symbol,
 	) {
 		super(
 			`invalid union case: expected ${JSON.stringify(case1)}, actual ${JSON.stringify(case2)}.`,
@@ -30,11 +30,16 @@ export class AUnion<
 	Key extends keyof Map = keyof Map,
 > implements Union$<Map, Key>
 {
-	public readonly $type = "union";
-	public readonly empty: DeriveUnionChange<Map, Key> = null;
-	public constructor(
-		public readonly shape: Map,
-		public readonly getDiscrimant: (value: DeriveUnionValue<Map, Key>) => Key,
+	declare "~apply": {
+		readonly value: DeriveUnionValue<Map, Key>;
+		readonly change: DeriveUnionChange<Map, Key>;
+	};
+	readonly $type = "union";
+	readonly empty: DeriveUnionChange<Map, Key> = null;
+
+	constructor(
+		readonly shape: Map,
+		readonly getDiscrimant: (value: DeriveUnionValue<Map, Key>) => Key,
 	) {}
 
 	apply(
@@ -58,7 +63,7 @@ export class AUnion<
 	}
 
 	fromReplace(value: DeriveUnionValue<Map, Key>): DeriveUnionChange<Map, Key> {
-		return getReplaceOnly(value);
+		return makeReplaceOnly(value);
 	}
 
 	isReplace(

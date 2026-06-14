@@ -1,6 +1,8 @@
 export * from "./atomic";
 export { constant, nullType } from "./constant";
-export * from "./list";
+export type * from "./list";
+export * as List from "./list";
+export { cons, list } from "./list";
 export * from "./optional";
 export * from "./record";
 export { record as object } from "./record";

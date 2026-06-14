@@ -39,6 +39,10 @@ export const maybeCombineDRO = <T, C>(
 export type * from "@/types/replaceOnly";
 
 export class AReplaceOnly<T> implements Apply<T, DRO<T>> {
+	declare readonly "~apply": {
+		readonly value: T;
+		readonly change: DRO<T>;
+	};
 	readonly empty: DRO<T> = null;
 
 	combine = (left: DRO<T>, right: DRO<T>): DRO<T> =>

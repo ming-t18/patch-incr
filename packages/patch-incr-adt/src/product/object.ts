@@ -21,6 +21,11 @@ export abstract class BaseProductShaped<
 		Apply<Prod, DeriveProductChange<Prod, Shape, Key>>,
 		ApplyProductShaped<Prod, Shape, Key>
 {
+	declare "~apply": {
+		readonly value: Prod;
+		readonly change: DeriveProductChange<Prod, Shape, Key>;
+	};
+
 	constructor(
 		readonly shape: Shape,
 		readonly keys = Object.keys(shape) as never[] as Readonly<Key[]>,
@@ -42,13 +47,11 @@ export abstract class BaseProductShaped<
 			return getReplaceOnly(change);
 		}
 
-		const change1: Record<Key, never> = Array.isArray(change)
-			? ([] as never)
-			: ({} as never);
+		const change1: Record<Key, never> = {} as never;
 		for (const key of this.keys) {
 			if (!Object.hasOwn(change, key)) continue;
-			// @ts-expect-error Can't be checked
-			const changeKey: never = change[key];
+
+			const changeKey = change[key];
 			change1[key] = this.shape[key].apply(
 				this.get(value, key as never),
 				changeKey,
@@ -84,7 +87,7 @@ export abstract class BaseProductShaped<
 		if (isReplaceOnly(a)) {
 			return makeReplaceOnly(this.apply(getReplaceOnly(a), b));
 		}
-		const c = (Array.isArray(a) ? [...a] : { ...a }) as typeof a;
+		const c = { ...a } as typeof a;
 		for (const k of Object.keys(c)) {
 			const key = k as Key;
 			if (!Object.hasOwn(b, k)) continue;

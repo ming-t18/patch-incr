@@ -14,6 +14,7 @@ export const merged = s.merge(item, {
 	isChanged: s.boolean(),
 });
 
+type _G = (typeof item)["~apply"];
 // { id: string, done: boolean, description: string }
 type Item = s.infer<typeof item>;
 type _ItemChange = s.inferChange<typeof item>;

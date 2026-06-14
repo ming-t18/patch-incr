@@ -1,59 +1,49 @@
-import { ARecord } from "@/record";
-import type { AnyApply, ReplaceOnly } from "@/types/algebra";
-import type { DeriveTupleChange, DeriveTupleValue, Tuple$ } from "./types";
+import { BaseProductShapedTuple } from "@/product";
+import type { AnyApply, InferApplyValue } from "@/types/algebra";
+import type {
+	AnyTuple,
+	DeriveTupleChange,
+	DeriveTupleValue,
+	KeyOfTuple,
+	Tuple$,
+} from "./types";
 
 export type * from "./types";
 
-export class ATuple<Tup extends AnyApply[]> implements Tuple$<Tup> {
+export class ATuple<Shape extends AnyTuple<AnyApply>>
+	extends BaseProductShapedTuple<DeriveTupleValue<Shape>, Shape>
+	implements Tuple$<Shape>
+{
 	readonly $type = "tuple";
-	// biome-ignore lint/suspicious/noExplicitAny: re-using code for ARecord, can't be type checked
-	readonly #record: ARecord<any, any>;
-	readonly empty: DeriveTupleChange<Tup>;
-	constructor(readonly shape: Tup) {
-		// We could do inheritance instead of composition to avoid forwarding methods, but this will break the impl for Tuple$
-		this.#record = new ARecord(
-			shape,
-			Array(shape.length)
-				.fill(null)
-				.map((_, i) => i),
-		);
-		this.empty = this.#record.empty as never;
+
+	override assign(
+		value: DeriveTupleValue<Shape>,
+		change: DeriveTupleChange<Shape>,
+	): DeriveTupleValue<Shape> {
+		const value1: typeof value = [...value];
+		for (const key of this.keys) {
+			// @ts-expect-error Bypassing readonly
+			value1[key] = change[key];
+		}
+		return value1;
 	}
 
-	apply(
-		value: DeriveTupleValue<Tup>,
-		change: DeriveTupleChange<Tup>,
-	): DeriveTupleValue<Tup> {
-		// @ts-expect-error re-using code for ARecord, can't be type checked
-		return this.#record.apply(value, change);
-	}
-
-	fromReplace(value: DeriveTupleValue<Tup>): DeriveTupleChange<Tup> {
-		// @ts-expect-error re-using code for ARecord, can't be type checked
-		return this.#record.fromReplace(value);
-	}
-
-	isReplace(
-		value: DeriveTupleChange<Tup>,
-	): ReplaceOnly<DeriveTupleValue<Tup>> | null {
-		// @ts-expect-error re-using code for ARecord, can't be type checked
-		return this.#record.isReplace(value);
-	}
-
-	combine(
-		a: DeriveTupleChange<Tup>,
-		b: DeriveTupleChange<Tup>,
-	): DeriveTupleChange<Tup> {
-		// @ts-expect-error re-using code for ARecord, can't be type checked
-		return this.#record.combine(a, b);
-	}
-
-	isEmpty(value: DeriveTupleChange<Tup>): boolean {
-		return this.#record.isEmpty(value);
+	override get<K extends KeyOfTuple<Shape>>(
+		value: DeriveTupleValue<Shape>,
+		key: K,
+	): InferApplyValue<Shape[K]> {
+		// @ts-expect-error Can't be checked
+		return value[key];
 	}
 }
 
-export const tuple = <Tup extends AnyApply[]>(tup: Tup) => new ATuple<Tup>(tup);
+export const tuple = <Shape extends AnyTuple<AnyApply>>(shape: Shape) =>
+	new ATuple<Shape>(
+		shape,
+		Array(shape.length)
+			.fill(null)
+			.map((_, i) => i) as never[],
+	);
 
 export const pair = <A extends AnyApply, B extends AnyApply>(a: A, b: B) =>
-	new ATuple([a, b]);
+	tuple([a, b]);

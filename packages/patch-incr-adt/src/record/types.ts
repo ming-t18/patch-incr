@@ -47,9 +47,9 @@ export interface Record$<
 	readonly $type: "record";
 	readonly shape: Readonly<Shape>;
 	readonly fromMap: (
-		change: { readonly [k in Key]?: InferApplyChange<Shape[k]> },
+		change: { readonly [k in Key]?: InferApplyChange<Shape[k]> | undefined },
 	) => DeriveRecordChange<Shape, Key>;
 	readonly fromMapReplace: (
-		change: { readonly [k in Key]?: InferApplyValue<Shape[k]> },
+		change: { readonly [k in Key]?: InferApplyValue<Shape[k]> | undefined },
 	) => DeriveRecordChange<Shape, Key>;
 }

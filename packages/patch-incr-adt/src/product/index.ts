@@ -1,50 +1,44 @@
-import { AdaptSameChange } from "@/adapters";
-import type {
-	DeriveRecordChange,
-	DeriveRecordValue,
-	Record$,
-} from "@/record/types";
-import type { AnyApply } from "@/types/algebra";
-import type { DeriveProdChangeNoReplace, ProductApply } from "./types";
+import type { AnyApply, InferApplyValue } from "@/types/algebra";
+import { BaseProductShaped } from "./object";
+import type { DeriveProductChange, ProductImpl } from "./types";
 
-export * from "./shaped";
+export * from "./object";
+export * from "./tuple";
 export type * from "./types";
-
-// @ts-expect-error Impl for apply(...)
-export class AProduct<
-		Prod,
-		Shape extends Record<Key, AnyApply>,
-		Key extends keyof Shape = keyof Shape,
-		ApplyR extends Record$<Shape, Key> = Record$<Shape, Key>,
-	>
-	extends AdaptSameChange<
-		Prod,
-		DeriveRecordChange<Shape, Key>,
-		DeriveRecordValue<Shape, Key>,
-		ApplyR
-	>
-	implements ProductApply<Prod, Shape, Key>
-{
-	constructor(
-		inner: ApplyR,
-		readonly applyProd: (
-			value: Prod,
-			change: DeriveProdChangeNoReplace<Shape, Key>,
-		) => Prod,
-	) {
-		super(inner, applyProd);
-	}
-}
 
 export const product = <
 	Prod,
 	Shape extends Record<Key, AnyApply>,
 	Key extends keyof Shape = keyof Shape,
-	ApplyR extends Record$<Shape, Key> = Record$<Shape, Key>,
->(
-	inner: ApplyR,
-	applyProd: (
-		value: Prod,
-		change: DeriveProdChangeNoReplace<Shape, Key>,
-	) => Prod,
-) => new AProduct<Prod, Shape, Key, ApplyR>(inner, applyProd);
+>({
+	shape,
+	assign,
+	get,
+}: ProductImpl<Prod, Shape, Key> & { shape: Shape }) => {
+	class AProductImpl extends BaseProductShaped<Prod, Shape, Key> {
+		declare readonly "~apply": {
+			readonly value: Prod;
+			readonly change: DeriveProductChange<Prod, Shape, Key>;
+		};
+
+		public constructor() {
+			super(shape);
+		}
+
+		override assign(
+			value: Prod,
+			change: Readonly<
+				Partial<{ [k in keyof Shape]: InferApplyValue<Shape[k]> }>
+			>,
+		): Prod {
+			return assign(value, change);
+		}
+		override get<K extends Key>(
+			value: Prod,
+			key: K,
+		): InferApplyValue<Shape[K]> {
+			return get(value, key);
+		}
+	}
+	return new AProductImpl();
+};

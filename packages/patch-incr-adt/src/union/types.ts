@@ -10,6 +10,7 @@ export interface HasDiscrimant<T, D extends string = string> {
 	readonly discrimant: (value: T) => D;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: intentional
 export type AnyHasDiscrimant = HasDiscrimant<any, any>;
 
 export type DeriveUnionValue<

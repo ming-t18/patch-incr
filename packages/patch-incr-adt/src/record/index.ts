@@ -1,4 +1,4 @@
-import { BaseProductShaped } from "@/product/shaped";
+import { BaseProductShaped } from "@/product";
 import type {
 	AnyApply,
 	InferApplyChange,
@@ -14,6 +14,7 @@ export class ARecord<
 	implements Record$<Map, Key>
 {
 	readonly $type = "record";
+
 	constructor(shape: Map, keys: Key[] = Object.keys(shape) as never[]) {
 		super(shape, keys);
 	}

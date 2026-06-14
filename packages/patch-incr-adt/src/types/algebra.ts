@@ -2,6 +2,14 @@ import type { DRO, ReplaceOnly } from "@/types/replaceOnly";
 
 export type { DRO, ReplaceOnly } from "@/types/replaceOnly";
 
+export type Defined<T> = T extends undefined
+	? never
+	: T extends null
+		? never
+		: T;
+
+export type Writable<T> = { [k in keyof T]: T[k] };
+
 export interface Monoid<in out M> {
 	readonly empty: M;
 	readonly combine: (a: M, b: M) => M;
@@ -28,6 +36,7 @@ export interface BaseApply<TypeTag extends string = string> {
 
 /** A change-type applier. */
 export interface Apply<in out T, in out DT = DRO<T>> extends Change<T, DT> {
+	readonly "~apply": { readonly value: T; readonly change: DT };
 	readonly apply: (value: T, change: DT) => T;
 }
 
@@ -37,18 +46,14 @@ export type AnyApply = Apply<any, any>;
 export type AnyApplyOf<T> = Apply<T, any>;
 
 export type InferApplyValue<A> = A extends AnyApply
-	? Parameters<A["fromReplace"]>[0]
+	? A["~apply"]["value"]
 	: never;
+
+export type InferApplyChange<A> = A extends AnyApply
+	? A["~apply"]["change"]
+	: never;
+
+export interface ApplyAtomic<T> extends Apply<T /* , DRO<T> */> {}
 
 export type infer<A> = InferApplyValue<A>;
 export type inferChange<A> = InferApplyChange<A>;
-
-// should be: string
-type _TestAV = InferApplyValue<Apply<string, "change">>;
-
-export type InferApplyChange<A> = A extends AnyApply ? A["empty"] : never;
-
-// should be: 'change'
-type _TestAC = InferApplyChange<Apply<string, "change">>;
-
-export interface ApplyAtomic<T> extends Apply<T /* , DRO<T> */> {}

@@ -5,6 +5,7 @@ export interface Constant$<T, D> extends Apply<T, D> {
 }
 
 export class AConstant<T, D> implements Constant$<T, D> {
+	declare "~apply": { readonly value: T; readonly change: D };
 	readonly $type = "constant";
 
 	constructor(
@@ -27,4 +28,5 @@ export class AConstant<T, D> implements Constant$<T, D> {
 export const constant = <T, D = never>(value: T, change: D) =>
 	new AConstant(value, change);
 
-export const nullType = constant(null, null);
+const _INSTANCE = constant(null, null);
+export const nullType = () => _INSTANCE;

@@ -1,33 +1,60 @@
 import { constant } from "@/constant";
 import type { ProductApply } from "@/product";
 import { product } from "@/product";
-import { record } from "@/record";
 import type { AnyApply, Apply, InferApplyValue } from "@/types/algebra";
-import { type UnionApply, union } from "@/union";
+import { type AUnion, union } from "@/union";
 
+/** A cons-cell for a linked list. */
 export class Cons<T> {
 	constructor(
 		readonly head: T,
 		readonly tail: Cons<T> | null = null,
 	) {}
+
+	toArray(): T[] {
+		if (this.tail === null) {
+			return [this.head];
+		}
+		return [this.head, ...this.tail.toArray()];
+	}
+
+	*[Symbol.iterator](): Iterator<T> {
+		yield this.head;
+		if (this.tail === null) return;
+		yield* this.tail;
+	}
+
+	[Symbol.for("nodejs.util.inspect.custom")]() {
+		return { List: this.toArray() };
+	}
 }
 
-export interface ConsShape<TA extends AnyApply, Rec extends AnyApply> {
+export type List<T> = Cons<T> | null;
+
+export const cons = <T>(h: T, t = null as Cons<T> | null) => new Cons(h, t);
+
+export const empty = <T>(): List<T> => null;
+
+export const fromArray = <T>(xs: T[]): List<T> => {
+	let l: List<T> = null;
+	for (let i = xs.length - 1; i >= 0; i--) {
+		l = new Cons(xs[i] as T, l);
+	}
+	return l;
+};
+
+export interface ConsShape<TA extends AnyApply, TRec extends AnyApply> {
 	head: TA;
-	tail: Rec;
+	tail: TRec;
 }
 
 export interface ListShape<TA extends AnyApply, Rec extends AnyApply> {
 	nil: Apply<null, null>;
-	cons: ProductApply<
-		Cons<InferApplyValue<TA>>,
-		ConsShape<TA, Rec>,
-		"head" | "tail"
-	>;
+	cons: ProductApply<Cons<InferApplyValue<TA>>, ConsShape<TA, Rec>>;
 }
 
 export interface ListApply<A extends AnyApply>
-	extends UnionApply<ListShape<A, ListApply<A>>> {}
+	extends AUnion<ListShape<A, ListApply<A>>> {}
 
 export const list = <TA extends AnyApply>(apply: TA): ListApply<TA> => {
 	type T = InferApplyValue<TA>;
@@ -35,25 +62,25 @@ export const list = <TA extends AnyApply>(apply: TA): ListApply<TA> => {
 	const rec: ListApply<TA> = union(
 		{
 			nil: constant(null, null),
-			cons: product<Cons<T>, ConsShape<TA, ListApply<TA>>, "head" | "tail">(
-				record({
+			cons: product<Cons<T>, ConsShape<TA, ListApply<TA>>, "head" | "tail">({
+				shape: {
 					head: apply,
-					// Use getter for recursion
 					get tail() {
 						return rec;
 					},
-				}),
-				(cons1: Cons<T>, dcons1): Cons<T> => {
-					return new Cons(
-						dcons1.head !== undefined
-							? apply.apply(cons1.head, dcons1.head)
-							: cons1.head,
-						dcons1.tail !== undefined
-							? rec.apply(cons1.tail, dcons1.tail)
-							: cons1.tail,
-					);
 				},
-			),
+				assign: (c, d) => {
+					if (!Object.hasOwn(d, "head") && !Object.hasOwn(d, "tail")) return c;
+					return new Cons(
+						Object.hasOwn(d, "head") ? d.head : c.head,
+						Object.hasOwn(d, "tail") ? d.tail : c.tail,
+					) as typeof c;
+				},
+				get: <K extends "head" | "tail">(
+					c: Cons<InferApplyValue<TA>>,
+					k: K,
+				): InferApplyValue<ConsShape<TA, ListApply<TA>>[K]> => c[k] as never,
+			}),
 		} satisfies ListShape<TA, ListApply<TA>>,
 		(x) => (x ? "cons" : "nil"),
 	);

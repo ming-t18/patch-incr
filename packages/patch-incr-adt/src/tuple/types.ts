@@ -1,33 +1,29 @@
-import type {
-	AnyApply,
-	Apply,
-	InferApplyChange,
-	InferApplyValue,
-} from "@/types/algebra";
+import type { DeriveProductShapedChangeTuple } from "@/product";
+import type { AnyApply, Apply, DRO, InferApplyValue } from "@/types/algebra";
 
-export type AnyTuple = [] | [any, ...any[]];
+// biome-ignore lint/suspicious/noExplicitAny: intentional
+export type AnyTuple<T = any> = [] | [T, ...T[]];
 
-export type DeriveTupleValue<Tup extends AnyApply[]> = Tup extends []
-	? Readonly<[]>
-	: Tup extends [infer X, ...infer Xs extends AnyApply[]]
-		? Readonly<[InferApplyValue<X>, ...DeriveTupleValue<Xs>]>
-		: never;
+export type DeriveTupleValue<Shape extends AnyTuple<AnyApply>> =
+	Shape extends []
+		? Readonly<[]>
+		: Shape extends [infer X, ...infer Xs extends AnyTuple<AnyApply>]
+			? Readonly<[InferApplyValue<X>, ...DeriveTupleValue<Xs>]>
+			: never;
 
-export type DeriveTupleChange<Tup extends AnyApply[]> = Tup extends []
-	? Readonly<[]>
-	: Tup extends [infer X, ...infer Xs extends AnyApply[]]
-		? Readonly<[InferApplyChange<X> | undefined, ...DeriveTupleChange<Xs>]>
-		: never;
+export type DeriveTupleChange<Shape extends AnyTuple<AnyApply>> =
+	| DeriveProductShapedChangeTuple<Shape>
+	| DRO<DeriveTupleValue<Shape>>;
 
-export type TupleApply<Tup extends AnyApply[]> = Apply<
+export type TupleApply<Tup extends AnyTuple<AnyApply>> = Apply<
 	DeriveTupleValue<Tup>,
 	DeriveTupleChange<Tup>
 >;
 
-export interface Tuple$<Tup extends AnyApply[]> extends TupleApply<Tup> {
+export type KeyOfTuple<T extends AnyTuple> = `${number}` & keyof T;
+
+export interface Tuple$<Tup extends AnyTuple<AnyApply>>
+	extends TupleApply<Tup> {
 	readonly $type: "tuple";
 	readonly shape: Readonly<Tup>;
 }
-
-type T1 = DeriveTupleValue<[Apply<string>, Apply<number>]>;
-type C1 = DeriveTupleChange<[Apply<string>, Apply<number>]>;
