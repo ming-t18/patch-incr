@@ -1,4 +1,4 @@
-import { constant } from "@/constant";
+import { nullType } from "@/constant";
 import type { ProductApply } from "@/product";
 import { product } from "@/product";
 import type { AnyApply, Apply, InferApplyValue } from "@/types/algebra";
@@ -61,7 +61,7 @@ export const list = <TA extends AnyApply>(apply: TA): ListApply<TA> => {
 	// type DT = InferApplyChange<TA>;
 	const rec: ListApply<TA> = union(
 		{
-			nil: constant(null, null),
+			nil: nullType(),
 			cons: product<Cons<T>, ConsShape<TA, ListApply<TA>>, "head" | "tail">({
 				shape: {
 					head: apply,
