@@ -1,6 +1,10 @@
-import type { InferApplyType } from "patch-incr/algebra";
 import { getReplaceOnly, isReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
-import type { Apply, InferApplyChange, ReplaceOnly } from "@/types";
+import type {
+	Apply,
+	InferApplyChange,
+	InferApplyValue,
+	ReplaceOnly,
+} from "@/types";
 import { UnionCaseError } from "@/union";
 
 export function isReplaceUndefined(x: unknown): x is ReplaceOnly<undefined> {
@@ -9,7 +13,7 @@ export function isReplaceUndefined(x: unknown): x is ReplaceOnly<undefined> {
 
 export interface Optional$<
 	A extends Apply<T, DT>,
-	T = InferApplyType<A>,
+	T = InferApplyValue<A>,
 	DT = InferApplyChange<A>,
 > extends Apply<T | undefined, DT | ReplaceOnly<undefined>> {
 	$type: "optional";
@@ -19,7 +23,7 @@ export interface Optional$<
 
 export class AOptional<
 	A extends Apply<T, DT>,
-	T = InferApplyType<A>,
+	T = InferApplyValue<A>,
 	DT = InferApplyChange<A>,
 > implements Optional$<A, T, DT>
 {
@@ -86,7 +90,7 @@ export class AOptional<
 
 export const optional = <
 	A extends Apply<T, DT>,
-	T = InferApplyType<A>,
+	T = InferApplyValue<A>,
 	DT = InferApplyChange<A>,
 >(
 	inner: A,

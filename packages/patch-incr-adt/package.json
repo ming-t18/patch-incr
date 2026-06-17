@@ -4,8 +4,7 @@
 	"type": "module",
 	"dependencies": {},
 	"devDependencies": {
-		"@types/bun": "latest",
-		"patch-incr": "workspace:*"
+		"@types/bun": "latest"
 	},
 	"peerDependencies": {
 		"typescript": "^5"
