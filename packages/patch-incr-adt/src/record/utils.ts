@@ -1,3 +1,4 @@
+import { type AOptional, optional } from "@/optional";
 import type { AnyApply } from "@/types";
 import { record } from ".";
 import type { Record$ } from "./types";
@@ -31,6 +32,21 @@ export const merge = <
 	for (const key of Object.keys(shape1)) {
 		// @ts-expect-error Can't be checked
 		shape2[key] = shape1[key];
+	}
+	// @ts-expect-error Can't be checked
+	return record(shape2);
+};
+
+export const partial = <
+	Map extends Record<Key, AnyApply>,
+	Key extends keyof Map = keyof Map,
+>({
+	shape,
+}: Record$<Map, Key>): Record$<{ [k in Key]: AOptional<Map[k]> }, Key> => {
+	const shape2: Map = { ...shape } as never;
+	for (const key of Object.keys(shape)) {
+		// @ts-expect-error Can't be checked
+		shape2[key] = optional(shape1[key]);
 	}
 	// @ts-expect-error Can't be checked
 	return record(shape2);
