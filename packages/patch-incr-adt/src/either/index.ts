@@ -1,5 +1,9 @@
 import { record } from "@/record";
-import type { AnyApply } from "@/types/algebra";
+import type {
+	AnyApply,
+	InferApplyChange,
+	InferApplyValue,
+} from "@/types/algebra";
 import { union } from "@/union";
 
 export const either = <L extends AnyApply, R extends AnyApply>(
@@ -13,3 +17,13 @@ export const either = <L extends AnyApply, R extends AnyApply>(
 		},
 		(x) => ("left" in x ? "left" : "right"),
 	);
+
+export type AEither<A extends AnyApply, B extends AnyApply> = ReturnType<
+	typeof either<A, B>
+>;
+export type Either<A extends AnyApply, B extends AnyApply> = InferApplyValue<
+	AEither<A, B>
+>;
+export type DEither<A extends AnyApply, B extends AnyApply> = InferApplyChange<
+	AEither<A, B>
+>;

@@ -30,3 +30,10 @@ export const constant = <T, D = never>(value: T, change: D) =>
 
 const _INSTANCE = constant(null, null);
 export const nullType = () => _INSTANCE;
+
+// biome-ignore lint/suspicious/noConfusingVoidType: intentional
+const _VOID = constant(null as never as void, null as never as void);
+export const voidType = () => _VOID;
+
+const _NEVER = constant(null as never, null as never);
+export const neverType = () => _NEVER;

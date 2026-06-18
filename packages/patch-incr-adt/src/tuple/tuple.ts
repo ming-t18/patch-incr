@@ -1,9 +1,5 @@
 import { BaseProductShapedTuple } from "@/product";
-import type {
-	AnyApply,
-	InferApplyChange,
-	InferApplyValue,
-} from "@/types/algebra";
+import type { AnyApply, InferApplyValue } from "@/types/algebra";
 import type {
 	AnyTuple,
 	DeriveTupleChange,
