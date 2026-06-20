@@ -21,6 +21,9 @@ import { splice } from "./helpers/arrayPatch";
 import { forwardWithArraySchema } from "./helpers/forwardArray";
 import { scan } from "./scan";
 
+// TODO new concat: T[][] -> [T[], number[]]
+// eval = [concat(...), scan((acc, { length }) => acc + length, 0)]
+
 export const concat = <T>(): IF<T[][], [T[], number[]]> => {
 	const elemSchema = ps.atomic<T>();
 	const inArraySchema = ps.array(elemSchema);

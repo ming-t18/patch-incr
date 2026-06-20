@@ -48,4 +48,4 @@ export const implsIjqList = <Ctx>(): ImplsArrowListOutput<RCI$<Ctx>> & {
 	return { ...al, reader, fromIF, toIF };
 };
 
-export const elimIjq = <Ctx, A, B>(f: Ijq<Ctx, A, B>) => {};
+export const elimIjq = <Ctx, A, B>(_f: Ijq<Ctx, A, B>) => {};

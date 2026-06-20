@@ -1,5 +1,3 @@
-import { singleton } from "patch-incr/builder";
-import type { Option } from "patch-incr/builder/option";
 import type { IAOption } from "@/arrow";
 import type { $2, $3 } from "@/hkt";
 import {
@@ -8,7 +6,6 @@ import {
 	ListKind,
 	type ListMultiple,
 	type ListOptional,
-	type ListT$,
 	type ListTRepr,
 } from "./types";
 

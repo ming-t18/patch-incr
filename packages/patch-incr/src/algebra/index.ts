@@ -13,7 +13,7 @@ export interface Apply<Value, Change> {
 	fromReplace: (value: Value) => Change;
 	isEmpty: (change: Change) => boolean;
 	isReplace: (change: Change) => ReplaceOnly<Value> | null;
-	[TypesKey]?: { value: Value; change: Change };
+	[TypesKey]: { value: Value; change: Change };
 }
 
 export type InferApplyType<T extends AnyApply> = AccessTypes<"value", T>;

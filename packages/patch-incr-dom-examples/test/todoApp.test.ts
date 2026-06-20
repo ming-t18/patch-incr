@@ -1,4 +1,4 @@
-import { describe, it } from "bun:test";
+import { describe } from "bun:test";
 import fc from "fast-check";
 import { atomicFunc } from "patch-incr/builder";
 import { composer } from "patch-incr/builder/compose/memo";

@@ -1,11 +1,6 @@
 import type { IAReader } from "@/arrowTransformer";
 import type { $ } from "@/hkt";
-import {
-	type ImplsArrowListInput,
-	type ImplsArrowListOutputBasic,
-	ListKind,
-	type ListT$,
-} from "./types";
+import { type ImplsArrowListOutputBasic, ListKind, type ListT$ } from "./types";
 
 export const deriveReader = <T, Ctx>(
 	args: ImplsArrowListOutputBasic<T> & { reader: IAReader<Ctx, T> },
