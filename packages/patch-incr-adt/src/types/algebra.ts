@@ -16,6 +16,10 @@ export interface Monoid<in out M> {
 	readonly isEmpty: (value: M) => boolean;
 }
 
+export interface Group<in out M> extends Monoid<M> {
+	readonly inverse: (a: M) => M;
+}
+
 export interface Change<in out T, in out DT> extends Monoid<DT> {
 	readonly fromReplace: (value: T) => DT;
 	readonly isReplace: (value: DT) => ReplaceOnly<T> | null;
