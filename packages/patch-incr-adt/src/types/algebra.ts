@@ -57,7 +57,9 @@ export type InferApplyChange<A> = A extends AnyApply
 	? A["~apply"]["change"]
 	: never;
 
-export interface ApplyAtomic<T> extends Apply<T /* , DRO<T> */> {}
+export interface Atomic$<T> extends Apply<T /* , DRO<T> */> {
+	$type: "atomic";
+}
 
 export type infer<A> = InferApplyValue<A>;
 export type inferChange<A> = InferApplyChange<A>;
