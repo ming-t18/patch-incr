@@ -2,7 +2,9 @@
 	"name": "patch-incr-adt",
 	"module": "src/index.ts",
 	"type": "module",
-	"dependencies": {},
+	"dependencies": {
+		"fast-check": "^4.8.0"
+	},
 	"devDependencies": {
 		"@types/bun": "latest"
 	},
