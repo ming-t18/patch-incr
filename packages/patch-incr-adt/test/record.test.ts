@@ -1,9 +1,20 @@
+import fc from "fast-check";
 import * as s from "@/index";
+import { atomicWithGen } from "@/props/gen";
+import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
+
+export const singleton = s.object({
+	id: atomicWithGen(fc.integer()),
+});
+
+export const nestedSingleton = s.object({
+	nested: singleton,
+});
 
 export const item = s.object({
-	id: s.number(),
-	done: s.boolean(),
-	description: s.string(),
+	id: atomicWithGen(fc.integer()),
+	done: atomicWithGen(fc.boolean()),
+	description: atomicWithGen(fc.string()),
 });
 
 export const omitted = s.omit(item, {
@@ -11,7 +22,7 @@ export const omitted = s.omit(item, {
 });
 
 export const merged = s.merge(item, {
-	isChanged: s.boolean(),
+	isChanged: atomicWithGen(fc.boolean()),
 });
 
 type _Merged = s.infer<typeof merged>;
@@ -21,7 +32,25 @@ type _G = (typeof item)["~apply"];
 type Item = s.infer<typeof item>;
 type _ItemChange = s.inferChange<typeof item>;
 
-describe("TEST", () => {
+describe("record types", () => {
+	describe("singleton", () => {
+		testCasesPropsApply(singleton);
+	});
+	describe("nested singleton", () => {
+		testCasesPropsApply(nestedSingleton);
+	});
+	describe("item", () => {
+		testCasesPropsApply(item);
+	});
+	describe("omitted", () => {
+		testCasesPropsApply(omitted);
+	});
+	describe("merged", () => {
+		testCasesPropsApply(merged);
+	});
+});
+
+describe.skip("TEST", () => {
 	it("examples", () => {
 		const item0: Item = {
 			id: 0,

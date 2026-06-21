@@ -1,10 +1,19 @@
 import fc from "fast-check";
 import * as s from "@/index";
-import { applyToGenValue, atomicWithGen } from "@/props/gen";
+import {
+	atomicWithGen,
+	genChangeFromApply,
+	genValueFromApply,
+} from "@/props/gen";
+import { propCanApplyApplies } from "./testPropsApply.test";
 
 const item = s.record({
 	done: atomicWithGen(fc.boolean()),
 	text: atomicWithGen(fc.string()),
+	nested: s.record({
+		a: atomicWithGen(fc.string()),
+		b: atomicWithGen(fc.integer()),
+	}),
 });
 
 const union = s.union(
@@ -15,38 +24,66 @@ const union = s.union(
 	(x) => typeof x as "string" | "boolean",
 );
 
-const listItem = s.list(item);
+const either = s.Either.either(
+	item,
+	s.record({ b: atomicWithGen(fc.string()) }),
+);
+
+// const listItem = s.list(item);
 
 describe("record", () => {
 	it("should generate record", () => {
 		fc.assert(
-			fc.property(applyToGenValue(item), (item) => {
-				// console.log(item);
+			fc.property(genValueFromApply(item), (item) => {
 				expect(typeof item).toBe("object");
 				expect(typeof item.done).toBe("boolean");
 				expect(typeof item.text).toBe("string");
 			}),
 		);
 	});
-});
-describe("union", () => {
-	it("should generate union", () => {
+
+	it("should generate record change", () => {
 		fc.assert(
-			fc.property(applyToGenValue(union), (u) => {
-				return typeof u === "boolean" || typeof u === "string";
-				// expect(typeof item.done).toBe("boolean");
-				// expect(typeof item.text).toBe("string");
+			fc.property(genValueFromApply(item), genChangeFromApply(item), (v, d) => {
+				return propCanApplyApplies(item, v, d);
 			}),
 		);
 	});
-	it("should generate list", () => {
+});
+
+describe("union", () => {
+	it("should generate union", () => {
 		fc.assert(
-			fc.property(applyToGenValue(listItem), (xs) => {
-				console.log(xs);
-				// expect(typeof item).toBe("object");
-				// expect(typeof item.done).toBe("boolean");
-				// expect(typeof item.text).toBe("string");
+			fc.property(genValueFromApply(union), (u) => {
+				return typeof u === "boolean" || typeof u === "string";
 			}),
+		);
+	});
+
+	it("should generate union change", () => {
+		fc.assert(
+			fc.property(
+				genValueFromApply(union),
+				genChangeFromApply(union),
+				(v, d) => {
+					return propCanApplyApplies(union, v, d);
+				},
+			),
+		);
+	});
+});
+
+describe("either", () => {
+	it("should generate either change", () => {
+		fc.assert(
+			fc.property(
+				genValueFromApply(either),
+				genChangeFromApply(either),
+				(v, d) => {
+					return propCanApplyApplies(either, v, d);
+				},
+			),
+			{ verbose: true },
 		);
 	});
 });

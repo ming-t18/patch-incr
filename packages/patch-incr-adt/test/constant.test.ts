@@ -1,11 +1,20 @@
 import * as s from "@/index";
+import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 
-const c1 = s.constant("test", null);
 describe("constant", () => {
-	it("empty is null", () => {
-		expect(c1.empty).toBe(null);
+	describe("constant(null, null)", () => {
+		testCasesPropsApply(s.constant(null, null));
 	});
-	it("apply does nothing", () => {
-		expect(c1.apply("test", null)).toBe("test");
+
+	describe("constant('test', null)", () => {
+		testCasesPropsApply(s.constant("test", null));
+	});
+
+	describe("constant('test', 'test')", () => {
+		testCasesPropsApply(s.constant("test", "test"));
+	});
+
+	describe("constant('test', true)", () => {
+		testCasesPropsApply(s.constant("test", true));
 	});
 });
