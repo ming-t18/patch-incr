@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { Arbitrary as Arb } from "fast-check";
 import fc from "fast-check";
 import { AAtomic } from "@/atomic";
@@ -34,12 +33,13 @@ export const mapShapeTuple = <
 	fn: <Idx extends KeyOfTuple<Shape>>(
 		i: Idx,
 		value: Shape[Idx],
-	) => Reshaped[Idx],
+	) => Idx extends KeyOfTuple<Reshaped> ? Reshaped[Idx] : never,
 	shape: Shape,
 ): Reshaped => {
 	const n = shape.length;
 	const res: Reshaped = Array(n).fill(null) as never;
 	for (let i = 0; i < n; i++) {
+		// @ts-expect-error Can't be checked
 		res[i] = fn(i, shape[k]);
 	}
 	return res;
@@ -52,8 +52,7 @@ export interface GenApply<A extends $A> {
 }
 
 export interface ApplyToGenValueParams {
-	// biome-ignore lint/suspicious/noExplicitAny: intentional
-	arbAtomic: <A1 extends AAtomic<any>>(atomic: A1) => Arb<$T<A1>>;
+	arbAtomic: <T, A1 extends AAtomic<T>>(atomic: A1) => Arb<$T<A1>>;
 }
 
 export class AtomicWithGen<T> extends AAtomic<T> {
@@ -64,7 +63,7 @@ export class AtomicWithGen<T> extends AAtomic<T> {
 
 export const atomicWithGen = <T>(gen: Arb<T>) => new AtomicWithGen<T>(gen);
 
-export const applyToGenValue = <A extends $A>(
+export const genValueFromApply = <A extends $A>(
 	apply: A,
 	params?: ApplyToGenValueParams,
 ): Arb<$T<A>> => {
@@ -75,7 +74,7 @@ export const applyToGenValue = <A extends $A>(
 		return apply.gen;
 	}
 	if (apply instanceof AAtomic) {
-		if (params?.arbAtomic) {
+		if (!params?.arbAtomic) {
 			throw new TypeError("can't generate atomic");
 		}
 		return params.arbAtomic(apply);
@@ -84,36 +83,119 @@ export const applyToGenValue = <A extends $A>(
 	if (apply instanceof ARecord) {
 		return fc.record(
 			mapShape(
-				(_key, inner) => applyToGenValue(inner, params),
+				(_key, inner) => genValueFromApply(inner, params) as never,
 				apply.shape,
+				// @ts-expect-error keys
 				apply.keys,
-			),
-			{ requiredKeys: apply.keys },
-		);
+			) as Record<string, Arb<never>>,
+			// @ts-expect-error requiredKeys
+			{ requiredKeys: apply.keys, noNullPrototype: true },
+		) as Arb<never>;
 	}
 	if (apply instanceof ATuple) {
 		return fc.tuple(
-			...mapShapeTuple(apply.shape, (_index, inner) =>
-				applyToGenValue(inner, params),
-			),
-		);
+			...(mapShapeTuple(
+				(_index, inner) => genValueFromApply(inner, params) as never,
+				apply.shape,
+			) as Arb<never>[]),
+		) as Arb<never>;
 	}
 	if (apply instanceof AUnion) {
 		return fc.oneof(
 			...Object.values(apply.shape).map((inner) => ({
 				weight: 1,
-				arbitrary: applyToGenValue(inner, params),
+				arbitrary: genValueFromApply(inner as never, params),
 			})),
 		);
 	}
 	if (apply instanceof AOptional) {
 		return fc.oneof(
 			{ weight: 1, arbitrary: fc.constant(undefined) },
-			{ weight: 4, arbitrary: applyToGenValue(apply.inner, params) },
+			{ weight: 4, arbitrary: genValueFromApply(apply.inner, params) },
 		);
 	}
 
 	throw new TypeError(`Unsupported subtype of Apply: ${apply.constructor}`);
 };
 
-const _applyToGenApply = <A extends $A>(_apply: A): GenApply<A, T> => {};
+export const arbEmptyOrReplace = <A extends $A, T extends $T<A> = $T<A>>(
+	apply: A,
+	gen: Arb<T>,
+): Arb<$D<T>> => {
+	return fc.oneof(
+		{ weight: 1, arbitrary: fc.constant(apply.empty) },
+		{
+			weight: 5,
+			arbitrary: gen.map(apply.fromReplace, apply.isReplace as never),
+		},
+	);
+};
+
+export const genChangeFromApply = <A extends $A>(
+	apply: A,
+	params?: ApplyToGenValueParams,
+): Arb<$D<A>> => {
+	if (apply instanceof AConstant) {
+		return fc.constant(apply.empty);
+	}
+	if (apply instanceof AtomicWithGen) {
+		return arbEmptyOrReplace<A>(apply, genValueFromApply(apply, params));
+	}
+	if (apply instanceof AAtomic) {
+		if (params?.arbAtomic) {
+			throw new TypeError("can't generate atomic");
+		}
+		return arbEmptyOrReplace<A>(apply, genValueFromApply(apply, params));
+	}
+
+	const replacePart = [
+		{
+			weight: 1,
+			arbitrary: arbEmptyOrReplace(apply, genValueFromApply(apply, params)),
+		},
+	];
+	if (apply instanceof ARecord) {
+		return fc.oneof(...replacePart, {
+			weight: 3,
+			arbitrary: fc.record(
+				mapShape(
+					(_key, inner) => genChangeFromApply(inner, params),
+					apply.shape,
+					apply.keys as never[],
+				) as Record<string, Arb<unknown>>,
+				{ requiredKeys: [], noNullPrototype: true },
+			) as never as Arb<unknown>,
+		}) as Arb<never>;
+	}
+	if (apply instanceof ATuple) {
+		return fc.oneof(...replacePart, {
+			weight: 3,
+			arbitrary: fc.tuple(
+				...(mapShapeTuple(apply.shape, (_index, inner) =>
+					genChangeFromApply(inner, params),
+				) as never as Arb<unknown[]>),
+			),
+		});
+	}
+	if (apply instanceof AUnion) {
+		return fc.oneof(...replacePart, {
+			weight: 3,
+			arbitrary: fc.oneof(
+				...(Object.entries(apply.shape).map(([type, inner]) =>
+					fc.record({
+						type: fc.constant(type),
+						change: genChangeFromApply(inner as never, params),
+					}),
+				) as never),
+			),
+		});
+	}
+	if (apply instanceof AOptional) {
+		return fc.oneof(...replacePart, {
+			weight: 3,
+			arbitrary: genChangeFromApply(apply.inner, params),
+		});
+	}
+
+	throw new TypeError(`Unsupported subtype of Apply: ${apply.constructor}`);
+};

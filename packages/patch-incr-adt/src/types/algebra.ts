@@ -10,9 +10,26 @@ export type Defined<T> = T extends undefined
 
 export type Writable<T> = { [k in keyof T]: T[k] };
 
+/**
+ * Base error class for invalid `combine` or `apply` operations.
+ * Examples: Union case mismatch, array index out of bounds.
+ */
+export class ApplyError extends Error {}
+
 export interface Monoid<in out M> {
 	readonly empty: M;
+	/**
+	 * Combines two changes into a single change. Must follow the properties of monoid.
+	 * @throws ApplyError for changes that cannot be combined.
+	 */
 	readonly combine: (a: M, b: M) => M;
+	/** Determines of two changes can be combined without error. */
+	readonly canCombine: (a: M, b: M) => boolean;
+	/**
+	 * Quickly determines if a change is empty on all inputs.
+	 * Does not have to perform a deep analysis on the entire change.
+	 * `isEmpty(empty)` must be true.
+	 * */
 	readonly isEmpty: (value: M) => boolean;
 }
 
@@ -54,6 +71,16 @@ export abstract class BaseApplyClass<T, DT, DTEmpty extends DT = DT> {
 	}
 
 	abstract canApply(_value: T, _change: DT): boolean;
+	abstract combine(a: DT, b: DT): DT;
+
+	canCombine(a: DT, b: DT): boolean {
+		try {
+			this.combine(a, b);
+			return true;
+		} catch {
+			return false;
+		}
+	}
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: intentional

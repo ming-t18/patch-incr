@@ -1,9 +1,12 @@
 export * from "./atomic";
 export { constant, nullType } from "./constant";
+export * from "./either";
+export * as Either from "./either";
 export type * from "./list";
 export * as List from "./list";
 export { cons, list } from "./list";
 export * from "./optional";
+export * as Pair from "./pair";
 export * from "./record";
 export { record as object } from "./record";
 export * from "./record/utils";

@@ -1,6 +1,7 @@
 import { getReplaceOnly, isReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
 import {
 	type AnyApply,
+	ApplyError,
 	BaseApplyClass,
 	type InferApplyChange,
 	type InferApplyValue,
@@ -13,7 +14,7 @@ import type {
 	UnionChangeEntry,
 } from "./types";
 
-export class UnionCaseError extends TypeError {
+export class UnionCaseError extends ApplyError {
 	constructor(
 		readonly case1: string | number | symbol,
 		readonly case2: string | number | symbol,
@@ -84,7 +85,7 @@ export class AUnion<
 			return false;
 		}
 
-		return this.shape[disc].canApply(value, change.change as never);
+		return this.shape[disc].canApply(value, change.change ?? (null as never));
 	}
 
 	fromReplace(value: DeriveUnionValue<Map, Key>): DeriveUnionChange<Map, Key> {

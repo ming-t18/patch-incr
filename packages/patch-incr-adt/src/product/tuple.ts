@@ -110,14 +110,14 @@ export abstract class BaseProductShapedTuple<
 			return a;
 		}
 		if (isReplaceOnly(b)) {
-			return a;
+			return b;
 		}
 		if (isReplaceOnly(a)) {
 			return makeReplaceOnly(this.apply(getReplaceOnly(a), b));
 		}
 		const c = [...a] as typeof a;
 		for (const key of this.keys) {
-			// @ts-expect-error Assigning c[key]
+			// @ts-expect-error Can't be checked
 			c[key] = this.shape[key].combine(c[key], b[key]);
 		}
 		return c;

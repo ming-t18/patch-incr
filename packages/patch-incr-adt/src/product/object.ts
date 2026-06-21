@@ -100,22 +100,38 @@ export abstract class BaseProductShaped<
 			return a;
 		}
 		if (isReplaceOnly(b)) {
-			return a;
+			return b;
 		}
 		if (isReplaceOnly(a)) {
 			return makeReplaceOnly(this.apply(getReplaceOnly(a), b));
 		}
-		const c = { ...a } as typeof a;
-		for (const k of Object.keys(c)) {
+		const c = { ...a } as Partial<DeriveRecordChangeNoReplace<Shape>>;
+		for (const k of this.keys) {
 			const key = k as Key;
-			if (!Object.hasOwn(b, k)) continue;
-			// @ts-expect-error Assigning c[key]
-			c[key] = this.shape[key].combine(c[k], b[k]);
+			if (!Object.hasOwn(b, key)) {
+				continue;
+			}
+			if (!Object.hasOwn(c, key)) {
+				c[key] = b[key];
+				continue;
+			}
+			c[key] = this.shape[key].combine(c[key], b[key]);
 		}
 		return c;
 	}
-	isEmpty(change: DeriveProductChange<Prod, Shape, Key>) {
-		return change === null;
+	isEmpty(change: DeriveProductChange<Prod, Shape, Key>): boolean {
+		if (change === null) {
+			return true;
+		}
+		if (isReplaceOnly(change)) {
+			return false;
+		}
+		for (const key of this.keys) {
+			if (Object.hasOwn(change, key)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	project<KeySub extends Key = Key>(
