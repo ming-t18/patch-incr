@@ -1,15 +1,28 @@
 import { getReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
-import type { Atomic$, DRO, ReplaceOnly } from "@/types/algebra";
+import {
+	type Atomic$,
+	BaseApplyClass,
+	type DRO,
+	type ReplaceOnly,
+} from "@/types/algebra";
 
-export class AAtomic<T> implements Atomic$<T> {
+export class AAtomic<T>
+	extends BaseApplyClass<T, DRO<T>, null>
+	implements Atomic$<T>
+{
 	declare "~apply": { readonly value: T; readonly change: DRO<T> };
 	readonly $type = "atomic" as const;
-	readonly empty: null = null;
+	constructor() {
+		super(null);
+	}
 	fromReplace(x: T) {
 		return makeReplaceOnly(x);
 	}
 	apply(value: T, change: DRO<T>): T {
 		return change === null ? value : getReplaceOnly(change);
+	}
+	override canApply(_value: T, _change: DRO<T>): boolean {
+		return true;
 	}
 	isReplace(change: DRO<T>): ReplaceOnly<T> | null {
 		return change;

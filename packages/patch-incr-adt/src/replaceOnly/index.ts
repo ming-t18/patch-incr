@@ -1,4 +1,4 @@
-import type { Apply } from "@/types";
+import { type Apply, BaseApplyClass } from "@/types";
 import { type DRO, ReplaceOnly } from "@/types/replaceOnly";
 
 export const makeReplaceOnly = <T>(value: T): ReplaceOnly<T> => ({
@@ -38,17 +38,23 @@ export const maybeCombineDRO = <T, C>(
 };
 export type * from "@/types/replaceOnly";
 
-export class AReplaceOnly<T> implements Apply<T, DRO<T>> {
+export class AReplaceOnly<T>
+	extends BaseApplyClass<T, DRO<T>>
+	implements Apply<T, DRO<T>>
+{
 	declare readonly "~apply": {
 		readonly value: T;
 		readonly change: DRO<T>;
 	};
-	readonly empty: DRO<T> = null;
+	constructor() {
+		super(null);
+	}
 
 	combine = (left: DRO<T>, right: DRO<T>): DRO<T> =>
 		right === null ? left : right;
 	apply = (value: T, change: DRO<T>): T =>
 		change === null ? value : change[ReplaceOnly];
+	override canApply = (_value: T, _change: DRO<T>): boolean => true;
 	fromReplace = (value: T): DRO<T> => ({ [ReplaceOnly]: value });
 	isEmpty = (change: DRO<T>): boolean => change === null;
 	isReplace = (change: DRO<T>): ReplaceOnly<T> | null => change;

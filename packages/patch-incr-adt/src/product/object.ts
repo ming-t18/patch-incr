@@ -1,11 +1,12 @@
 import type { DeriveRecordChangeNoReplace } from "@/record/types";
 import { getReplaceOnly, isReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
-import type {
-	AnyApply,
-	Apply,
-	DRO,
-	InferApplyValue,
-	ReplaceOnly,
+import {
+	type AnyApply,
+	type Apply,
+	BaseApplyClass,
+	type DRO,
+	type InferApplyValue,
+	type ReplaceOnly,
 } from "@/types";
 import type {
 	ApplyProductShaped,
@@ -14,10 +15,12 @@ import type {
 } from "./types";
 
 export abstract class BaseProductShaped<
-	Prod,
-	Shape extends Record<Key, AnyApply>,
-	Key extends keyof Shape = keyof Shape,
-> implements
+		Prod,
+		Shape extends Record<Key, AnyApply>,
+		Key extends keyof Shape = keyof Shape,
+	>
+	extends BaseApplyClass<Prod, DeriveProductChange<Prod, Shape, Key>, null>
+	implements
 		Apply<Prod, DeriveProductChange<Prod, Shape, Key>>,
 		ApplyProductShaped<Prod, Shape, Key>
 {
@@ -29,15 +32,15 @@ export abstract class BaseProductShaped<
 	constructor(
 		readonly shape: Shape,
 		readonly keys = Object.keys(shape) as never[] as Readonly<Key[]>,
-	) {}
+	) {
+		super(null);
+	}
 
 	abstract assign(
 		value: Prod,
 		change: Readonly<Partial<{ [k in Key]: InferApplyValue<Shape[k]> }>>,
 	): Prod;
 	abstract get<K extends Key>(value: Prod, key: K): InferApplyValue<Shape[K]>;
-
-	readonly empty: DeriveRecordChangeNoReplace<Shape> | DRO<Prod> = null;
 
 	apply(value: Prod, change: DeriveProductChange<Prod, Shape, Key>): Prod {
 		if (change === null) {
@@ -59,6 +62,21 @@ export abstract class BaseProductShaped<
 		}
 		return this.assign(value, change1);
 	}
+
+	override canApply(
+		value: Prod,
+		change: DeriveProductChange<Prod, Shape, Key>,
+	): boolean {
+		if (change === null || isReplaceOnly(change)) return true;
+		for (const key of this.keys) {
+			if (!Object.hasOwn(change, key)) continue;
+			if (!this.shape[key].canApply(this.get(value, key), change[key])) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	fromReplace(value: Prod): DeriveRecordChangeNoReplace<Shape> | DRO<Prod> {
 		return makeReplaceOnly(value);
 	}

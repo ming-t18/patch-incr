@@ -1,18 +1,24 @@
-import type { Apply, ReplaceOnly } from "./types/algebra";
+import { type Apply, BaseApplyClass, type ReplaceOnly } from "./types/algebra";
 
 export interface Constant$<T, D> extends Apply<T, D> {
 	$type: "constant";
 }
 
-export class AConstant<T, D> implements Constant$<T, D> {
+export class AConstant<T, D>
+	extends BaseApplyClass<T, D>
+	implements Constant$<T, D>
+{
 	declare "~apply": { readonly value: T; readonly change: D };
 	readonly $type = "constant";
 
 	constructor(
 		readonly value: T,
-		readonly empty: D,
-	) {}
+		empty: D,
+	) {
+		super(empty);
+	}
 	apply = (_v: T, _d: D): T => this.value;
+	canApply = (_: T, d: D) => d === this.empty;
 	fromReplace = (_: T): D => this.empty;
 	isReplace = (_: D): ReplaceOnly<T> | null => null;
 	combine = (_a: D, _b: D): D => this.empty;

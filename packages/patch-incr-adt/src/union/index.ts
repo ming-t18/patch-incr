@@ -1,9 +1,10 @@
 import { getReplaceOnly, isReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
-import type {
-	AnyApply,
-	InferApplyChange,
-	InferApplyValue,
-	ReplaceOnly,
+import {
+	type AnyApply,
+	BaseApplyClass,
+	type InferApplyChange,
+	type InferApplyValue,
+	type ReplaceOnly,
 } from "@/types/algebra";
 import type {
 	DeriveUnionChange,
@@ -26,21 +27,28 @@ export class UnionCaseError extends TypeError {
 export type * from "./types";
 
 export class AUnion<
-	Map extends Record<Key, AnyApply>,
-	Key extends keyof Map = keyof Map,
-> implements Union$<Map, Key>
+		Map extends Record<Key, AnyApply>,
+		Key extends keyof Map = keyof Map,
+	>
+	extends BaseApplyClass<
+		DeriveUnionValue<Map, Key>,
+		DeriveUnionChange<Map, Key>,
+		null
+	>
+	implements Union$<Map, Key>
 {
 	declare "~apply": {
 		readonly value: DeriveUnionValue<Map, Key>;
 		readonly change: DeriveUnionChange<Map, Key>;
 	};
 	readonly $type = "union";
-	readonly empty: DeriveUnionChange<Map, Key> = null;
 
 	constructor(
 		readonly shape: Map,
 		readonly getDiscrimant: (value: DeriveUnionValue<Map, Key>) => Key,
-	) {}
+	) {
+		super(null);
+	}
 
 	apply(
 		value: DeriveUnionValue<Map, Key>,
@@ -60,6 +68,23 @@ export class AUnion<
 		}
 
 		return this.shape[disc].apply(value, change.change as never);
+	}
+
+	override canApply(
+		value: DeriveUnionValue<Map, Key>,
+		change: DeriveUnionChange<Map, Key>,
+	): boolean {
+		if (change === null || isReplaceOnly(change)) {
+			return true;
+		}
+
+		const changeDisc: Key = change.type;
+		const disc: Key = this.getDiscrimant(value);
+		if (disc !== changeDisc) {
+			return false;
+		}
+
+		return this.shape[disc].canApply(value, change.change as never);
 	}
 
 	fromReplace(value: DeriveUnionValue<Map, Key>): DeriveUnionChange<Map, Key> {

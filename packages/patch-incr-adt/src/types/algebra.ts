@@ -42,6 +42,18 @@ export interface BaseApply<TypeTag extends string = string> {
 export interface Apply<in out T, in out DT = DRO<T>> extends Change<T, DT> {
 	readonly "~apply": { readonly value: T; readonly change: DT };
 	readonly apply: (value: T, change: DT) => T;
+	/** If this method is defined, determines if the patch is applicable given a value. */
+	readonly canApply: (value: T, change: DT) => boolean;
+}
+
+export abstract class BaseApplyClass<T, DT, DTEmpty extends DT = DT> {
+	constructor(readonly empty: DTEmpty) {}
+
+	getEmpty(): DTEmpty {
+		return this.empty;
+	}
+
+	abstract canApply(_value: T, _change: DT): boolean;
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: intentional

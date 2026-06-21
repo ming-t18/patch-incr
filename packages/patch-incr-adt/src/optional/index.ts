@@ -1,9 +1,10 @@
 import { getReplaceOnly, isReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
-import type {
-	Apply,
-	InferApplyChange,
-	InferApplyValue,
-	ReplaceOnly,
+import {
+	type Apply,
+	BaseApplyClass,
+	type InferApplyChange,
+	type InferApplyValue,
+	type ReplaceOnly,
 } from "@/types";
 import { UnionCaseError } from "@/union";
 
@@ -22,10 +23,12 @@ export interface Optional$<
 }
 
 export class AOptional<
-	A extends Apply<T, DT>,
-	T = InferApplyValue<A>,
-	DT = InferApplyChange<A>,
-> implements Optional$<A, T, DT>
+		A extends Apply<T, DT>,
+		T = InferApplyValue<A>,
+		DT = InferApplyChange<A>,
+	>
+	extends BaseApplyClass<T | undefined, DT | ReplaceOnly<undefined>, A["empty"]>
+	implements Optional$<A, T, DT>
 {
 	declare readonly "~apply": {
 		readonly value: T | undefined;
@@ -34,9 +37,8 @@ export class AOptional<
 
 	readonly $type = "optional";
 	readonly toUndefined = makeReplaceOnly(undefined);
-	readonly empty;
 	constructor(readonly inner: A) {
-		this.empty = inner.empty;
+		super(inner.empty);
 	}
 
 	apply(
@@ -51,6 +53,22 @@ export class AOptional<
 			throw new UnionCaseError("non-undefined", "undefined");
 		}
 		return this.inner.apply(value, change as DT);
+	}
+
+	override canApply(
+		value: T | undefined,
+		change: DT | ReplaceOnly<undefined>,
+	): boolean {
+		if (change === null) {
+			return true;
+		}
+		if (value === undefined) {
+			return isReplaceOnly(change);
+		}
+		if (isReplaceOnly<T>(change) && getReplaceOnly<T>(change) === undefined) {
+			return true;
+		}
+		return this.inner.canApply(value, change as DT);
 	}
 
 	fromReplace(value: T | undefined): DT | ReplaceOnly<undefined> {

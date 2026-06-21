@@ -1,6 +1,12 @@
 import { getReplaceOnly, isReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
 import type { AnyTuple, KeyOfTuple } from "@/tuple/types";
-import type { AnyApply, Apply, InferApplyValue, ReplaceOnly } from "@/types";
+import {
+	type AnyApply,
+	type Apply,
+	BaseApplyClass,
+	type InferApplyValue,
+	type ReplaceOnly,
+} from "@/types";
 import type {
 	ApplyProductShapedTuple,
 	DeriveProductChangeTuple,
@@ -12,9 +18,11 @@ const range = (n: number): Readonly<number[]> =>
 		.fill(null)
 		.map((_, i) => i);
 export abstract class BaseProductShapedTuple<
-	Prod,
-	Shape extends AnyTuple<AnyApply>,
-> implements
+		Prod,
+		Shape extends AnyTuple<AnyApply>,
+	>
+	extends BaseApplyClass<Prod, DeriveProductChangeTuple<Prod, Shape>, null>
+	implements
 		Apply<Prod, DeriveProductChangeTuple<Prod, Shape>>,
 		ApplyProductShapedTuple<Prod, Shape>
 {
@@ -26,7 +34,9 @@ export abstract class BaseProductShapedTuple<
 	constructor(
 		readonly shape: Shape,
 		readonly keys = range(shape.length),
-	) {}
+	) {
+		super(null);
+	}
 
 	abstract assign(
 		value: Prod,
@@ -36,8 +46,6 @@ export abstract class BaseProductShapedTuple<
 		value: Prod,
 		key: K,
 	): InferApplyValue<Shape[K]>;
-
-	readonly empty: null = null;
 
 	apply(value: Prod, change: DeriveProductChangeTuple<Prod, Shape>): Prod {
 		if (change === null) {
@@ -60,6 +68,23 @@ export abstract class BaseProductShapedTuple<
 			);
 		}
 		return this.assign(value, change1);
+	}
+
+	override canApply(
+		value: Prod,
+		change: DeriveProductChangeTuple<Prod, Shape>,
+	): boolean {
+		if (change === null || isReplaceOnly(change)) {
+			return true;
+		}
+
+		for (const key of this.keys) {
+			// @ts-expect-error Can't be checked
+			if (!this.shape[key].canApply(this.get(value, key), change[key])) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	fromReplace(value: Prod): ReplaceOnly<Prod> {
