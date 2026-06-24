@@ -17,6 +17,12 @@ export const item = s.object({
 	description: atomicWithGen(fc.string()),
 });
 
+export const itemNoGen = s.object({
+	id: s.atomic<number>(),
+	done: s.boolean(),
+	description: s.string(),
+});
+
 export const omitted = s.omit(item, {
 	description: true,
 });
@@ -33,6 +39,22 @@ type Item = s.infer<typeof item>;
 type _ItemChange = s.inferChange<typeof item>;
 
 describe("record types", () => {
+	it.skip("type checking for gen", () => {
+		const _shouldPassTypeCheck = [
+			item.arbProductRecord(),
+			item.arbValue(),
+			item.arbChange(),
+		];
+		const _shouldFailTypeCheck = [
+			// @ts-expect-error Should fail
+			itemNoGen.arbProductRecord(),
+			// @ts-expect-error Should fail
+			itemNoGen.arbValue(),
+			// @ts-expect-error Should fail
+			itemNoGen.arbChange(),
+		];
+	});
+
 	describe("singleton", () => {
 		testCasesPropsApply(singleton);
 	});

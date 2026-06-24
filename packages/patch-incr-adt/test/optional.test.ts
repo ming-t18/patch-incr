@@ -1,8 +1,16 @@
+import fc from "fast-check";
 import * as s from "@/index";
+import { atomicWithGen } from "./props";
 export const recordOpt = s.optional(
 	s.record({
 		a: s.boolean(),
 		b: s.string(),
+	}),
+);
+export const recordOptWithArb = s.optional(
+	s.record({
+		a: atomicWithGen(fc.boolean()),
+		b: atomicWithGen(fc.string()),
 	}),
 );
 
@@ -11,6 +19,14 @@ const _undef: s.infer<typeof recordOpt> = undefined;
 
 const defined: s.infer<typeof recordOpt> = { a: false, b: "test" };
 describe("optional", () => {
+	it.skip("type checking for optional arb", () => {
+		// TODO not working for now
+		const _shouldNotTypeCheck = [recordOpt.arbValue(), recordOpt.arbChange()];
+		const _shouldTypeCheck = [
+			recordOptWithArb.arbValue(),
+			recordOptWithArb.arbChange(),
+		];
+	});
 	it("should replace defined to undefined", () => {
 		expect(recordOpt.apply(defined, recordOpt.toUndefined)).toBeUndefined();
 	});

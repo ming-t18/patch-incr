@@ -4,9 +4,9 @@ import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 
 describe("constant", () => {
 	const c1 = s.constant(null, null);
-	it("arbValue", () => {
-		const v = c1.arbValue();
-		console.log(v);
+	it.skip("should pass type check", () => {
+		const _v = c1.arbValue();
+		const _d = c1.arbChange();
 	});
 	describe("constant(null, null)", () => {
 		testCasesPropsApply(s.constant(null, null));

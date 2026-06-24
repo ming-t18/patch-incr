@@ -10,13 +10,15 @@ import { AUnion, type DeriveUnionValue } from "@/union";
 export type { Arbitrary as Arb } from "fast-check";
 
 import "./types";
-import { BaseProductShaped } from "@/product";
+import { BaseProductShaped, type DeriveProductChange } from "@/product";
 import { ARecord } from "@/record";
-import type { AnyApply, InferApplyChange } from "@/types/algebra";
+import { makeReplaceOnly } from "@/replaceOnly";
+import type { DRO, InferApplyChange } from "@/types/algebra";
 import type {
 	AnyArbApply,
 	ArbProdChangeFromRecordArb,
 	ArbRecordValueFromRecordArb,
+	HasArbProductRecord,
 } from "./types";
 
 export const arbEmptyOrReplace = <A extends $A, T extends $T<A> = $T<A>>(
@@ -75,25 +77,28 @@ AConstant.prototype.arbChange = function <T, D>(this: AConstant<T, D>, _?: T) {
 	return fc.constant(this.empty);
 };
 
-AAtomic.prototype.arbValue = function <T>(this: AAtomic<T>) {
+AAtomic.prototype.arbValue = function <T>(this: AAtomic<T>): Arb<T> {
 	if (!this.gen) {
 		throw new Error("this.gen is not defined");
 	}
 	return this.gen;
-};
+} as never;
 
-AAtomic.prototype.arbChange = function <T>(this: AAtomic<T>, _?: T) {
+AAtomic.prototype.arbChange = function <T>(
+	this: AAtomic<T>,
+	_?: T,
+): Arb<DRO<T>> {
 	if (!this.gen) {
 		throw new Error("this.gen is not defined");
 	}
 	return arbEmptyOrReplace(this, this.gen);
-};
+} as never;
 
 BaseProductShaped.prototype.arbValue = function <
 	Prod,
-	Shape extends Record<Key, AnyApply>,
+	Shape extends Record<Key, AnyArbApply>,
 	Key extends keyof Shape = keyof Shape,
->(this: BaseProductShaped<Prod, Shape, Key>) {
+>(this: BaseProductShaped<Prod, Shape, Key> & HasArbProductRecord<Shape, Key>) {
 	if (!(this.fromRecord && this.arbProductRecord)) {
 		throw new Error("BaseProductShaped methods must be defined");
 	}
@@ -106,12 +111,11 @@ BaseProductShaped.prototype.arbValue = function <
 };
 
 ARecord.prototype.arbProductRecord = function <
-	Map extends Record<Key, AnyApply>,
+	Map extends Record<Key, AnyArbApply>,
 	Key extends keyof Map = keyof Map,
 >(this: ARecord<Map, Key>) {
 	return fc.record(
 		mapShape<Map, ArbRecordValueFromRecordArb<Map, Key>, Key>(
-			// @ts-expect-error Cannot be checked (assuming arbChange is defined)
 			(_key, inner) => inner.arbValue(),
 			this.shape,
 		),
@@ -122,9 +126,12 @@ ARecord.prototype.arbProductRecord = function <
 const DRO_WEIGHT = 3;
 BaseProductShaped.prototype.arbChange = function <
 	Prod,
-	Shape extends Record<Key, AnyApply>,
+	Shape extends Record<Key, AnyArbApply>,
 	Key extends keyof Shape = keyof Shape,
->(this: BaseProductShaped<Prod, Shape, Key>, value?: Prod) {
+>(
+	this: BaseProductShaped<Prod, Shape, Key> & HasArbProductRecord<Shape, Key>,
+	value?: Prod,
+) {
 	const repPart = arbEmptyOrReplace(this, this.arbValue());
 	return fc.oneof(
 		{ weight: DRO_WEIGHT, arbitrary: repPart },
@@ -139,7 +146,7 @@ BaseProductShaped.prototype.arbChange = function <
 				{ requiredKeys: [], noNullPrototype: true },
 			),
 		},
-	);
+	) as Arb<DeriveProductChange<Prod, Shape, Key>>;
 };
 
 AUnion.prototype.arbValue = function <
@@ -181,6 +188,26 @@ AUnion.prototype.arbChange = function <
 	);
 };
 
+AOptional.prototype.arbValue = function () {
+	return fc.oneof(
+		{ weight: 1, arbitrary: fc.constant(undefined) },
+		{ weight: 4, arbitrary: this.inner.arbValue() },
+	);
+};
+
+AOptional.prototype.arbChange = function (value) {
+	return fc.oneof(
+		{
+			weight: 1,
+			arbitrary: fc.constant(makeReplaceOnly<undefined>(undefined)),
+		},
+		{
+			weight: 4,
+			arbitrary: this.inner.arbChange(value),
+		},
+	);
+};
+
 export interface GenApply<A extends $A> {
 	readonly apply: A;
 	readonly arbValue: Arb<$T<A>>;
@@ -207,8 +234,10 @@ export const genValueFromApply = <A extends $A>(
 		apply instanceof AConstant ||
 		apply instanceof AAtomic ||
 		apply instanceof BaseProductShaped ||
-		apply instanceof AUnion
+		apply instanceof AUnion ||
+		apply instanceof AOptional
 	) {
+		// @ts-expect-error Assuming it's defined here
 		return apply.arbValue();
 	}
 
@@ -219,20 +248,6 @@ export const genValueFromApply = <A extends $A>(
 				apply.shape,
 			) as Arb<never>[]),
 		) as Arb<never>;
-	}
-	// if (apply instanceof AUnion) {
-	// 	return fc.oneof(
-	// 		...Object.values(apply.shape).map((inner) => ({
-	// 			weight: 1,
-	// 			arbitrary: genValueFromApply(inner as never, params),
-	// 		})),
-	// 	);
-	// }
-	if (apply instanceof AOptional) {
-		return fc.oneof(
-			{ weight: 1, arbitrary: fc.constant(undefined) },
-			{ weight: 4, arbitrary: genValueFromApply(apply.inner, params) },
-		);
 	}
 
 	throw new TypeError(`Unsupported subtype of Apply: ${apply.constructor}`);
@@ -248,6 +263,7 @@ export const genChangeFromApply = <A extends $A>(
 		apply instanceof BaseProductShaped ||
 		apply instanceof AUnion
 	) {
+		// @ts-expect-error Assuming it's defined here
 		return apply.arbChange();
 	}
 
@@ -258,32 +274,15 @@ export const genChangeFromApply = <A extends $A>(
 		},
 	];
 	if (apply instanceof ATuple) {
+		// @ts-expect-error TODO fix this
 		return fc.oneof(...replacePart, {
 			weight: 3,
 			arbitrary: fc.tuple(
+				// @ts-expect-error TODO fix this
 				...(mapShapeTuple(apply.shape, (_index, inner) =>
 					genChangeFromApply(inner, params),
 				) as never as Arb<unknown[]>),
 			),
-		});
-	}
-	// if (apply instanceof AUnion) {
-	// 	return fc.oneof(...replacePart, {
-	// 		weight: 3,
-	// 		arbitrary: fc.oneof(
-	// 			...(Object.entries(apply.shape).map(([type, inner]) =>
-	// 				fc.record({
-	// 					type: fc.constant(type),
-	// 					change: genChangeFromApply(inner as never, params),
-	// 				}),
-	// 			) as never),
-	// 		),
-	// 	});
-	// }
-	if (apply instanceof AOptional) {
-		return fc.oneof(...replacePart, {
-			weight: 3,
-			arbitrary: genChangeFromApply(apply.inner, params),
 		});
 	}
 
