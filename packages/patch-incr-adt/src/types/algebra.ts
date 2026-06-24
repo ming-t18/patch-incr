@@ -96,8 +96,12 @@ export type InferApplyChange<A> = A extends AnyApply
 	? A["~apply"]["change"]
 	: never;
 
+export interface Constant$<T, D> extends Apply<T, D> {
+	readonly $type: "constant";
+}
+
 export interface Atomic$<T> extends Apply<T /* , DRO<T> */> {
-	$type: "atomic";
+	readonly $type: "atomic";
 }
 
 export type infer<A> = InferApplyValue<A>;

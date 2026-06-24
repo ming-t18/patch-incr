@@ -1,4 +1,7 @@
-import type { DeriveRecordChangeNoReplace } from "@/record/types";
+import type {
+	DeriveRecordChangeNoReplace,
+	DeriveRecordValue,
+} from "@/record/types";
 import { getReplaceOnly, isReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
 import {
 	type AnyApply,
@@ -35,6 +38,12 @@ export abstract class BaseProductShaped<
 	) {
 		super(null);
 	}
+	/** Converts from record-form to the `Prod`. Inverse of `toRecord`. */
+	abstract readonly fromRecord?: (
+		recordForm: DeriveRecordValue<Shape, Key>,
+	) => Prod;
+	/** Converts from the `Prod` to the record-form. Inverse of `fromRecord`. */
+	abstract readonly toRecord?: (prod: Prod) => DeriveRecordValue<Shape, Key>;
 
 	abstract assign(
 		value: Prod,

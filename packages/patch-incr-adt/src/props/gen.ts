@@ -3,12 +3,33 @@ import fc from "fast-check";
 import { AAtomic } from "@/atomic";
 import { AConstant } from "@/constant";
 import { AOptional } from "@/optional";
-import { ARecord } from "@/record";
 import { type AnyTuple, ATuple, type KeyOfTuple } from "@/tuple";
 import type { $A, $D, $T } from "@/types/abbr";
 import { AUnion } from "@/union";
 
 export type { Arbitrary as Arb } from "fast-check";
+
+import "./types";
+import { BaseProductShaped } from "@/product";
+import { ARecord } from "@/record";
+import type { AnyApply } from "@/types/algebra";
+import type {
+	ArbProdChangeFromRecordArb,
+	ArbRecordValueFromRecordArb,
+} from "./types";
+
+export const arbEmptyOrReplace = <A extends $A, T extends $T<A> = $T<A>>(
+	apply: A,
+	gen: Arb<T>,
+): Arb<$D<T>> => {
+	return fc.oneof(
+		{ weight: 1, arbitrary: fc.constant(apply.empty) },
+		{
+			weight: 5,
+			arbitrary: gen.map(apply.fromReplace, apply.isReplace as never),
+		},
+	);
+};
 
 export const mapShape = <
 	Shape,
@@ -45,6 +66,81 @@ export const mapShapeTuple = <
 	return res;
 };
 
+AConstant.prototype.arbValue = function <T, D>(this: AConstant<T, D>) {
+	return fc.constant(this.value);
+};
+
+AConstant.prototype.arbChange = function <T, D>(this: AConstant<T, D>, _?: T) {
+	return fc.constant(this.empty);
+};
+
+AAtomic.prototype.arbValue = function <T>(this: AAtomic<T>) {
+	if (!this.gen) {
+		throw new Error("this.gen is not defined");
+	}
+	return this.gen;
+};
+
+AAtomic.prototype.arbChange = function <T>(this: AAtomic<T>, _?: T) {
+	if (!this.gen) {
+		throw new Error("this.gen is not defined");
+	}
+	return arbEmptyOrReplace(this, this.gen);
+};
+
+BaseProductShaped.prototype.arbValue = function <
+	Prod,
+	Shape extends Record<Key, AnyApply>,
+	Key extends keyof Shape = keyof Shape,
+>(this: BaseProductShaped<Prod, Shape, Key>) {
+	if (!(this.fromRecord && this.arbProductRecord)) {
+		throw new Error("BaseProductShaped methods must be defined");
+	}
+
+	const toRecord = this.toRecord;
+	return this.arbProductRecord().map(
+		this.fromRecord,
+		toRecord ? (x) => toRecord(x as never) : undefined,
+	);
+};
+
+ARecord.prototype.arbProductRecord = function <
+	Map extends Record<Key, AnyApply>,
+	Key extends keyof Map = keyof Map,
+>(this: ARecord<Map, Key>) {
+	return fc.record(
+		mapShape<Map, ArbRecordValueFromRecordArb<Map, Key>, Key>(
+			// @ts-expect-error Cannot be checked (assuming arbChange is defined)
+			(_key, inner) => inner.arbValue(),
+			this.shape,
+		),
+		{ requiredKeys: this.keys as Key[] as never[], noNullPrototype: true },
+	);
+};
+
+const DRO_WEIGHT = 3;
+BaseProductShaped.prototype.arbChange = function <
+	Prod,
+	Shape extends Record<Key, AnyApply>,
+	Key extends keyof Shape = keyof Shape,
+>(this: BaseProductShaped<Prod, Shape, Key>, value?: Prod) {
+	const repPart = arbEmptyOrReplace(this, this.arbValue());
+	return fc.oneof(
+		{ weight: DRO_WEIGHT, arbitrary: repPart },
+		{
+			weight: 1,
+			arbitrary: fc.record(
+				mapShape<Shape, ArbProdChangeFromRecordArb<Shape, Key>, Key>(
+					// @ts-expect-error Cannot be checked (assuming arbChange is defined)
+					(key, inner) => inner.arbChange(value?.[key]),
+					this.shape,
+				),
+				{ requiredKeys: [], noNullPrototype: true },
+			),
+		},
+	);
+};
+
 export interface GenApply<A extends $A> {
 	readonly apply: A;
 	readonly arbValue: Arb<$T<A>>;
@@ -56,7 +152,7 @@ export interface ApplyToGenValueParams {
 }
 
 export class AtomicWithGen<T> extends AAtomic<T> {
-	constructor(readonly gen: Arb<T>) {
+	constructor(override readonly gen: Arb<T>) {
 		super();
 	}
 }
@@ -67,31 +163,14 @@ export const genValueFromApply = <A extends $A>(
 	apply: A,
 	params?: ApplyToGenValueParams,
 ): Arb<$T<A>> => {
-	if (apply instanceof AConstant) {
-		return fc.constant(apply.value);
-	}
-	if (apply instanceof AtomicWithGen) {
-		return apply.gen;
-	}
-	if (apply instanceof AAtomic) {
-		if (!params?.arbAtomic) {
-			throw new TypeError("can't generate atomic");
-		}
-		return params.arbAtomic(apply);
+	if (
+		apply instanceof AConstant ||
+		apply instanceof AAtomic ||
+		apply instanceof BaseProductShaped
+	) {
+		return apply.arbValue();
 	}
 
-	if (apply instanceof ARecord) {
-		return fc.record(
-			mapShape(
-				(_key, inner) => genValueFromApply(inner, params) as never,
-				apply.shape,
-				// @ts-expect-error keys
-				apply.keys,
-			) as Record<string, Arb<never>>,
-			// @ts-expect-error requiredKeys
-			{ requiredKeys: apply.keys, noNullPrototype: true },
-		) as Arb<never>;
-	}
 	if (apply instanceof ATuple) {
 		return fc.tuple(
 			...(mapShapeTuple(
@@ -118,34 +197,16 @@ export const genValueFromApply = <A extends $A>(
 	throw new TypeError(`Unsupported subtype of Apply: ${apply.constructor}`);
 };
 
-export const arbEmptyOrReplace = <A extends $A, T extends $T<A> = $T<A>>(
-	apply: A,
-	gen: Arb<T>,
-): Arb<$D<T>> => {
-	return fc.oneof(
-		{ weight: 1, arbitrary: fc.constant(apply.empty) },
-		{
-			weight: 5,
-			arbitrary: gen.map(apply.fromReplace, apply.isReplace as never),
-		},
-	);
-};
-
 export const genChangeFromApply = <A extends $A>(
 	apply: A,
 	params?: ApplyToGenValueParams,
 ): Arb<$D<A>> => {
-	if (apply instanceof AConstant) {
-		return fc.constant(apply.empty);
-	}
-	if (apply instanceof AtomicWithGen) {
-		return arbEmptyOrReplace<A>(apply, genValueFromApply(apply, params));
-	}
-	if (apply instanceof AAtomic) {
-		if (params?.arbAtomic) {
-			throw new TypeError("can't generate atomic");
-		}
-		return arbEmptyOrReplace<A>(apply, genValueFromApply(apply, params));
+	if (
+		apply instanceof AConstant ||
+		apply instanceof AAtomic ||
+		apply instanceof BaseProductShaped
+	) {
+		return apply.arbChange();
 	}
 
 	const replacePart = [
@@ -154,19 +215,6 @@ export const genChangeFromApply = <A extends $A>(
 			arbitrary: arbEmptyOrReplace(apply, genValueFromApply(apply, params)),
 		},
 	];
-	if (apply instanceof ARecord) {
-		return fc.oneof(...replacePart, {
-			weight: 3,
-			arbitrary: fc.record(
-				mapShape(
-					(_key, inner) => genChangeFromApply(inner, params),
-					apply.shape,
-					apply.keys as never[],
-				) as Record<string, Arb<unknown>>,
-				{ requiredKeys: [], noNullPrototype: true },
-			) as never as Arb<unknown>,
-		}) as Arb<never>;
-	}
 	if (apply instanceof ATuple) {
 		return fc.oneof(...replacePart, {
 			weight: 3,

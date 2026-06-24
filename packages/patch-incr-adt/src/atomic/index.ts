@@ -38,7 +38,8 @@ export class AAtomic<T>
 	static INSTANCE = new AAtomic<any>();
 }
 
-export const atomic = <T>() => AAtomic.INSTANCE as AAtomic<T>;
+export const atomic = <T>(newInstance = false) =>
+	newInstance ? new AAtomic() : (AAtomic.INSTANCE as AAtomic<T>);
 
 export const boolean = () => atomic<boolean>();
 export const string = () => atomic<string>();

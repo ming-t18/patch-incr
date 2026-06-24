@@ -1,7 +1,13 @@
 import * as s from "@/index";
+import "@/props";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 
 describe("constant", () => {
+	const c1 = s.constant(null, null);
+	it("arbValue", () => {
+		const v = c1.arbValue();
+		console.log(v);
+	});
 	describe("constant(null, null)", () => {
 		testCasesPropsApply(s.constant(null, null));
 	});

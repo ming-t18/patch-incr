@@ -19,13 +19,18 @@ export class ARecord<
 		super(shape, keys);
 	}
 
+	override fromRecord = (
+		input: DeriveRecordValue<Map, Key>,
+	): DeriveRecordValue<Map, Key> => input;
+	override toRecord = (
+		input: DeriveRecordValue<Map, Key>,
+	): DeriveRecordValue<Map, Key> => input;
+
 	override assign(
 		value: DeriveRecordValue<Map, Key>,
 		change: Readonly<Partial<{ [k in Key]: InferApplyValue<Map[k]> }>>,
 	): DeriveRecordValue<Map, Key> {
-		const value1: typeof value = Array.isArray(value)
-			? ([...value] as never)
-			: ({ ...value } as never);
+		const value1: typeof value = { ...value };
 		for (const key of Object.keys(change)) {
 			// @ts-expect-error Bypassing readonly
 			value1[key] = change[key];

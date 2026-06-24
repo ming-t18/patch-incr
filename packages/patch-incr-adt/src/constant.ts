@@ -1,8 +1,8 @@
-import { type Apply, BaseApplyClass, type ReplaceOnly } from "./types/algebra";
-
-export interface Constant$<T, D> extends Apply<T, D> {
-	$type: "constant";
-}
+import {
+	BaseApplyClass,
+	type Constant$,
+	type ReplaceOnly,
+} from "@/types/algebra";
 
 export class AConstant<T, D>
 	extends BaseApplyClass<T, D>
