@@ -196,16 +196,24 @@ AOptional.prototype.arbValue = function () {
 };
 
 AOptional.prototype.arbChange = function (value) {
-	return fc.oneof(
-		{
-			weight: 1,
-			arbitrary: fc.constant(makeReplaceOnly<undefined>(undefined)),
-		},
-		{
-			weight: 4,
-			arbitrary: this.inner.arbChange(value),
-		},
+	// biome-ignore lint/complexity/noArguments: value is optional and can conflate with undefined
+	const valueIsProvided = arguments.length === 1;
+	const undefinedPart = {
+		weight: 1,
+		arbitrary: fc.constant(makeReplaceOnly<undefined>(undefined)),
+	};
+	const arbChangeInner = this.inner.arbChange(
+		...(valueIsProvided ? [value] : []),
 	);
+	return fc.oneof(undefinedPart, {
+		weight: 4,
+		arbitrary: valueIsProvided
+			? // only replace is accepted if original value is undefined
+				value === undefined
+				? arbChangeInner.filter((d) => this.inner.isReplace(d) !== null)
+				: arbChangeInner
+			: arbChangeInner,
+	});
 };
 
 export interface GenApply<A extends $A> {
@@ -261,7 +269,8 @@ export const genChangeFromApply = <A extends $A>(
 		apply instanceof AConstant ||
 		apply instanceof AAtomic ||
 		apply instanceof BaseProductShaped ||
-		apply instanceof AUnion
+		apply instanceof AUnion ||
+		apply instanceof AOptional
 	) {
 		// @ts-expect-error Assuming it's defined here
 		return apply.arbChange();

@@ -14,6 +14,8 @@ import type { DeriveUnionChange, DeriveUnionValue } from "@/union";
 export type { Arbitrary as Arb } from "fast-check";
 
 export interface ArbApply<T, DT = DRO<T>> extends Apply<T, DT> {
+	/** Boolean flag to determine if `ArbApply` is defined. */
+	readonly "~arbApplyDefined": true;
 	arbValue: () => Arb<T>;
 	arbChange: (value?: T) => Arb<DT>;
 }
@@ -58,6 +60,7 @@ declare module "@/atomic" {
 	export interface AAtomic<T> {
 		/** Used by `arbValue`/`arbChange`. Must be defined or else they throw. */
 		readonly gen?: Arb<T> | null | undefined;
+		readonly "~arbApplyDefined": this extends HasAtomicGen<T> ? true : false;
 
 		arbValue: this extends HasAtomicGen<T> ? <T>() => Arb<T> : undefined;
 		arbChange: this extends HasAtomicGen<T>
@@ -110,6 +113,9 @@ declare module "@/record" {
 		Map extends Record<Key, AnyApply>,
 		Key extends keyof Map = keyof Map,
 	> {
+		readonly "~arbApplyDefined": Map extends Record<Key, AnyArbApply>
+			? true
+			: false;
 		arbProductRecord: Map extends Record<Key, AnyArbApply>
 			? () => Arb<DeriveRecordValue<Map, Key>>
 			: undefined;
@@ -121,6 +127,9 @@ declare module "@/union" {
 		Map extends Record<Key, AnyApply>,
 		Key extends keyof Map = keyof Map,
 	> {
+		readonly "~arbApplyDefined": Map extends Record<Key, AnyArbApply>
+			? true
+			: false;
 		arbValue: <
 			Map extends Record<Key, AnyArbApply>,
 			Key extends keyof Map = keyof Map,
@@ -143,6 +152,7 @@ declare module "@/optional" {
 		T = InferApplyValue<A>,
 		DT = InferApplyChange<A>,
 	> {
+		readonly "~arbApplyDefined": A extends AnyArbApply ? true : false;
 		arbValue: <
 			A extends ArbApply<T, DT>,
 			T = InferApplyValue<A>,

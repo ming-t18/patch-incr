@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import * as s from "@/index";
-import { atomicWithGen } from "./props";
+import { atomicWithGen } from "@/props";
+import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 export const recordOpt = s.optional(
 	s.record({
 		a: s.boolean(),
@@ -20,8 +21,12 @@ const _undef: s.infer<typeof recordOpt> = undefined;
 const defined: s.infer<typeof recordOpt> = { a: false, b: "test" };
 describe("optional", () => {
 	it.skip("type checking for optional arb", () => {
-		// TODO not working for now
-		const _shouldNotTypeCheck = [recordOpt.arbValue(), recordOpt.arbChange()];
+		const _shouldNotTypeCheck = [
+			// @ts-expect-error must fail type constraint
+			recordOpt.arbValue(),
+			// @ts-expect-error must fail type constraint
+			recordOpt.arbChange(),
+		];
 		const _shouldTypeCheck = [
 			recordOptWithArb.arbValue(),
 			recordOptWithArb.arbChange(),
@@ -48,5 +53,9 @@ describe("optional", () => {
 		expect(recordOpt.apply(undefined, recordOpt.fromReplace(defined))).toEqual(
 			defined,
 		);
+	});
+
+	describe("property tests", () => {
+		testCasesPropsApply(recordOptWithArb);
 	});
 });

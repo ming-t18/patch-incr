@@ -29,6 +29,22 @@ export const union1 = s.union(
 	(x) => (typeof x === "string" ? "left" : "right"),
 );
 
+export const union1NoGen = s.union(
+	{
+		left: s.string(),
+		right: s.number(),
+	},
+	(x) => (typeof x === "string" ? "left" : "right"),
+);
+
+export const union1NoGenFailOnRight = s.union(
+	{
+		left: atomicWithGen(fc.string()),
+		right: s.number(),
+	},
+	(x) => (typeof x === "string" ? "left" : "right"),
+);
+
 describe("union", () => {
 	describe("singleton", () => {
 		testCasesPropsApply(singleton);
@@ -37,6 +53,17 @@ describe("union", () => {
 		testCasesPropsApply(nestedSingleton);
 	});
 	describe("string|number", () => {
+		it.skip("type checking on arb", () => {
+			const _shouldFailTypeCheck = [
+				// @ts-expect-error arbValue must fail type constraint
+				union1NoGen.arbValue(),
+				// @ts-expect-error arbChange must fail type constraint
+				union1NoGen.arbChange(),
+				// @ts-expect-error error message should mention "right" is causing the problem
+				union1NoGenFailOnRight.arbChange(),
+			];
+			const _shouldPassTypeCheck = [union1.arbValue(), union1.arbChange()];
+		});
 		it("applying any valid patch returns a value of correct type", () => {
 			fc.assert(
 				fc.property(
