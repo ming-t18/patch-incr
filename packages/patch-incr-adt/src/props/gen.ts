@@ -5,15 +5,16 @@ import { AConstant } from "@/constant";
 import { AOptional } from "@/optional";
 import { type AnyTuple, ATuple, type KeyOfTuple } from "@/tuple";
 import type { $A, $D, $T } from "@/types/abbr";
-import { AUnion } from "@/union";
+import { AUnion, type DeriveUnionValue } from "@/union";
 
 export type { Arbitrary as Arb } from "fast-check";
 
 import "./types";
 import { BaseProductShaped } from "@/product";
 import { ARecord } from "@/record";
-import type { AnyApply } from "@/types/algebra";
+import type { AnyApply, InferApplyChange } from "@/types/algebra";
 import type {
+	AnyArbApply,
 	ArbProdChangeFromRecordArb,
 	ArbRecordValueFromRecordArb,
 } from "./types";
@@ -141,6 +142,45 @@ BaseProductShaped.prototype.arbChange = function <
 	);
 };
 
+AUnion.prototype.arbValue = function <
+	Map extends Record<Key, AnyArbApply>,
+	Key extends keyof Map = keyof Map,
+>(this: AUnion<Map, Key>) {
+	return fc.oneof(
+		...Object.values(this.shape).map((inner) => ({
+			weight: 1,
+			arbitrary: genValueFromApply(inner as never),
+		})),
+	);
+};
+
+AUnion.prototype.arbChange = function <
+	Map extends Record<Key, AnyArbApply>,
+	Key extends keyof Map = keyof Map,
+>(this: AUnion<Map, Key>, value?: DeriveUnionValue<Map, Key>) {
+	const entries: Arb<InferApplyChange<Map[Key]>>[] = [];
+	for (const disc of this.keys) {
+		if (typeof value !== "undefined" && this.getDiscrimant(value) !== disc) {
+			continue;
+		}
+		entries.push(this.shape[disc].arbChange(value));
+	}
+	if (entries.length === 0) {
+		throw new Error("AUnion.arbChange: no cases generated");
+	}
+
+	return fc.oneof(
+		{
+			weight: DRO_WEIGHT,
+			arbitrary: arbEmptyOrReplace(this, this.arbValue()),
+		},
+		{
+			weight: 1,
+			arbitrary: fc.oneof(...entries),
+		},
+	);
+};
+
 export interface GenApply<A extends $A> {
 	readonly apply: A;
 	readonly arbValue: Arb<$T<A>>;
@@ -166,7 +206,8 @@ export const genValueFromApply = <A extends $A>(
 	if (
 		apply instanceof AConstant ||
 		apply instanceof AAtomic ||
-		apply instanceof BaseProductShaped
+		apply instanceof BaseProductShaped ||
+		apply instanceof AUnion
 	) {
 		return apply.arbValue();
 	}
@@ -179,14 +220,14 @@ export const genValueFromApply = <A extends $A>(
 			) as Arb<never>[]),
 		) as Arb<never>;
 	}
-	if (apply instanceof AUnion) {
-		return fc.oneof(
-			...Object.values(apply.shape).map((inner) => ({
-				weight: 1,
-				arbitrary: genValueFromApply(inner as never, params),
-			})),
-		);
-	}
+	// if (apply instanceof AUnion) {
+	// 	return fc.oneof(
+	// 		...Object.values(apply.shape).map((inner) => ({
+	// 			weight: 1,
+	// 			arbitrary: genValueFromApply(inner as never, params),
+	// 		})),
+	// 	);
+	// }
 	if (apply instanceof AOptional) {
 		return fc.oneof(
 			{ weight: 1, arbitrary: fc.constant(undefined) },
@@ -204,7 +245,8 @@ export const genChangeFromApply = <A extends $A>(
 	if (
 		apply instanceof AConstant ||
 		apply instanceof AAtomic ||
-		apply instanceof BaseProductShaped
+		apply instanceof BaseProductShaped ||
+		apply instanceof AUnion
 	) {
 		return apply.arbChange();
 	}
@@ -225,19 +267,19 @@ export const genChangeFromApply = <A extends $A>(
 			),
 		});
 	}
-	if (apply instanceof AUnion) {
-		return fc.oneof(...replacePart, {
-			weight: 3,
-			arbitrary: fc.oneof(
-				...(Object.entries(apply.shape).map(([type, inner]) =>
-					fc.record({
-						type: fc.constant(type),
-						change: genChangeFromApply(inner as never, params),
-					}),
-				) as never),
-			),
-		});
-	}
+	// if (apply instanceof AUnion) {
+	// 	return fc.oneof(...replacePart, {
+	// 		weight: 3,
+	// 		arbitrary: fc.oneof(
+	// 			...(Object.entries(apply.shape).map(([type, inner]) =>
+	// 				fc.record({
+	// 					type: fc.constant(type),
+	// 					change: genChangeFromApply(inner as never, params),
+	// 				}),
+	// 			) as never),
+	// 		),
+	// 	});
+	// }
 	if (apply instanceof AOptional) {
 		return fc.oneof(...replacePart, {
 			weight: 3,

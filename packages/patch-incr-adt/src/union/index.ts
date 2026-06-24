@@ -47,6 +47,7 @@ export class AUnion<
 	constructor(
 		readonly shape: Map,
 		readonly getDiscrimant: (value: DeriveUnionValue<Map, Key>) => Key,
+		readonly keys: Key[] = Object.keys(shape) as never[],
 	) {
 		super(null);
 	}

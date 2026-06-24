@@ -8,6 +8,7 @@ import type {
 	InferApplyChange,
 	InferApplyValue,
 } from "@/types/algebra";
+import type { DeriveUnionChange, DeriveUnionValue } from "@/union";
 
 export type { Arbitrary as Arb } from "fast-check";
 
@@ -15,6 +16,9 @@ export interface ArbApply<T, DT = DRO<T>> extends Apply<T, DT> {
 	arbValue: () => Arb<T>;
 	arbChange: (value?: T) => Arb<DT>;
 }
+
+// biome-ignore lint/suspicious/noExplicitAny: intentional
+export type AnyArbApply = ArbApply<any, any>;
 
 export type ArbRecordValueFromRecordArb<
 	Shape extends Record<Key, AnyApply>,
@@ -44,15 +48,31 @@ declare module "@/constant" {
 		arbChange: (value?: T) => Arb<D>;
 	}
 }
+
+export interface HasAtomicGen<T> {
+	readonly gen?: Arb<T> | null | undefined;
+}
+
 declare module "@/atomic" {
 	export interface AAtomic<T> {
 		/** Used by `arbValue`/`arbChange`. Must be defined or else they throw. */
 		readonly gen?: Arb<T> | null | undefined;
 
-		arbValue: () => Arb<T>;
-		arbChange: (value?: T) => Arb<DRO<T>>;
+		arbValue: <T>(this: AAtomic<T> & HasAtomicGen<T>) => Arb<T>;
+		arbChange: <T>(
+			this: AAtomic<T> & HasAtomicGen<T>,
+			value?: T,
+		) => Arb<DRO<T>>;
 	}
 }
+
+export interface HasArbProductRecord<
+	Shape extends Record<Key, AnyApply>,
+	Key extends keyof Shape = keyof Shape,
+> {
+	arbProductRecord: () => Arb<DeriveRecordValue<Shape, Key>>;
+}
+
 declare module "@/product/object" {
 	export interface BaseProductShaped<
 		Prod,
@@ -65,7 +85,43 @@ declare module "@/product/object" {
 		 */
 		arbProductRecord?: () => Arb<DeriveRecordValue<Shape, Key>>;
 
-		arbValue: () => Arb<Prod>;
-		arbChange: (value?: Prod) => Arb<DeriveProductChange<Prod, Shape, Key>>;
+		arbValue: <
+			Prod,
+			Shape extends Record<Key, AnyApply>,
+			Key extends keyof Shape = keyof Shape,
+		>(
+			this: BaseProductShaped<Prod, Shape, Key> &
+				HasArbProductRecord<Shape, Key>,
+		) => Arb<Prod>;
+		arbChange: <
+			Prod,
+			Shape extends Record<Key, AnyApply>,
+			Key extends keyof Shape = keyof Shape,
+		>(
+			this: BaseProductShaped<Prod, Shape, Key> &
+				HasArbProductRecord<Shape, Key>,
+			value?: Prod,
+		) => Arb<DeriveProductChange<Prod, Shape, Key>>;
+	}
+}
+
+declare module "@/union" {
+	export interface AUnion<
+		Map extends Record<Key, AnyApply>,
+		Key extends keyof Map = keyof Map,
+	> {
+		arbValue: <
+			Map extends Record<Key, AnyArbApply>,
+			Key extends keyof Map = keyof Map,
+		>(
+			this: AUnion<Map, Key>,
+		) => Arb<DeriveUnionValue<Map, Key>>;
+		arbChange: <
+			Map extends Record<Key, AnyArbApply>,
+			Key extends keyof Map = keyof Map,
+		>(
+			this: AUnion<Map, Key>,
+			value?: DeriveUnionValue<Map, Key>,
+		) => Arb<DeriveUnionChange<Map, Key>>;
 	}
 }
