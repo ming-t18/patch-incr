@@ -1,5 +1,5 @@
 import { getReplaceOnly, isReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
-import type { AnyTuple, KeyOfTuple } from "@/tuple/types";
+import type { AnyTuple, DeriveTupleValue, KeyOfTuple } from "@/tuple/types";
 import {
 	type AnyApply,
 	type Apply,
@@ -37,6 +37,10 @@ export abstract class BaseProductShapedTuple<
 	) {
 		super(null);
 	}
+	/** Converts from tuple-form to the `Prod`. Inverse of `toTuple`. */
+	abstract readonly fromTuple?: (tupleFrom: DeriveTupleValue<Shape>) => Prod;
+	/** Converts from the `Prod` to the tuple-form. Inverse of `fromTuple`. */
+	abstract readonly toTuple?: (prod: Prod) => DeriveTupleValue<Shape>;
 
 	abstract assign(
 		value: Prod,

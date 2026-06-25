@@ -1,6 +1,7 @@
 import type { Arbitrary as Arb } from "fast-check";
-import type { DeriveProductChange } from "@/product";
+import type { DeriveProductChange, DeriveProductChangeTuple } from "@/product";
 import type { DeriveRecordValue } from "@/record/types";
+import type { AnyTuple, DeriveTupleValue } from "@/tuple";
 import type {
 	AnyApply,
 	Apply,
@@ -47,6 +48,7 @@ declare module "@/types/algebra" {
 declare module "@/constant" {
 	// The `interface` keyword augments the `class`
 	export interface AConstant<T, D> {
+		readonly "~arbApplyDefined": true;
 		arbValue: () => Arb<T>;
 		arbChange: (value?: T) => Arb<D>;
 	}
@@ -108,6 +110,35 @@ declare module "@/product/object" {
 	}
 }
 
+export interface HasArbProductTuple<Shape extends AnyTuple<AnyArbApply>> {
+	arbProductTuple: () => Arb<DeriveTupleValue<Shape>>;
+}
+
+declare module "@/product/tuple" {
+	export interface BaseProductShapedTuple<
+		Prod,
+		Shape extends AnyTuple<AnyApply>,
+	> {
+		/**
+		 * Generator for the tuple's parts.
+		 * Used by `arbValue`/`arbChange`. Must be defined or else they throw.
+		 */
+		arbProductTuple?: (() => Arb<DeriveTupleValue<Shape>>) | undefined;
+
+		arbValue<Prod, Shape extends AnyTuple<AnyArbApply>>(
+			this: BaseProductShapedTuple<Prod, Shape> & HasArbProductTuple<Shape>,
+		): Arb<Prod>;
+		// The commented out code above doesn't pass type checking of correctly implementing interface
+		// arbChange<Prod, Shape extends AnyTuple<AnyArbApply>>(
+		// 	this: BaseProductShapedTuple<Prod, Shape> & HasArbProductTuple<Shape>,
+		// 	value?: Prod,
+		// ): Arb<DeriveProductChangeTuple<Prod, Shape>>;
+		arbChange: Shape extends AnyTuple<AnyArbApply>
+			? (value?: Prod) => Arb<DeriveProductChangeTuple<Prod, Shape>>
+			: undefined;
+	}
+}
+
 declare module "@/record" {
 	export interface ARecord<
 		Map extends Record<Key, AnyApply>,
@@ -118,6 +149,17 @@ declare module "@/record" {
 			: false;
 		arbProductRecord: Map extends Record<Key, AnyArbApply>
 			? () => Arb<DeriveRecordValue<Map, Key>>
+			: undefined;
+	}
+}
+
+declare module "@/tuple/tuple" {
+	export interface ATuple<Shape extends AnyTuple<AnyApply>> {
+		readonly "~arbApplyDefined": Shape extends AnyTuple<AnyArbApply>
+			? true
+			: false;
+		arbProductTuple: Shape extends AnyTuple<AnyArbApply>
+			? () => Arb<DeriveTupleValue<Shape>>
 			: undefined;
 	}
 }

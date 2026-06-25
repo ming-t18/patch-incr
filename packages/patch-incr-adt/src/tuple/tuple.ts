@@ -16,6 +16,10 @@ export class ATuple<Shape extends AnyTuple<AnyApply>>
 {
 	readonly $type = "tuple";
 
+	override fromTuple = (x: DeriveTupleValue<Shape>): DeriveTupleValue<Shape> =>
+		x;
+	override toTuple = (x: DeriveTupleValue<Shape>): DeriveTupleValue<Shape> => x;
+
 	override assign(
 		value: DeriveTupleValue<Shape>,
 		change: DeriveTupleChange<Shape>,

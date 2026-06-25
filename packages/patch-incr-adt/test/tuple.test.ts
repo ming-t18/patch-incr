@@ -1,4 +1,7 @@
+import fc from "fast-check";
 import * as s from "@/index";
+import { atomicWithGen } from "@/props/gen";
+import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 import type { DeriveProductShapedChangeTuple } from "./product";
 
 type _TupleKey0 = s.KeyOfTuple<[]>;
@@ -7,28 +10,45 @@ type _TupleKey2 = s.KeyOfTuple<["a", "b"]>;
 type _TupleKey3 = s.KeyOfTuple<["a", "b", "c"]>;
 type _TupleKey4 = s.KeyOfTuple<["a", "b", "c", "d"]>;
 
-const tup = s.tuple([s.string(), s.number(), s.nullType()]);
+const tupNoArb = s.tuple([s.string(), s.number(), s.nullType()]);
+const tup = s.tuple([
+	atomicWithGen(fc.string()),
+	atomicWithGen(fc.integer()),
+	atomicWithGen(fc.constant(null)),
+]);
 
-export type Tup = s.infer<typeof tup>;
-export type DTup = s.inferChange<typeof tup>;
+export type Tup = s.infer<typeof tupNoArb>;
+export type DTup = s.inferChange<typeof tupNoArb>;
 
-export type S1 = DeriveProductShapedChangeTuple<typeof tup.shape>;
+export type S1 = DeriveProductShapedChangeTuple<typeof tupNoArb.shape>;
 
 describe("tuple", () => {
 	const t1: Tup = ["abc", 2, null];
 	it("should do get", () => {
-		expect(tup.get(t1, "0")).toBe("abc");
+		expect(tupNoArb.get(t1, "0")).toBe("abc");
 	});
 	it("should apply change into a valid array", () => {
 		const dt1: DTup = [
-			tup.shape[0].fromReplace("def"),
-			tup.shape[1].fromReplace(5),
-			tup.shape[2].empty,
+			tupNoArb.shape[0].fromReplace("def"),
+			tupNoArb.shape[1].fromReplace(5),
+			tupNoArb.shape[2].empty,
 		] as const;
-		const t2: Tup = tup.apply(t1, dt1);
+		const t2: Tup = tupNoArb.apply(t1, dt1);
 		// console.log(t1, t2);
 		expect(Array.isArray(t2)).toBe(true);
 		expect(t2).toHaveLength(3);
 		expect(t2).toEqual(["def", 5, null]);
+	});
+	it.skip("type checking", () => {
+		const _shouldTypeCheck = [tup.arbValue(), tup.arbChange()];
+		const _shouldNotTypeCheck = [
+			// @ts-expect-error should fail
+			tupNoArb.arbValue(),
+			// @ts-expect-error should fail
+			tupNoArb.arbChange(),
+		];
+	});
+	describe("properties", () => {
+		testCasesPropsApply(tup);
 	});
 });

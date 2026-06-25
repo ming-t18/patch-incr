@@ -1,5 +1,4 @@
-import type { Arbitrary as Arb } from "fast-check";
-import fc from "fast-check";
+import fc, { type Arbitrary as Arb } from "fast-check";
 import { AAtomic } from "@/atomic";
 import { AConstant } from "@/constant";
 import { AOptional } from "@/optional";
@@ -10,7 +9,12 @@ import { AUnion, type DeriveUnionValue } from "@/union";
 export type { Arbitrary as Arb } from "fast-check";
 
 import "./types";
-import { BaseProductShaped, type DeriveProductChange } from "@/product";
+import {
+	BaseProductShaped,
+	BaseProductShapedTuple,
+	type DeriveProductChange,
+	type DeriveProductChangeTuple,
+} from "@/product";
 import { ARecord } from "@/record";
 import { makeReplaceOnly } from "@/replaceOnly";
 import type { DRO, InferApplyChange } from "@/types/algebra";
@@ -19,6 +23,7 @@ import type {
 	ArbProdChangeFromRecordArb,
 	ArbRecordValueFromRecordArb,
 	HasArbProductRecord,
+	HasArbProductTuple,
 } from "./types";
 
 export const arbEmptyOrReplace = <A extends $A, T extends $T<A> = $T<A>>(
@@ -64,10 +69,12 @@ export const mapShapeTuple = <
 	const res: Reshaped = Array(n).fill(null) as never;
 	for (let i = 0; i < n; i++) {
 		// @ts-expect-error Can't be checked
-		res[i] = fn(i, shape[k]);
+		res[i] = fn(i, shape[i]);
 	}
 	return res;
 };
+
+const DRO_WEIGHT = 3;
 
 AConstant.prototype.arbValue = function <T, D>(this: AConstant<T, D>) {
 	return fc.constant(this.value);
@@ -103,10 +110,27 @@ BaseProductShaped.prototype.arbValue = function <
 		throw new Error("BaseProductShaped methods must be defined");
 	}
 
-	const toRecord = this.toRecord;
+	const { fromRecord, toRecord } = this;
 	return this.arbProductRecord().map(
-		this.fromRecord,
+		fromRecord,
 		toRecord ? (x) => toRecord(x as never) : undefined,
+	);
+};
+
+BaseProductShapedTuple.prototype.arbValue = function <
+	Prod,
+	Shape extends AnyTuple<AnyArbApply>,
+>(
+	this: BaseProductShapedTuple<Prod, Shape> & HasArbProductTuple<Shape>,
+): Arb<Prod> {
+	if (!(this.fromTuple && this.toTuple)) {
+		throw new Error("BaseProductShapedTuple methods must be defined");
+	}
+
+	const { fromTuple, toTuple } = this;
+	return this.arbProductTuple().map(
+		fromTuple,
+		toTuple ? (x) => toTuple(x as never) : undefined,
 	);
 };
 
@@ -123,7 +147,12 @@ ARecord.prototype.arbProductRecord = function <
 	);
 };
 
-const DRO_WEIGHT = 3;
+ATuple.prototype.arbProductTuple = function <
+	Shape extends AnyTuple<AnyArbApply>,
+>(this: ATuple<Shape>) {
+	return fc.tuple(...this.shape.map((inner) => inner.arbValue())) as Arb<never>;
+};
+
 BaseProductShaped.prototype.arbChange = function <
 	Prod,
 	Shape extends Record<Key, AnyArbApply>,
@@ -147,6 +176,30 @@ BaseProductShaped.prototype.arbChange = function <
 			),
 		},
 	) as Arb<DeriveProductChange<Prod, Shape, Key>>;
+};
+
+BaseProductShapedTuple.prototype.arbChange = function <
+	Prod,
+	Shape extends AnyTuple<AnyArbApply>,
+>(
+	this: BaseProductShapedTuple<Prod, Shape> & HasArbProductTuple<Shape>,
+	value?: Prod,
+) {
+	const repPart = arbEmptyOrReplace(this, this.arbValue());
+	return fc.oneof(
+		{ weight: DRO_WEIGHT, arbitrary: repPart },
+		{
+			weight: 1,
+			arbitrary: fc.tuple(
+				...this.shape.map((inner, key) =>
+					inner.arbChange(
+						// @ts-expect-error This access can't be checked
+						value?.[key],
+					),
+				),
+			),
+		},
+	) as Arb<DeriveProductChangeTuple<Prod, Shape>>;
 };
 
 AUnion.prototype.arbValue = function <
@@ -222,10 +275,6 @@ export interface GenApply<A extends $A> {
 	readonly arbChange: Arb<$D<A>>;
 }
 
-export interface ApplyToGenValueParams {
-	arbAtomic: <T, A1 extends AAtomic<T>>(atomic: A1) => Arb<$T<A1>>;
-}
-
 export class AtomicWithGen<T> extends AAtomic<T> {
 	constructor(override readonly gen: Arb<T>) {
 		super();
@@ -234,14 +283,12 @@ export class AtomicWithGen<T> extends AAtomic<T> {
 
 export const atomicWithGen = <T>(gen: Arb<T>) => new AtomicWithGen<T>(gen);
 
-export const genValueFromApply = <A extends $A>(
-	apply: A,
-	params?: ApplyToGenValueParams,
-): Arb<$T<A>> => {
+export const genValueFromApply = <A extends $A>(apply: A): Arb<$T<A>> => {
 	if (
 		apply instanceof AConstant ||
 		apply instanceof AAtomic ||
 		apply instanceof BaseProductShaped ||
+		apply instanceof BaseProductShapedTuple ||
 		apply instanceof AUnion ||
 		apply instanceof AOptional
 	) {
@@ -249,50 +296,20 @@ export const genValueFromApply = <A extends $A>(
 		return apply.arbValue();
 	}
 
-	if (apply instanceof ATuple) {
-		return fc.tuple(
-			...(mapShapeTuple(
-				(_index, inner) => genValueFromApply(inner, params) as never,
-				apply.shape,
-			) as Arb<never>[]),
-		) as Arb<never>;
-	}
-
 	throw new TypeError(`Unsupported subtype of Apply: ${apply.constructor}`);
 };
 
-export const genChangeFromApply = <A extends $A>(
-	apply: A,
-	params?: ApplyToGenValueParams,
-): Arb<$D<A>> => {
+export const genChangeFromApply = <A extends $A>(apply: A): Arb<$D<A>> => {
 	if (
 		apply instanceof AConstant ||
 		apply instanceof AAtomic ||
 		apply instanceof BaseProductShaped ||
+		apply instanceof BaseProductShapedTuple ||
 		apply instanceof AUnion ||
 		apply instanceof AOptional
 	) {
 		// @ts-expect-error Assuming it's defined here
 		return apply.arbChange();
-	}
-
-	const replacePart = [
-		{
-			weight: 1,
-			arbitrary: arbEmptyOrReplace(apply, genValueFromApply(apply, params)),
-		},
-	];
-	if (apply instanceof ATuple) {
-		// @ts-expect-error TODO fix this
-		return fc.oneof(...replacePart, {
-			weight: 3,
-			arbitrary: fc.tuple(
-				// @ts-expect-error TODO fix this
-				...(mapShapeTuple(apply.shape, (_index, inner) =>
-					genChangeFromApply(inner, params),
-				) as never as Arb<unknown[]>),
-			),
-		});
 	}
 
 	throw new TypeError(`Unsupported subtype of Apply: ${apply.constructor}`);

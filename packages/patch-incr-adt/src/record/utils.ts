@@ -1,16 +1,15 @@
 import { type AOptional, optional } from "@/optional";
 import type { AnyApply } from "@/types";
-import { record } from ".";
-import type { Record$ } from "./types";
+import { type ARecord, record } from ".";
 
 export const omit = <
 	Map extends Record<Key, AnyApply>,
 	Key extends keyof Map = keyof Map,
 	ToExclude extends Record<never, true> = Record<never, true>,
 >(
-	{ shape }: Record$<Map, Key>,
+	{ shape }: ARecord<Map, Key>,
 	toExclude: ToExclude,
-): Record$<Omit<Map, keyof ToExclude>, Exclude<Key, keyof ToExclude>> => {
+): ARecord<Omit<Map, keyof ToExclude>, Exclude<Key, keyof ToExclude>> => {
 	const shape1: Map = { ...shape };
 	for (const key of Object.keys(toExclude)) {
 		// @ts-expect-error Can't be checked
@@ -25,9 +24,9 @@ export const merge = <
 	Key extends keyof Map = keyof Map,
 	Shape1 extends Record<string, AnyApply> = Record<string, never>,
 >(
-	{ shape }: Record$<Map, Key>,
+	{ shape }: ARecord<Map, Key>,
 	shape1: Shape1,
-): Record$<Map & Shape1, Key | keyof Shape1> => {
+): ARecord<Map & Shape1, Key | keyof Shape1> => {
 	const shape2: Map & Shape1 = { ...shape } as never;
 	for (const key of Object.keys(shape1)) {
 		// @ts-expect-error Can't be checked
@@ -42,7 +41,7 @@ export const partial = <
 	Key extends keyof Map = keyof Map,
 >({
 	shape,
-}: Record$<Map, Key>): Record$<{ [k in Key]: AOptional<Map[k]> }, Key> => {
+}: ARecord<Map, Key>): ARecord<{ [k in Key]: AOptional<Map[k]> }, Key> => {
 	const shape2: Map = { ...shape } as never;
 	for (const key of Object.keys(shape)) {
 		// @ts-expect-error Can't be checked
