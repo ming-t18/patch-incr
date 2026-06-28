@@ -1,10 +1,5 @@
 import type { DeriveProductChange, DeriveProductShapedChange } from "@/product";
-import type {
-	AnyApply,
-	Apply,
-	InferApplyChange,
-	InferApplyValue,
-} from "@/types/algebra";
+import type { AnyApply, Apply, InferApplyValue } from "@/types/algebra";
 
 // type KeysWithUndefinedValue<T> = {
 // 	[k in keyof T]: undefined extends T[k] ? k : never;
@@ -45,23 +40,3 @@ export type RecordApply<
 	Shape extends Record<Key, AnyApply>,
 	Key extends keyof Shape = keyof Shape,
 > = Apply<DeriveRecordValue<Shape, Key>, DeriveRecordChange<Shape, Key>>;
-
-/**
- * A record type is an object with a finite and fixed set of keys
- * of type `Key`.
- * If the set of keys is not defined ahead of time, use
- * `mapping` instead.
- */
-export interface Record$<
-	Shape extends Record<Key, AnyApply>,
-	Key extends keyof Shape = keyof Shape,
-> extends RecordApply<Shape, Key> {
-	readonly $type: "record";
-	readonly shape: Readonly<Shape>;
-	readonly fromMap: (
-		change: { readonly [k in Key]?: InferApplyChange<Shape[k]> | undefined },
-	) => DeriveRecordChange<Shape, Key>;
-	readonly fromMapReplace: (
-		change: { readonly [k in Key]?: InferApplyValue<Shape[k]> | undefined },
-	) => DeriveRecordChange<Shape, Key>;
-}

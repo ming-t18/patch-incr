@@ -4,15 +4,12 @@ import type {
 	InferApplyChange,
 	InferApplyValue,
 } from "@/types/algebra";
-import type { DeriveRecordChange, DeriveRecordValue, Record$ } from "./types";
+import type { DeriveRecordChange, DeriveRecordValue } from "./types";
 
 export class ARecord<
-		Map extends Record<Key, AnyApply>,
-		Key extends keyof Map = keyof Map,
-	>
-	extends BaseProductShaped<DeriveRecordValue<Map, Key>, Map, Key>
-	implements Record$<Map, Key>
-{
+	Map extends Record<Key, AnyApply>,
+	Key extends keyof Map = keyof Map,
+> extends BaseProductShaped<DeriveRecordValue<Map, Key>, Map, Key> {
 	readonly $type = "record";
 
 	constructor(shape: Map, keys: Key[] = Object.keys(shape) as never[]) {

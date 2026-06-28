@@ -17,6 +17,15 @@ import type {
 	DeriveProductShapedChange,
 } from "./types";
 
+export interface HasFromToRecord<
+	Prod,
+	Shape extends Record<Key, AnyApply>,
+	Key extends keyof Shape = keyof Shape,
+> {
+	readonly fromRecord: (recordForm: DeriveRecordValue<Shape, Key>) => Prod;
+	readonly toRecord: (prod: Prod) => DeriveRecordValue<Shape, Key>;
+}
+
 export abstract class BaseProductShaped<
 		Prod,
 		Shape extends Record<Key, AnyApply>,
@@ -148,10 +157,40 @@ export abstract class BaseProductShaped<
 		change: DeriveProductChange<Prod, Shape, Key>,
 	): DeriveProductShapedChange<Shape, KeySub> {
 		const change1: DeriveProductShapedChange<Shape, KeySub> = {} as never;
+		if (this.isEmpty(change)) {
+			for (const key of keys) {
+				// @ts-expect-error Bypassing `readonly`
+				change1[key] = this.shape[key as KeySub].empty;
+			}
+			return change1;
+		}
+
+		if (isReplaceOnly(change)) {
+			const repl = getReplaceOnly(change);
+
+			for (const key of keys) {
+				// @ts-expect-error Bypassing `readonly`
+				change1[key] = this.shape[key as KeySub].fromReplace(
+					this.get(repl, key),
+				);
+			}
+		}
+
 		for (const key of keys) {
 			// @ts-expect-error Bypassing `readonly`
 			change1[key] = change[key as KeySub];
 		}
+
 		return change1;
+	}
+
+	mapShape<Reshaped extends Record<Key, unknown>>(
+		fn: <K1 extends Key>(key: K1, value: Shape[K1]) => Reshaped[K1],
+	): Reshaped {
+		const res = {} as Partial<Reshaped>;
+		for (const k of this.keys) {
+			res[k] = fn(k, this.shape[k]);
+		}
+		return res as Reshaped;
 	}
 }
