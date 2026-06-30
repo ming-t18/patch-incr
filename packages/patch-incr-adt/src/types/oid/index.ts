@@ -1,5 +1,12 @@
 import type { $A, $D, $T } from "../abbr";
-import type { Change, Group, Monoid } from "../algebra";
+import type {
+	Apply,
+	Change,
+	Group,
+	InferApplyChange,
+	InferApplyValue,
+	Monoid,
+} from "../algebra";
 import type { IF, IFA, IO } from "../func/incrFunc";
 import type { IIso, IIsoA } from "../func/iso";
 import type { ReplaceOnly } from "../replaceOnly";
@@ -8,12 +15,12 @@ declare const POINT: unique symbol;
 declare const FROM: unique symbol;
 declare const TO: unique symbol;
 
-export type Point<P> = { [POINT]: P };
-export type Path<A, B> = { [FROM]: A; [TO]: B };
+export type Point<P> = { [POINT]?: P };
+export type Path<A, B> = { [FROM]?: A; [TO]?: B };
 
 export interface Monoidoid<in out M> {
 	readonly getEmpty: <A>() => M & Path<A, A>;
-	readonly compose: <A, B, C>(
+	readonly combine: <A, B, C>(
 		a: M & Path<A, B>,
 		b: M & Path<B, C>,
 	) => M & Path<A, C>;
@@ -23,11 +30,17 @@ export interface Groupoid<in out M> extends Monoidoid<M> {
 	readonly inverse: <A, B>(a: M & Path<A, B>) => M & Path<B, A>;
 }
 
-export interface Changeoid<in out T, in out M> extends Monoidoid<T> {
+export interface Changeoid<in out T, in out M> extends Monoidoid<M> {
 	readonly fromReplace: <A, B>(a: T & Point<B>) => M & Path<A, B>;
 	readonly isReplace: <A, B>(
 		a: M & Path<A, B>,
 	) => ReplaceOnly<T & Point<B>> | null;
+}
+
+export interface Applyoid<in out T, in out D> extends Changeoid<T, D> {
+	readonly "~apply": { readonly value: T; readonly change: D };
+	readonly apply: <A, B>(a: T & Point<A>, da: D & Path<A, B>) => Point<B>;
+	readonly canApply: <A, B>(a: T & Point<A>, da: D & Path<A, B>) => boolean;
 }
 
 export type $Point<A extends $A, P> = $T<A> & Point<P>;
@@ -62,11 +75,16 @@ export interface IIsomorphismA<A extends $A, B extends $A> {
 }
 
 export interface Oidify {
-	<T>(input: Monoid<T>): Monoidoid<T>;
-	<T>(input: Group<T>): Groupoid<T>;
+	<A extends Apply<T, D>, T = InferApplyValue<A>, D = InferApplyChange<A>>(
+		input: A,
+	): Applyoid<T, D>;
 	<T, D>(input: Change<T, D>): Changeoid<T, D>;
+	<T>(input: Group<T>): Groupoid<T>;
+	<T>(input: Monoid<T>): Monoidoid<T>;
 	<A extends $A, B extends $A>(input: IF<A, B>): IFunctor<A, B>;
 	<A extends $A, B extends $A>(input: IFA<A, B>): IFunctorA<A, B>;
 	<A extends $A, B extends $A>(input: IIso<A, B>): IIsomorphism<A, B>;
 	<A extends $A, B extends $A>(input: IIsoA<A, B>): IIsomorphismA<A, B>;
 }
+
+export const oidify: Oidify = ((x: never) => x) as never;
