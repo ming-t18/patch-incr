@@ -27,6 +27,15 @@ export class UnionCaseError extends ApplyError {
 
 export type * from "./types";
 
+/**
+ * Represents an untagged union of `T1 | T2 | ...`.
+ *
+ * The shape of a union is a record `{ key1: T1, key2: T2, ... }`, and
+ * the `getDiscrimant` function determines the correct key `Key = key1 | key2 | ...`.
+ *
+ * The change-type of an `AUnion` is
+ * `DRO<...> | { type: key1, change: DT1 } | { type: key2, change: DT2 } | ...`.
+ */
 export class AUnion<
 		Map extends Record<Key, AnyApply>,
 		Key extends keyof Map = keyof Map,

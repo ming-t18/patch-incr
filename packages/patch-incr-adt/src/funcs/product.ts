@@ -20,6 +20,10 @@ export class FProduct<
 > {
 	constructor(readonly prod: AProd) {}
 
+	/**
+	 * Creates a product from their respective `IFA`s:
+	 * `x => ({ [key1]: funcs[key1](x), ... })`
+	 */
 	introA<A extends $A>(
 		input: A,
 		funcs: { [key in Key]: IFA<A, Shape[Key]> },
@@ -39,6 +43,10 @@ export class FProduct<
 		};
 	}
 
+	/**
+	 * Creates a product from their respective `IF`s:
+	 * `x => ({ [key1]: funcs[key1](x), ... })`
+	 */
 	intro<A extends $A>(
 		input: A,
 		funcs: { [key in Key]: IF<A, Shape[Key]> },
@@ -61,6 +69,7 @@ export class FProduct<
 		};
 	}
 
+	/** Getter: `x => x[key]` */
 	get<K extends Key>(key: K): IFA<AProd, Shape[Key]> {
 		const evaluate = (x: Prod) => this.prod.get(x, key);
 		return {

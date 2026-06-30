@@ -12,6 +12,7 @@ export class FOptional<A extends $A> {
 		readonly fUnion = new FUnion(opt),
 		readonly fSome = new FRecord(opt.shape.some),
 	) {}
+	/** `x => { value: x } as Option<A>` */
 	some(): IFA<A, AOption<A>> {
 		const makeSome: IFA<A, ASome<A>> = this.fSome.introA(this.type, {
 			value: identity(this.type),
@@ -22,6 +23,7 @@ export class FOptional<A extends $A> {
 		return composeA(makeSome, someToOptional);
 	}
 
+	/** `_ => null as Option<A>` */
 	none<T extends $A>(t: T): IFA<T, AOption<A>> {
 		return constant(t, this.opt, null);
 	}

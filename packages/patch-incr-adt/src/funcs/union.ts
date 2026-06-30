@@ -1,12 +1,6 @@
-import type { AOption } from "@/option";
 import type { $A, $D, $T } from "@/types/abbr";
 import type { Evaluate, IF, IFA } from "@/types/func";
-import {
-	type AUnion,
-	type DeriveUnionValue,
-	UnionCaseError,
-	type UnionChangeEntry,
-} from "@/union";
+import type { AUnion, DeriveUnionValue, UnionChangeEntry } from "@/union";
 import { makeForward, makeForwardA } from "./helpers";
 
 export class FUnion<
@@ -14,6 +8,8 @@ export class FUnion<
 	Key extends keyof Shape = keyof Shape,
 > {
 	constructor(readonly union: AUnion<Shape, Key>) {}
+
+	/** Conditional branching: `x => funcs[getCase(x)](x)` */
 	introCond<A extends $A>(
 		getCase: (input: A) => Key,
 		funcs: { [key in Key]: IF<A, Shape[Key]> },
@@ -47,6 +43,7 @@ export class FUnion<
 		};
 	}
 
+	/** Create from a case: `x => x as Union` */
 	introCase<K extends Key>(disc: K): IFA<Shape[K], AUnion<Shape, Key>> {
 		const input = this.union.shape[disc];
 		const evaluate: Evaluate<Shape[K], AUnion<Shape, Key>> = (x) => x;
@@ -67,6 +64,7 @@ export class FUnion<
 		};
 	}
 
+	/** Performs pattern matching on the union: `x => funcs[union.getDiscrimant(x)](x)` */
 	elim<B extends $A>(
 		output: B,
 		funcs: { [key in Key]: IF<Shape[Key], B> },
