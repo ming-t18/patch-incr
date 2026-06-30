@@ -1,7 +1,7 @@
-import { nullType } from "@/constant";
+import { type AConstant, nullType } from "@/constant";
 import type { ProductApply } from "@/product";
 import { product } from "@/product";
-import type { AnyApply, Apply, InferApplyValue } from "@/types/algebra";
+import type { AnyApply, InferApplyValue } from "@/types/algebra";
 import { type AUnion, union } from "@/union";
 
 /** A cons-cell for a linked list. */
@@ -49,7 +49,7 @@ export interface ConsShape<TA extends AnyApply, TRec extends AnyApply> {
 }
 
 export interface ListShape<TA extends AnyApply, Rec extends AnyApply> {
-	nil: Apply<null, null>;
+	nil: AConstant<null, null>;
 	cons: ProductApply<Cons<InferApplyValue<TA>>, ConsShape<TA, Rec>>;
 }
 
@@ -58,7 +58,6 @@ export interface ListApply<A extends AnyApply>
 
 export const list = <TA extends AnyApply>(apply: TA): ListApply<TA> => {
 	type T = InferApplyValue<TA>;
-	// type DT = InferApplyChange<TA>;
 	const rec: ListApply<TA> = union(
 		{
 			nil: nullType(),
@@ -80,6 +79,8 @@ export const list = <TA extends AnyApply>(apply: TA): ListApply<TA> => {
 					c: Cons<InferApplyValue<TA>>,
 					k: K,
 				): InferApplyValue<ConsShape<TA, ListApply<TA>>[K]> => c[k] as never,
+				fromRecord: ({ head, tail }) => new Cons(head, tail),
+				toRecord: ({ head, tail }) => ({ head, tail }),
 			}),
 		} satisfies ListShape<TA, ListApply<TA>>,
 		(x) => (x ? "cons" : "nil"),
