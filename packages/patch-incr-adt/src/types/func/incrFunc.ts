@@ -35,5 +35,5 @@ export interface IFA<A extends $A, B extends $A> extends IO<A, B> {
 }
 
 /** An incremental function with a context type. */
-export interface IFC<A extends $A, B extends $A, Ctx extends $A>
+export interface IFC<Ctx extends $A, A extends $A, B extends $A>
 	extends IF<APair<A, Ctx>, B> {}
