@@ -1,7 +1,7 @@
+import type { $A, $D, $T } from "@/types/abbr";
+import type { IF } from "@/types/func";
 import type { AUnion, DeriveUnionValue, UnionChangeEntry } from "@/union";
-import type { $A, $D, $T } from "../abbr";
 import { makeForward } from "./helpers";
-import type { IF } from "./incrFunc";
 
 export class FUnion<
 	Shape extends Record<Key, $A>,

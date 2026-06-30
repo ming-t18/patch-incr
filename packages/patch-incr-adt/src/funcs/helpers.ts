@@ -1,6 +1,6 @@
 import { getReplaceOnly } from "@/replaceOnly";
-import type { $A, $D, $T } from "../abbr";
-import type { Evaluate } from "./incrFunc";
+import type { $A, $D, $T } from "../types/abbr";
+import type { Evaluate } from "../types/func/incrFunc";
 
 export const makeForward =
 	<A extends $A, B extends $A, DASub = $D<A>>(
