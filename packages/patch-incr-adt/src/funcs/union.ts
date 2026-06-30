@@ -1,14 +1,20 @@
+import type { AOption } from "@/option";
 import type { $A, $D, $T } from "@/types/abbr";
-import type { IF } from "@/types/func";
-import type { AUnion, DeriveUnionValue, UnionChangeEntry } from "@/union";
-import { makeForward } from "./helpers";
+import type { Evaluate, IF, IFA } from "@/types/func";
+import {
+	type AUnion,
+	type DeriveUnionValue,
+	UnionCaseError,
+	type UnionChangeEntry,
+} from "@/union";
+import { makeForward, makeForwardA } from "./helpers";
 
 export class FUnion<
 	Shape extends Record<Key, $A>,
 	Key extends keyof Shape = keyof Shape,
 > {
 	constructor(readonly union: AUnion<Shape, Key>) {}
-	intro<A extends $A>(
+	introCond<A extends $A>(
 		getCase: (input: A) => Key,
 		funcs: { [key in Key]: IF<A, Shape[Key]> },
 	): IF<A, AUnion<Shape, Key>> {
@@ -34,6 +40,26 @@ export class FUnion<
 					}
 
 					return this.union.fromReplace(evaluate(x1));
+				},
+			}),
+			input,
+			output: this.union,
+		};
+	}
+
+	introCase<K extends Key>(disc: K): IFA<Shape[K], AUnion<Shape, Key>> {
+		const input = this.union.shape[disc];
+		const evaluate: Evaluate<Shape[K], AUnion<Shape, Key>> = (x) => x;
+		return {
+			evaluate,
+			forward: makeForwardA<Shape[K], AUnion<Shape, Key>>(input, this.union, {
+				evaluate,
+				forward: (_x, dx: $D<Shape[K]>): $D<AUnion<Shape, Key>> => {
+					return {
+						// @ts-expect-error Type inference failed to derive internal changes
+						type: disc,
+						change: dx,
+					};
 				},
 			}),
 			input,

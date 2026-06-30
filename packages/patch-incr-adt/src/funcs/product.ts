@@ -4,7 +4,7 @@ import type {
 	DeriveProductShapedChange,
 	HasFromToRecord,
 } from "@/product";
-import { ARecord } from "@/record";
+import type { ARecord } from "@/record";
 import type { DeriveRecordValue } from "@/record/types";
 import { type AOmit, type APick, omit, pick } from "@/record/utils";
 import type { Evaluate, IF, IFA } from "@/types/func";
@@ -20,6 +20,25 @@ export class FProduct<
 > {
 	constructor(readonly prod: AProd) {}
 
+	introA<A extends $A>(
+		input: A,
+		funcs: { [key in Key]: IFA<A, Shape[Key]> },
+	): IFA<A, AProd> {
+		const evaluate = (x: $T<A>): $T<AProd> =>
+			this.prod.fromRecord(
+				this.prod.mapShape((k1) => funcs[k1].evaluate(x)),
+			) satisfies Prod as $T<AProd>;
+		return {
+			evaluate,
+			forward: makeForwardA(input, this.prod, {
+				evaluate,
+				forward: (x, dx) => this.prod.mapShape((k) => funcs[k].forward(x, dx)),
+			}),
+			input,
+			output: this.prod,
+		};
+	}
+
 	intro<A extends $A>(
 		input: A,
 		funcs: { [key in Key]: IF<A, Shape[Key]> },
@@ -32,11 +51,10 @@ export class FProduct<
 			evaluate,
 			forward: makeForward(input, this.prod, {
 				evaluate,
-				forward: (x, dx, y) => {
-					return this.prod.mapShape((k) =>
+				forward: (x, dx, y) =>
+					this.prod.mapShape((k) =>
 						funcs[k].forward(x, dx, this.prod.get(y, k)),
-					);
-				},
+					),
 			}),
 			input,
 			output: this.prod,
@@ -67,8 +85,9 @@ export class FRecord<
 	Shape,
 	Key
 > {
-	constructor(shape: Shape) {
-		super(new ARecord(shape));
+	// biome-ignore lint/complexity/noUselessConstructor: for reference
+	constructor(record: ARecord<Shape, Key>) {
+		super(record);
 	}
 
 	/** Splits up `r -> [r[k], r without k]` */
