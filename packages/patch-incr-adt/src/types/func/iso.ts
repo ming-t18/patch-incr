@@ -9,10 +9,33 @@ export interface IIso<A extends $A, B extends $A> {
 	readonly inv: IF<B, A>;
 }
 
+/**
+ * An incremental isomorphism family based on `IF`.
+ * Represents an isomorphism-based lens family.
+ */
+export interface IIso1<S extends $A, T extends $A, A extends $A, B extends $A> {
+	readonly fwd: IF<S, A>;
+	readonly inv: IF<B, T>;
+}
+
 /** An incremental isomorphism based on `IFA`. */
 export interface IIsoA<A extends $A, B extends $A> {
 	readonly fwd: IFA<A, B>;
 	readonly inv: IFA<B, A>;
+}
+
+/**
+ * An incremental isomorphism family based on `IFA`.
+ * Represents an isomorphism-based lens family.
+ */
+export interface IIsoA1<
+	S extends $A,
+	T extends $A,
+	A extends $A,
+	B extends $A,
+> {
+	readonly fwd: IFA<S, A>;
+	readonly inv: IFA<B, T>;
 }
 
 export type IIsoLens<S extends $A, A extends $A, R extends $A> = IIso<
