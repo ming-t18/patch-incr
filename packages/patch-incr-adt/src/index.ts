@@ -14,5 +14,6 @@ export * as RO from "./replaceOnly";
 export * from "./replaceOnly";
 export * from "./tuple";
 export type * from "./types";
+export * as Oid from "./types/oid";
 export type * from "./union";
 export { union } from "./union";

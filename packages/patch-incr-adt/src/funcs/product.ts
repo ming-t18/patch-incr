@@ -113,7 +113,7 @@ export class FRecord<
 			const x1 = { ...x };
 			delete x1[key];
 			return [
-				x[key] satisfies Shape[K],
+				x[key] satisfies $T<Shape[K]>,
 				x1 as Omit<typeof x, K> as $T<(typeof output.shape)[1]>,
 			];
 		};
@@ -193,7 +193,7 @@ export class FRecord<
 			omit(this.prod, part.toPick),
 		);
 		const evaluate: Evaluate<typeof input, ARecord<Shape, Key>> = ([xl, xr]) =>
-			part.mergeRecord(xl, xr);
+			part.mergeRecord<$T<ARecord<Shape, Key>>>(xl, xr);
 
 		return {
 			evaluate,

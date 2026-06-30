@@ -7,7 +7,10 @@ export type AnyTuple<T = any> = [] | [T, ...T[]];
 export type DeriveTupleValue<Shape extends AnyTuple<AnyApply>> =
 	Shape extends []
 		? Readonly<[]>
-		: Shape extends [infer X, ...infer Xs extends AnyTuple<AnyApply>]
+		: Shape extends [
+					infer X extends AnyApply,
+					...infer Xs extends AnyTuple<AnyApply>,
+				]
 			? Readonly<[InferApplyValue<X>, ...DeriveTupleValue<Xs>]>
 			: never;
 

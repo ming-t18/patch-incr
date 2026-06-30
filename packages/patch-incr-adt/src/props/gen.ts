@@ -29,7 +29,7 @@ import type {
 export const arbEmptyOrReplace = <A extends $A, T extends $T<A> = $T<A>>(
 	apply: A,
 	gen: Arb<T>,
-): Arb<$D<T>> => {
+): Arb<DRO<T>> => {
 	return fc.oneof(
 		{ weight: 1, arbitrary: fc.constant(apply.empty) },
 		{
@@ -138,7 +138,7 @@ ARecord.prototype.arbProductRecord = function <
 	Map extends Record<Key, AnyArbApply>,
 	Key extends keyof Map = keyof Map,
 >(this: ARecord<Map, Key>) {
-	return fc.record(
+	return fc.record<ArbRecordValueFromRecordArb<Map, Key>, Key>(
 		mapShape<Map, ArbRecordValueFromRecordArb<Map, Key>, Key>(
 			(_key, inner) => inner.arbValue(),
 			this.shape,
@@ -162,14 +162,20 @@ BaseProductShaped.prototype.arbChange = function <
 	value?: Prod,
 ) {
 	const repPart = arbEmptyOrReplace(this, this.arbValue());
+	const isDefined = typeof value !== "undefined";
 	return fc.oneof(
 		{ weight: DRO_WEIGHT, arbitrary: repPart },
 		{
 			weight: 1,
-			arbitrary: fc.record(
+			arbitrary: fc.record<ArbProdChangeFromRecordArb<Shape, Key>, Key>(
 				mapShape<Shape, ArbProdChangeFromRecordArb<Shape, Key>, Key>(
-					// @ts-expect-error Cannot be checked (assuming arbChange is defined)
-					(key, inner) => inner.arbChange(value?.[key]),
+					(key, inner) =>
+						isDefined
+							? inner.arbChange(
+									// @ts-expect-error value is defined here
+									value[key],
+								)
+							: inner.arbChange(),
 					this.shape,
 				),
 				{ requiredKeys: [], noNullPrototype: true },

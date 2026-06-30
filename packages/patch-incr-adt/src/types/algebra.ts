@@ -88,13 +88,11 @@ export type AnyApply = Apply<any, any>;
 // biome-ignore lint/suspicious/noExplicitAny: intentional
 export type AnyApplyOf<T> = Apply<T, any>;
 
-export type InferApplyValue<A> = A extends AnyApply
-	? A["~apply"]["value"]
-	: never;
+export type InferApplyValue<A extends AnyApply> = A["~apply"]["value"];
+// A extends AnyApply ? A["~apply"]["value"] : never;
 
-export type InferApplyChange<A> = A extends AnyApply
-	? A["~apply"]["change"]
-	: never;
+export type InferApplyChange<A extends AnyApply> = A["~apply"]["change"];
+// A extends AnyApply ? A["~apply"]["change"] : never;
 
-export type infer<A> = InferApplyValue<A>;
-export type inferChange<A> = InferApplyChange<A>;
+export type infer<A extends AnyApply> = InferApplyValue<A>;
+export type inferChange<A extends AnyApply> = InferApplyChange<A>;
