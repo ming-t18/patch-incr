@@ -12,8 +12,7 @@ export type Point<P> = { [POINT]: P };
 export type Path<A, B> = { [FROM]: A; [TO]: B };
 
 export interface Monoidoid<in out M> {
-	// readonly getEmpty: <A>() => M & Path<A, A>;
-	readonly empty: M & Path<unknown, unknown>;
+	readonly getEmpty: <A>() => M & Path<A, A>;
 	readonly compose: <A, B, C>(
 		a: M & Path<A, B>,
 		b: M & Path<B, C>,

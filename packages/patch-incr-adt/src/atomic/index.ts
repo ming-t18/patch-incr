@@ -1,15 +1,7 @@
 import { getReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
-import {
-	type Atomic$,
-	BaseApplyClass,
-	type DRO,
-	type ReplaceOnly,
-} from "@/types/algebra";
+import { BaseApplyClass, type DRO, type ReplaceOnly } from "@/types/algebra";
 
-export class AAtomic<T>
-	extends BaseApplyClass<T, DRO<T>, null>
-	implements Atomic$<T>
-{
+export class AAtomic<T> extends BaseApplyClass<T, DRO<T>, null> {
 	declare "~apply": { readonly value: T; readonly change: DRO<T> };
 	readonly $type = "atomic" as const;
 	constructor() {

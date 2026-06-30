@@ -10,7 +10,6 @@ import {
 import type {
 	DeriveUnionChange,
 	DeriveUnionValue,
-	Union$,
 	UnionChangeEntry,
 } from "./types";
 
@@ -37,16 +36,13 @@ export type * from "./types";
  * `DRO<...> | { type: key1, change: DT1 } | { type: key2, change: DT2 } | ...`.
  */
 export class AUnion<
-		Map extends Record<Key, AnyApply>,
-		Key extends keyof Map = keyof Map,
-	>
-	extends BaseApplyClass<
-		DeriveUnionValue<Map, Key>,
-		DeriveUnionChange<Map, Key>,
-		null
-	>
-	implements Union$<Map, Key>
-{
+	Map extends Record<Key, AnyApply>,
+	Key extends keyof Map = keyof Map,
+> extends BaseApplyClass<
+	DeriveUnionValue<Map, Key>,
+	DeriveUnionChange<Map, Key>,
+	null
+> {
 	declare "~apply": {
 		readonly value: DeriveUnionValue<Map, Key>;
 		readonly change: DeriveUnionChange<Map, Key>;

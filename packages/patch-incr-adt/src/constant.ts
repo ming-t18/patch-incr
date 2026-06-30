@@ -1,13 +1,6 @@
-import {
-	BaseApplyClass,
-	type Constant$,
-	type ReplaceOnly,
-} from "@/types/algebra";
+import { BaseApplyClass, type ReplaceOnly } from "@/types/algebra";
 
-export class AConstant<T, D>
-	extends BaseApplyClass<T, D>
-	implements Constant$<T, D>
-{
+export class AConstant<T, D> extends BaseApplyClass<T, D> {
 	declare "~apply": { readonly value: T; readonly change: D };
 	readonly $type = "constant";
 

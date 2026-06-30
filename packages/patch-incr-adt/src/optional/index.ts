@@ -12,24 +12,15 @@ export function isReplaceUndefined(x: unknown): x is ReplaceOnly<undefined> {
 	return isReplaceOnly(x) ? getReplaceOnly(x) === undefined : false;
 }
 
-export interface Optional$<
+export class AOptional<
 	A extends Apply<T, DT>,
 	T = InferApplyValue<A>,
 	DT = InferApplyChange<A>,
-> extends Apply<T | undefined, DT | ReplaceOnly<undefined>> {
-	$type: "optional";
-	inner: A;
-	toUndefined: ReplaceOnly<undefined>;
-}
-
-export class AOptional<
-		A extends Apply<T, DT>,
-		T = InferApplyValue<A>,
-		DT = InferApplyChange<A>,
-	>
-	extends BaseApplyClass<T | undefined, DT | ReplaceOnly<undefined>, A["empty"]>
-	implements Optional$<A, T, DT>
-{
+> extends BaseApplyClass<
+	T | undefined,
+	DT | ReplaceOnly<undefined>,
+	A["empty"]
+> {
 	declare readonly "~apply": {
 		readonly value: T | undefined;
 		readonly change: ReplaceOnly<undefined> | DT;

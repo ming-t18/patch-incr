@@ -3,14 +3,14 @@ import * as s from "@/index";
 // does not work due to self-referential "typeof"
 // const linkedList = s.record({
 // 	head: s.string(),
-// 	get tail(): s.ApplyOptional$<typeof linkedList> {
+// 	get tail(): s.AOptional<typeof linkedList> {
 // 		return s.optional<typeof linkedList>(linkedList);
 // 	},
 // });
 
 // const tree = s.record({
 // 	name: s.string(),
-// 	get children(): s.ApplyOptional$<s.ListApply<typeof tree>> {
+// 	get children(): s.AOptional<s.ListApply<typeof tree>> {
 // 		return s.optional(s.list(tree));
 // 	},
 // });
@@ -18,7 +18,7 @@ import * as s from "@/index";
 // Works
 interface TreeShape<Name extends s.AnyApply, Rec extends s.AnyApply> {
 	name: Name;
-	children: s.Optional$<s.ListApply<Rec>>;
+	children: s.AOptional<s.ListApply<Rec>>;
 }
 
 interface TreeApply<Name extends s.AnyApply>
