@@ -1,5 +1,5 @@
 import { type AOptional, optional } from "@/optional";
-import type { AnyApply } from "@/types";
+import type { AnyApply, OverwriteShape } from "@/types";
 import { type ARecord, record } from ".";
 
 export type APick<
@@ -64,14 +64,34 @@ export const merge = <
 	return record(shape2);
 };
 
+export const overwrite = <
+	Shape extends Record<Key, AnyApply>,
+	Shape1 extends Record<Key1, AnyApply>,
+	Key extends keyof Shape = keyof Shape,
+	Key1 extends keyof Shape & keyof Shape1 = keyof Shape & keyof Shape1,
+>(
+	{ shape, keys }: ARecord<Shape, Key>,
+	shape1: Shape1,
+): ARecord<OverwriteShape<Shape, Shape1, Key, Key1>, Key> => {
+	const shape2: OverwriteShape<Shape, Shape1, Key, Key1> = {
+		...shape,
+	} as never;
+	for (const key of keys) {
+		// @ts-expect-error Can't be checked
+		shape2[key] = Object.hasOwn(shape1, key) ? shape1[key] : shape2[key];
+	}
+	return record(shape2);
+};
+
 export const partial = <
 	Map extends Record<Key, AnyApply>,
 	Key extends keyof Map = keyof Map,
 >({
 	shape,
+	keys,
 }: ARecord<Map, Key>): ARecord<{ [k in Key]: AOptional<Map[k]> }, Key> => {
 	const shape2: Map = { ...shape } as never;
-	for (const key of Object.keys(shape)) {
+	for (const key of keys) {
 		// @ts-expect-error Can't be checked
 		shape2[key] = optional(shape1[key]);
 	}
