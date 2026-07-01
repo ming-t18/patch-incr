@@ -16,7 +16,7 @@ import {
 	type UnionChangeEntry,
 } from "@/union";
 import { type AUnionOmit, type AUnionPick, omit } from "@/union/utils";
-import { makeForward, makeForwardA } from "./helpers";
+import { makeIF, makeIFA } from "./helpers";
 
 export class FUnion<
 	Shape extends Record<Key, $A>,
@@ -35,48 +35,61 @@ export class FUnion<
 			const disc = getCase(x);
 			return funcs[disc].evaluate(x);
 		};
-		return {
+		return makeIF<A, AUnion<Shape, Key>>(input, this.union, {
 			evaluate,
-			forward: makeForward<A, AUnion<Shape, Key>>(input, this.union, {
-				evaluate,
-				forward: (x, dx, y): $D<AUnion<Shape, Key>> => {
-					const x1 = input.apply(x, dx);
-					const disc = getCase(x);
-					const disc1 = getCase(x1);
-					if (disc === disc1) {
-						return this.union.fromChangeCase(
-							disc,
-							funcs[disc].forward(x, dx, y),
-						);
-					}
+			forward: (x, dx, y): $D<AUnion<Shape, Key>> => {
+				const x1 = input.apply(x, dx);
+				const disc = getCase(x);
+				const disc1 = getCase(x1);
+				if (disc === disc1) {
+					return this.union.fromChangeCase(disc, funcs[disc].forward(x, dx, y));
+				}
 
-					return this.union.fromReplace(evaluate(x1));
-				},
-			}),
-			input,
-			output: this.union,
+				return this.union.fromReplace(evaluate(x1));
+			},
+		});
+	}
+
+	/** Conditional branching: `x => funcs[getCase(x)](x)` */
+	introCondA<A extends $A>(
+		getCase: (input: A) => Key,
+		funcs: { [key in Key]: IFA<A, Shape[Key]> },
+	): IFA<A, AUnion<Shape, Key>> {
+		const input: A = funcs[this.union.keys[0] as Key].input;
+		type Out = DeriveUnionValue<Shape, Key>;
+		const evaluate = (x: $T<A>): Out => {
+			const disc = getCase(x);
+			return funcs[disc].evaluate(x);
 		};
+		return makeIFA<A, AUnion<Shape, Key>>(input, this.union, {
+			evaluate,
+			forward: (x, dx): $D<AUnion<Shape, Key>> => {
+				const x1 = input.apply(x, dx);
+				const disc = getCase(x);
+				const disc1 = getCase(x1);
+				if (disc === disc1) {
+					return this.union.fromChangeCase(disc, funcs[disc].forward(x, dx));
+				}
+
+				return this.union.fromReplace(evaluate(x1));
+			},
+		});
 	}
 
 	/** Create from a case: `x => x as Union`. Also the `review` for prisms. */
 	introCase<K extends Key>(disc: K): IFA<Shape[K], AUnion<Shape, Key>> {
 		const input = this.union.shape[disc];
 		const evaluate: Evaluate<Shape[K], AUnion<Shape, Key>> = (x) => x;
-		return {
+		return makeIFA<Shape[K], AUnion<Shape, Key>>(input, this.union, {
 			evaluate,
-			forward: makeForwardA<Shape[K], AUnion<Shape, Key>>(input, this.union, {
-				evaluate,
-				forward: (_x, dx: $D<Shape[K]>): $D<AUnion<Shape, Key>> => {
-					return {
-						// @ts-expect-error Type inference failed to derive internal changes
-						type: disc,
-						change: dx,
-					};
-				},
-			}),
-			input,
-			output: this.union,
-		};
+			forward: (_x, dx: $D<Shape[K]>): $D<AUnion<Shape, Key>> => {
+				return {
+					// @ts-expect-error Type inference failed to derive internal changes
+					type: disc,
+					change: dx,
+				};
+			},
+		});
 	}
 
 	/** Performs pattern matching on the union: `x => funcs[union.getDiscrimant(x)](x)` */
@@ -90,28 +103,23 @@ export class FUnion<
 			return funcs[disc].evaluate(input);
 		};
 
-		return {
+		return makeIF(this.union, output, {
 			evaluate,
-			forward: makeForward(this.union, output, {
-				evaluate,
-				forward: (x, dx, y): $D<B> => {
-					const disc = this.union.getDiscrimant(x);
-					const x1 = this.union.apply(x, dx);
-					const disc1 = this.union.getDiscrimant(x1);
-					if (disc === disc1) {
-						return funcs[disc].forward(
-							x,
-							(dx as UnionChangeEntry<Key, $D<Shape[Key]>>).change,
-							y,
-						);
-					}
+			forward: (x, dx, y): $D<B> => {
+				const disc = this.union.getDiscrimant(x);
+				const x1 = this.union.apply(x, dx);
+				const disc1 = this.union.getDiscrimant(x1);
+				if (disc === disc1) {
+					return funcs[disc].forward(
+						x,
+						(dx as UnionChangeEntry<Key, $D<Shape[Key]>>).change,
+						y,
+					);
+				}
 
-					return output.fromReplace(evaluate(x1));
-				},
-			}),
-			input: this.union,
-			output,
-		};
+				return output.fromReplace(evaluate(x1));
+			},
+		});
 	}
 
 	/** Performs pattern matching on the union: `x => funcs[union.getDiscrimant(x)](x)` */
@@ -125,27 +133,22 @@ export class FUnion<
 			return funcs[disc].evaluate(input);
 		};
 
-		return {
+		return makeIFA(this.union, output, {
 			evaluate,
-			forward: makeForwardA(this.union, output, {
-				evaluate,
-				forward: (x, dx): $D<B> => {
-					const disc = this.union.getDiscrimant(x);
-					const x1 = this.union.apply(x, dx);
-					const disc1 = this.union.getDiscrimant(x1);
-					if (disc === disc1) {
-						return funcs[disc].forward(
-							x,
-							(dx as UnionChangeEntry<Key, $D<Shape[Key]>>).change,
-						);
-					}
+			forward: (x, dx): $D<B> => {
+				const disc = this.union.getDiscrimant(x);
+				const x1 = this.union.apply(x, dx);
+				const disc1 = this.union.getDiscrimant(x1);
+				if (disc === disc1) {
+					return funcs[disc].forward(
+						x,
+						(dx as UnionChangeEntry<Key, $D<Shape[Key]>>).change,
+					);
+				}
 
-					return output.fromReplace(evaluate(x1));
-				},
-			}),
-			input: this.union,
-			output,
-		};
+				return output.fromReplace(evaluate(x1));
+			},
+		});
 	}
 
 	/** Splits up `r -> (r[k] + r without k)` */
@@ -159,28 +162,23 @@ export class FUnion<
 			AUnion<Shape, Key>,
 			AEither<Shape[K], AUnionOmit<Shape, Key, K>>
 		> = (x) => (getDiscrimant(x) === key ? { left: x } : { right: x });
-		return {
+		return makeIFA(this.union, output, {
 			evaluate,
-			forward: makeForwardA(this.union, output, {
-				evaluate,
-				forward: (
-					x,
-					dx: DeriveUnionShapedChange<Shape, Key>,
-				): $D<typeof output> => {
-					const disc0 = getDiscrimant(x);
-					if (disc0 !== dx.type) {
-						throw new UnionCaseError(disc0, dx.type);
-					}
+			forward: (
+				x,
+				dx: DeriveUnionShapedChange<Shape, Key>,
+			): $D<typeof output> => {
+				const disc0 = getDiscrimant(x);
+				if (disc0 !== dx.type) {
+					throw new UnionCaseError(disc0, dx.type);
+				}
 
-					if (disc0 === key) {
-						return dLeft(dx.change);
-					}
-					return dRight(dx as $D<typeof omitted>);
-				},
-			}),
-			input: this.union,
-			output,
-		};
+				if (disc0 === key) {
+					return dLeft(dx.change);
+				}
+				return dRight(dx as $D<typeof omitted>);
+			},
+		});
 	}
 
 	/** Inverse of focus, `r -> (r[k] + r without k)` */
@@ -194,31 +192,26 @@ export class FUnion<
 			AEither<Shape[K], AUnionOmit<Shape, Key, K>>,
 			AUnion<Shape, Key>
 		> = (e) => (isLeft(e) ? { left: e } : { right: e });
-		return {
+		return makeIFA(input, this.union, {
 			evaluate,
-			forward: makeForwardA(input, this.union, {
-				evaluate,
-				forward: (
-					x,
-					dx: DeriveEitherShapedChange<Shape[K], typeof omitted>,
-				): $D<typeof this.union> => {
-					const side = isLeft(x) ? "left" : "right";
-					if (dx.type !== side) {
-						throw new UnionCaseError(side, dx.type);
-					}
+			forward: (
+				x,
+				dx: DeriveEitherShapedChange<Shape[K], typeof omitted>,
+			): $D<typeof this.union> => {
+				const side = isLeft(x) ? "left" : "right";
+				if (dx.type !== side) {
+					throw new UnionCaseError(side, dx.type);
+				}
 
-					if (side === "left") {
-						return {
-							type: key as K,
-							change: dx.change,
-						} as UnionChangeEntry<K, $D<Shape[K]>>;
-					}
-					return dx.change as never;
-				},
-			}),
-			input,
-			output: this.union,
-		};
+				if (side === "left") {
+					return {
+						type: key as K,
+						change: dx.change,
+					} as UnionChangeEntry<K, $D<Shape[K]>>;
+				}
+				return dx.change as never;
+			},
+		});
 	}
 
 	/** Splits up `r -> (r[keys] + r[~keys])` */

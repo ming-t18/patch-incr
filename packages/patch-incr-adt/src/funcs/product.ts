@@ -9,7 +9,7 @@ import type { DeriveRecordValue } from "@/record/types";
 import { type AOmit, type APick, omit, pick } from "@/record/utils";
 import type { Evaluate, IF, IFA } from "@/types/func";
 import type { $A, $D, $T } from "../types/abbr";
-import { makeForward, makeForwardA } from "./helpers";
+import { makeForward, makeForwardA, makeIFA, ShapePartition } from "./helpers";
 
 export class FProduct<
 	AProd extends BaseProductShaped<Prod, Shape, Key> &
@@ -154,25 +154,20 @@ export class FRecord<
 			];
 		};
 
-		return {
+		return makeIFA(this.prod, output, {
 			evaluate,
-			forward: makeForwardA(this.prod, output, {
-				evaluate,
-				forward: (
-					_x: DeriveRecordValue<Shape, Key>,
-					dx: DeriveProductShapedChange<Shape, Key>,
-				): $D<typeof output> => {
-					const df = dx[key];
-					const dx1 = { ...dx } as Omit<typeof dx, K>;
-					// @ts-expect-error Deleting omitted key
-					delete dx1[key];
-					const prj = df ?? this.prod.shape[key].empty;
-					return [prj, dx1];
-				},
-			}),
-			input: this.prod,
-			output: output,
-		};
+			forward: (
+				_x: DeriveRecordValue<Shape, Key>,
+				dx: DeriveProductShapedChange<Shape, Key>,
+			): $D<typeof output> => {
+				const df = dx[key];
+				const dx1 = { ...dx } as Omit<typeof dx, K>;
+				// @ts-expect-error Deleting omitted key
+				delete dx1[key];
+				const prj = df ?? this.prod.shape[key].empty;
+				return [prj, dx1];
+			},
+		});
 	}
 
 	/** Splits up `r -> [r[k], r without k]` */
@@ -191,18 +186,13 @@ export class FRecord<
 				[key]: value,
 				...rest,
 			}) as never;
-		return {
+		return makeIFA(input, this.prod, {
 			evaluate,
-			forward: makeForwardA(input, this.prod, {
-				evaluate,
-				forward: (_, [dv, dr]: [$D<Shape[K]>, $D<AOmit<Shape, Key, K>>]) => ({
-					[key]: dv,
-					...dr,
-				}),
+			forward: (_, [dv, dr]: [$D<Shape[K]>, $D<AOmit<Shape, Key, K>>]) => ({
+				[key]: dv,
+				...dr,
 			}),
-			input,
-			output: this.prod,
-		};
+		});
 	}
 
 	/** Splits up `r -> [r[keys], r[~keys]]` */
@@ -216,7 +206,7 @@ export class FRecord<
 		ARecord<Shape, Key>,
 		APair<APick<Shape, Key, K>, AOmit<Shape, Key, K>>
 	> {
-		const part: RecordPartition<Shape, Key, K> = new RecordPartition(
+		const part: ShapePartition<Shape, Key, K> = new ShapePartition(
 			this.prod.shape,
 			aPart.shape,
 		);
@@ -228,18 +218,13 @@ export class FRecord<
 			x: DeriveRecordValue<Shape, Key>,
 		) => part.partitionRecord(x);
 
-		return {
+		return makeIFA(this.prod, output, {
 			evaluate,
-			forward: makeForwardA(this.prod, output, {
-				evaluate,
-				forward: (
-					_x: DeriveRecordValue<Shape, Key>,
-					dx: DeriveProductShapedChange<Shape, Key>,
-				) => part.partitionRecord(dx),
-			}),
-			input: this.prod,
-			output,
-		};
+			forward: (
+				_x: DeriveRecordValue<Shape, Key>,
+				dx: DeriveProductShapedChange<Shape, Key>,
+			) => part.partitionRecord(dx),
+		});
 	}
 
 	/** Inverse of partition. `[r[keys], r[~keys]] -> r` */
@@ -250,7 +235,7 @@ export class FRecord<
 	>(
 		aPick: APicked,
 	): IFA<APair<APicked, AOmit<Shape, Key, KPicked>>, ARecord<Shape, Key>> {
-		const part: RecordPartition<Shape, Key, KPicked> = new RecordPartition(
+		const part: ShapePartition<Shape, Key, KPicked> = new ShapePartition(
 			this.prod.shape,
 			aPick.shape,
 		);
@@ -261,80 +246,16 @@ export class FRecord<
 		const evaluate: Evaluate<typeof input, ARecord<Shape, Key>> = ([xl, xr]) =>
 			part.mergeRecord<$T<ARecord<Shape, Key>>>(xl, xr);
 
-		return {
+		return makeIFA(input, this.prod, {
 			evaluate,
-			forward: makeForwardA(input, this.prod, {
-				evaluate,
-				forward: (
-					_pair,
-					[dxl, dxr]: readonly [
-						DeriveProductShapedChange<Shape, Key>,
-						DeriveProductShapedChange<Shape, Key>,
-					],
-				): $D<ARecord<Shape, Key>> =>
-					part.mergeRecord<DeriveProductShapedChange<Shape, Key>>(dxl, dxr),
-			}),
-			input,
-			output: this.prod,
-		};
-	}
-}
-
-/** Class for partitioning a record shape into picked and omitted keys. */
-export class RecordPartition<
-	Shape extends Record<Key, unknown>,
-	Key extends keyof Shape = keyof Shape,
-	Picked extends Key = never,
-> {
-	constructor(
-		readonly shape: Shape,
-		readonly toPick: Record<Picked, unknown>,
-		readonly shapeKeys = Object.keys(shape),
-		readonly toPickKeys = Object.keys(toPick),
-	) {}
-
-	isPicked(key: Key): key is Picked {
-		return Object.hasOwn(this.toPick, key);
-	}
-
-	partitionRecord<R extends Partial<Record<Key, unknown>>>(
-		x: R,
-	): [Pick<R, Picked>, Omit<R, Picked>] {
-		const xIn: Pick<R, Picked> = {} as never;
-		const xOut: Omit<R, Picked> = {} as never;
-		for (const key of this.shapeKeys) {
-			if (!Object.hasOwn(x, key)) {
-				continue;
-			}
-			if (Object.hasOwn(this.toPick, key)) {
-				// @ts-expect-error key is from picked part
-				xIn[key] = x[key];
-			} else {
-				// @ts-expect-error key is from omitted part
-				xOut[key] = x[key];
-			}
-		}
-		return [xIn, xOut];
-	}
-
-	mergeRecord<R extends Partial<Record<Key, unknown>>>(
-		left: Pick<R, Picked>,
-		right: Omit<R, Picked>,
-	): R {
-		const merged: R = {} as never;
-		for (const key of this.shapeKeys) {
-			if (Object.hasOwn(this.toPick, key)) {
-				if (Object.hasOwn(left, key)) {
-					// @ts-expect-error key is from picked part
-					merged[key] = left[key];
-				}
-			} else {
-				if (Object.hasOwn(right, key)) {
-					// @ts-expect-error key is from omitted part
-					merged[key] = right[key];
-				}
-			}
-		}
-		return merged;
+			forward: (
+				_pair,
+				[dxl, dxr]: readonly [
+					DeriveProductShapedChange<Shape, Key>,
+					DeriveProductShapedChange<Shape, Key>,
+				],
+			): $D<ARecord<Shape, Key>> =>
+				part.mergeRecord<DeriveProductShapedChange<Shape, Key>>(dxl, dxr),
+		});
 	}
 }
