@@ -28,6 +28,17 @@ export const product = <
 		declare readonly "~apply": {
 			readonly value: Prod;
 			readonly change: DeriveProductChange<Prod, Shape, Key>;
+			readonly empty: BaseProductShaped<Prod, Shape, Key>["~apply"]["empty"];
+			readonly replace: BaseProductShaped<
+				Prod,
+				Shape,
+				Key
+			>["~apply"]["replace"];
+			readonly internal: BaseProductShaped<
+				Prod,
+				Shape,
+				Key
+			>["~apply"]["internal"];
 		};
 
 		override readonly fromRecord: typeof fromRecord = fromRecord;

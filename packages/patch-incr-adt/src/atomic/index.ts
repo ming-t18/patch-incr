@@ -2,7 +2,13 @@ import { getReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
 import { BaseApplyClass, type DRO, type ReplaceOnly } from "@/types/algebra";
 
 export class AAtomic<T> extends BaseApplyClass<T, DRO<T>, null> {
-	declare "~apply": { readonly value: T; readonly change: DRO<T> };
+	declare readonly "~apply": {
+		readonly value: T;
+		readonly change: DRO<T>;
+		readonly empty: null;
+		readonly replace: ReplaceOnly<T>;
+		readonly internal: never;
+	};
 	readonly $type = "atomic" as const;
 	constructor() {
 		super(null);

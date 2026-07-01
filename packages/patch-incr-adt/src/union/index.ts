@@ -9,6 +9,7 @@ import {
 } from "@/types/algebra";
 import type {
 	DeriveUnionChange,
+	DeriveUnionShapedChange,
 	DeriveUnionValue,
 	UnionChangeEntry,
 } from "./types";
@@ -43,9 +44,12 @@ export class AUnion<
 	DeriveUnionChange<Map, Key>,
 	null
 > {
-	declare "~apply": {
+	declare readonly "~apply": {
 		readonly value: DeriveUnionValue<Map, Key>;
 		readonly change: DeriveUnionChange<Map, Key>;
+		readonly empty: null;
+		readonly replace: ReplaceOnly<DeriveUnionValue<Map, Key>>;
+		readonly internal: DeriveUnionShapedChange<Map, Key>;
 	};
 	readonly $type = "union";
 

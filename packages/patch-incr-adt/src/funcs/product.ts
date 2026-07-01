@@ -206,11 +206,8 @@ export class FRecord<
 		ARecord<Shape, Key>,
 		APair<APick<Shape, Key, K>, AOmit<Shape, Key, K>>
 	> {
-		const part: ShapePartition<Shape, Key, K> = new ShapePartition(
-			this.prod.shape,
-			aPart.shape,
-		);
-		const output: APair<APick<Shape, Key, K>, AOmit<Shape, Key, K>> = pair(
+		const part = new ShapePartition(this.prod.shape, aPart.shape);
+		const output = pair(
 			pick(this.prod, part.toPick),
 			omit(this.prod, part.toPick),
 		);
@@ -235,14 +232,8 @@ export class FRecord<
 	>(
 		aPick: APicked,
 	): IFA<APair<APicked, AOmit<Shape, Key, KPicked>>, ARecord<Shape, Key>> {
-		const part: ShapePartition<Shape, Key, KPicked> = new ShapePartition(
-			this.prod.shape,
-			aPick.shape,
-		);
-		const input: APair<APicked, AOmit<Shape, Key, KPicked>> = pair(
-			aPick,
-			omit(this.prod, part.toPick),
-		);
+		const part = new ShapePartition(this.prod.shape, aPick.shape);
+		const input = pair(aPick, omit(this.prod, part.toPick));
 		const evaluate: Evaluate<typeof input, ARecord<Shape, Key>> = ([xl, xr]) =>
 			part.mergeRecord<$T<ARecord<Shape, Key>>>(xl, xr);
 

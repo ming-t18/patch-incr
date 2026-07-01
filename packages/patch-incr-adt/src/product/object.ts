@@ -36,9 +36,12 @@ export abstract class BaseProductShaped<
 		Apply<Prod, DeriveProductChange<Prod, Shape, Key>>,
 		ApplyProductShaped<Prod, Shape, Key>
 {
-	declare "~apply": {
+	declare readonly "~apply": {
 		readonly value: Prod;
 		readonly change: DeriveProductChange<Prod, Shape, Key>;
+		readonly empty: null;
+		readonly replace: ReplaceOnly<Prod>;
+		readonly internal: DeriveProductShapedChange<Shape, Key>;
 	};
 
 	constructor(

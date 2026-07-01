@@ -26,9 +26,12 @@ export abstract class BaseProductShapedTuple<
 		Apply<Prod, DeriveProductChangeTuple<Prod, Shape>>,
 		ApplyProductShapedTuple<Prod, Shape>
 {
-	declare "~apply": {
+	declare readonly "~apply": {
 		readonly value: Prod;
 		readonly change: DeriveProductChangeTuple<Prod, Shape>;
+		readonly empty: null;
+		readonly replace: ReplaceOnly<Prod>;
+		readonly internal: DeriveProductShapedChangeTuple<Shape>;
 	};
 
 	constructor(

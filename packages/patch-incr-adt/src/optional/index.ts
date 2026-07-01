@@ -24,6 +24,9 @@ export class AOptional<
 	declare readonly "~apply": {
 		readonly value: T | undefined;
 		readonly change: ReplaceOnly<undefined> | DT;
+		readonly empty: A["~apply"]["empty"];
+		readonly replace: A["~apply"]["replace"] | ReplaceOnly<undefined>;
+		readonly internal: A["~apply"]["internal"];
 	};
 
 	readonly $type = "optional";

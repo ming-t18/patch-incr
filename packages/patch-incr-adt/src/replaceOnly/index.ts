@@ -45,6 +45,9 @@ export class AReplaceOnly<T>
 	declare readonly "~apply": {
 		readonly value: T;
 		readonly change: DRO<T>;
+		readonly empty: null;
+		readonly replace: ReplaceOnly<T>;
+		readonly internal: never;
 	};
 	constructor() {
 		super(null);

@@ -57,7 +57,23 @@ export interface BaseApply<TypeTag extends string = string> {
 
 /** A change-type applier. */
 export interface Apply<in out T, in out DT = DRO<T>> extends Change<T, DT> {
-	readonly "~apply": { readonly value: T; readonly change: DT };
+	/**
+	 * Object containing the related types of this instance of `Apply`,
+	 * including the value and change types.
+	 * Does not actually exist at runtime.
+	 */
+	readonly "~apply": {
+		/** The value-type. */
+		readonly value: T;
+		/** The change-type. */
+		readonly change: DT;
+		/** Narrowed empty type when `isEmpty` is true. Optional. */
+		readonly empty: DT;
+		/** Narrowed replace type when `isReplace` is non-null. Optional. */
+		readonly replace: DT;
+		/** Narrowed internal change type when `isEmpty` is false and `isReplace` is null. Optional. */
+		readonly internal: DT;
+	};
 	readonly apply: (value: T, change: DT) => T;
 	/** If this method is defined, determines if the patch is applicable given a value. */
 	readonly canApply: (value: T, change: DT) => boolean;
