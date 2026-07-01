@@ -1,11 +1,12 @@
 import { type AOption, type ASome, option } from "@/option";
 import type { $A } from "@/types/abbr";
 import type { IFA } from "@/types/func";
+import type { AUnion } from "@/union";
 import { composeA, constant, identity } from "./basic";
 import { FRecord } from "./product";
 import { FUnion } from "./union";
 
-export class FOptional<A extends $A> {
+export class FOption<A extends $A> {
 	constructor(
 		readonly type: A,
 		readonly opt: AOption<A> = option(type),
@@ -28,3 +29,34 @@ export class FOptional<A extends $A> {
 		return constant(t, this.opt, null);
 	}
 }
+
+declare module "./union" {
+	interface FUnion<
+		Shape extends Record<Key, $A>,
+		Key extends keyof Shape = keyof Shape,
+	> {
+		preview<K extends Key>(key: K): IFA<AUnion<Shape, Key>, AOption<Shape[K]>>;
+	}
+}
+
+FUnion.prototype.preview = function <
+	Shape extends Record<Key, $A>,
+	Key extends keyof Shape,
+	K extends Key,
+>(
+	this: FUnion<Shape, Key>,
+	key: K,
+): IFA<AUnion<Shape, Key>, AOption<Shape[K]>> {
+	const { shape, keys } = this.union;
+	const fopt = new FOption(shape[key]);
+	const output = option(shape[key]);
+	const funcs = {} as { [key1 in Key]: IFA<Shape[key1], AOption<Shape[K]>> };
+	for (const key1 of keys) {
+		if (key1 === key) {
+			funcs[key] = fopt.some();
+		} else {
+			funcs[key] = fopt.none<Shape[K]>(shape[key]);
+		}
+	}
+	return this.elimA<AOption<Shape[K]>>(output, funcs);
+};

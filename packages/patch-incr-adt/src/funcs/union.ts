@@ -43,7 +43,7 @@ export class FUnion<
 		};
 	}
 
-	/** Create from a case: `x => x as Union` */
+	/** Create from a case: `x => x as Union`. Also the `review` for prisms. */
 	introCase<K extends Key>(disc: K): IFA<Shape[K], AUnion<Shape, Key>> {
 		const input = this.union.shape[disc];
 		const evaluate: Evaluate<Shape[K], AUnion<Shape, Key>> = (x) => x;
@@ -67,7 +67,7 @@ export class FUnion<
 	/** Performs pattern matching on the union: `x => funcs[union.getDiscrimant(x)](x)` */
 	elim<B extends $A>(
 		output: B,
-		funcs: { [key in Key]: IF<Shape[Key], B> },
+		funcs: { [key1 in Key]: IF<Shape[key1], B> },
 	): IF<AUnion<Shape, Key>, B> {
 		type Input = DeriveUnionValue<Shape, Key>;
 		const evaluate = (input: Input): $T<B> => {
@@ -86,9 +86,42 @@ export class FUnion<
 					if (disc === disc1) {
 						return funcs[disc].forward(
 							x,
-							// is non-empty and non-replace
 							(dx as UnionChangeEntry<Key, $D<Shape[Key]>>).change,
 							y,
+						);
+					}
+
+					return output.fromReplace(evaluate(x1));
+				},
+			}),
+			input: this.union,
+			output,
+		};
+	}
+
+	/** Performs pattern matching on the union: `x => funcs[union.getDiscrimant(x)](x)` */
+	elimA<B extends $A>(
+		output: B,
+		funcs: { [key1 in Key]: IFA<Shape[key1], B> },
+	): IFA<AUnion<Shape, Key>, B> {
+		type Input = DeriveUnionValue<Shape, Key>;
+		const evaluate = (input: Input): $T<B> => {
+			const disc = this.union.getDiscrimant(input);
+			return funcs[disc].evaluate(input);
+		};
+
+		return {
+			evaluate,
+			forward: makeForwardA(this.union, output, {
+				evaluate,
+				forward: (x, dx): $D<B> => {
+					const disc = this.union.getDiscrimant(x);
+					const x1 = this.union.apply(x, dx);
+					const disc1 = this.union.getDiscrimant(x1);
+					if (disc === disc1) {
+						return funcs[disc].forward(
+							x,
+							(dx as UnionChangeEntry<Key, $D<Shape[Key]>>).change,
 						);
 					}
 
