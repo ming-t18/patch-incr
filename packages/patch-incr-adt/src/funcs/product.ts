@@ -139,6 +139,13 @@ export class FRecord<
 		};
 	}
 
+	/** Splits up `r -> [r[k], r without k]` */
+	unfocus<K extends Key>(
+		_key: K,
+	): IFA<APair<Shape[K], AOmit<Shape, Key, K>>, ARecord<Shape, Key>> {
+		throw new Error("TODO");
+	}
+
 	/** Splits up `r -> [r[keys], r[~keys]]` */
 	partition<
 		APart extends ARecord<Shape1, K>,
@@ -176,7 +183,7 @@ export class FRecord<
 		};
 	}
 
-	/** Inverse of partition. `r -> [r[keys], r[~keys]]` */
+	/** Inverse of partition. `[r[keys], r[~keys]] -> r` */
 	merge<
 		APicked extends ARecord<ShapePicked, KPicked>,
 		ShapePicked extends Record<KPicked, $A>,

@@ -1,6 +1,8 @@
+import type { AEither } from "@/either";
 import type { $A, $D, $T } from "@/types/abbr";
 import type { Evaluate, IF, IFA } from "@/types/func";
 import type { AUnion, DeriveUnionValue, UnionChangeEntry } from "@/union";
+import type { AUnionOmit, AUnionPick } from "@/union/utils";
 import { makeForward, makeForwardA } from "./helpers";
 
 export class FUnion<
@@ -131,5 +133,47 @@ export class FUnion<
 			input: this.union,
 			output,
 		};
+	}
+
+	/** Splits up `r -> (r[k] + r without k)` */
+	focus<K extends Key>(
+		_key: K,
+	): IFA<AUnion<Shape, Key>, AEither<Shape[K], AUnionOmit<Shape, Key, K>>> {
+		throw new Error("TODO");
+	}
+
+	/** Inverse of focus, `r -> (r[k] + r without k)` */
+	unfocus<K extends Key>(
+		_key: K,
+	): IFA<AEither<Shape[K], AUnionOmit<Shape, Key, K>>, AUnion<Shape, Key>> {
+		throw new Error("TODO");
+	}
+
+	/** Splits up `r -> (r[keys] + r[~keys])` */
+	partition<
+		APart extends AUnion<Shape1, K>,
+		Shape1 extends Record<K, $A>,
+		K extends Key,
+	>(
+		_aPart: APart,
+	): IFA<
+		AUnion<Shape, Key>,
+		AEither<AUnionPick<Shape, Key, K>, AUnionOmit<Shape, Key, K>>
+	> {
+		throw new Error("TODO");
+	}
+
+	/** Inverse of partition. `(r[keys] + r[~keys]) -> r` */
+	merge<
+		APicked extends AUnion<ShapePicked, KPicked>,
+		ShapePicked extends Record<KPicked, $A>,
+		KPicked extends Key,
+	>(
+		_aPick: APicked,
+	): IFA<
+		AEither<APicked, AUnionOmit<Shape, Key, KPicked>>,
+		AUnion<Shape, Key>
+	> {
+		throw new Error("TODO");
 	}
 }

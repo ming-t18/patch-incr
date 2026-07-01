@@ -24,7 +24,7 @@ export const pick = <
 	return union(shape1, getDiscrimant);
 };
 
-export type AOmit<
+export type AUnionOmit<
 	Shape extends Record<Key, AnyApply>,
 	Key extends keyof Shape = keyof Shape,
 	ToExclude extends Key = never,
@@ -37,7 +37,7 @@ export const omit = <
 >(
 	{ shape, getDiscrimant }: AUnion<Map, Key>,
 	toExclude: ToExcludeR,
-): AOmit<Map, Key, Key & keyof ToExcludeR> => {
+): AUnionOmit<Map, Key, Key & keyof ToExcludeR> => {
 	const shape1: Map = { ...shape };
 	for (const key of Object.keys(toExclude)) {
 		// @ts-expect-error Can't be checked
