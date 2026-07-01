@@ -53,15 +53,15 @@ export interface ListShape<TA extends AnyApply, Rec extends AnyApply> {
 	cons: ProductApply<Cons<InferApplyValue<TA>>, ConsShape<TA, Rec>>;
 }
 
-export interface ListApply<A extends AnyApply>
-	extends AUnion<ListShape<A, ListApply<A>>> {}
+export interface AList<A extends AnyApply>
+	extends AUnion<ListShape<A, AList<A>>> {}
 
-export const list = <TA extends AnyApply>(apply: TA): ListApply<TA> => {
+export const list = <TA extends AnyApply>(apply: TA): AList<TA> => {
 	type T = InferApplyValue<TA>;
-	const rec: ListApply<TA> = union(
+	const rec: AList<TA> = union(
 		{
 			nil: nullType(),
-			cons: product<Cons<T>, ConsShape<TA, ListApply<TA>>, "head" | "tail">({
+			cons: product<Cons<T>, ConsShape<TA, AList<TA>>, "head" | "tail">({
 				shape: {
 					head: apply,
 					get tail() {
@@ -78,11 +78,11 @@ export const list = <TA extends AnyApply>(apply: TA): ListApply<TA> => {
 				get: <K extends "head" | "tail">(
 					c: Cons<InferApplyValue<TA>>,
 					k: K,
-				): InferApplyValue<ConsShape<TA, ListApply<TA>>[K]> => c[k] as never,
+				): InferApplyValue<ConsShape<TA, AList<TA>>[K]> => c[k] as never,
 				fromRecord: ({ head, tail }) => new Cons(head, tail),
 				toRecord: ({ head, tail }) => ({ head, tail }),
 			}),
-		} satisfies ListShape<TA, ListApply<TA>>,
+		} satisfies ListShape<TA, AList<TA>>,
 		(x) => (x ? "cons" : "nil"),
 	);
 	return rec;

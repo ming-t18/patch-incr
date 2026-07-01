@@ -10,7 +10,7 @@ import * as s from "@/index";
 
 // const tree = s.record({
 // 	name: s.string(),
-// 	get children(): s.AOptional<s.ListApply<typeof tree>> {
+// 	get children(): s.AOptional<s.AList<typeof tree0>> {
 // 		return s.optional(s.list(tree));
 // 	},
 // });
@@ -18,7 +18,7 @@ import * as s from "@/index";
 // Works
 interface TreeShape<Name extends s.AnyApply, Rec extends s.AnyApply> {
 	name: Name;
-	children: s.AOptional<s.ListApply<Rec>>;
+	children: s.AOptional<s.AList<Rec>>;
 }
 
 interface TreeApply<Name extends s.AnyApply>
