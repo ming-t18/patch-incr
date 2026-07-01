@@ -43,5 +43,5 @@ export interface IPrism<S extends $A, A extends $A> extends IAffine<S, A> {
 
 export interface IPrism1<S extends $A, T extends $A, A extends $A, B extends $A>
 	extends IAffine1<S, T, A, B> {
-	readonly review: IFA<A, T>;
+	readonly review: IFA<B, T>;
 }
