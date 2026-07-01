@@ -1,8 +1,21 @@
-import type { AEither } from "@/either";
+import {
+	type AEither,
+	type DeriveEitherShapedChange,
+	dLeft,
+	dRight,
+	either,
+	isLeft,
+} from "@/either";
 import type { $A, $D, $T } from "@/types/abbr";
 import type { Evaluate, IF, IFA } from "@/types/func";
-import type { AUnion, DeriveUnionValue, UnionChangeEntry } from "@/union";
-import type { AUnionOmit, AUnionPick } from "@/union/utils";
+import {
+	type AUnion,
+	type DeriveUnionShapedChange,
+	type DeriveUnionValue,
+	UnionCaseError,
+	type UnionChangeEntry,
+} from "@/union";
+import { type AUnionOmit, type AUnionPick, omit } from "@/union/utils";
 import { makeForward, makeForwardA } from "./helpers";
 
 export class FUnion<
@@ -137,16 +150,75 @@ export class FUnion<
 
 	/** Splits up `r -> (r[k] + r without k)` */
 	focus<K extends Key>(
-		_key: K,
+		key: K,
 	): IFA<AUnion<Shape, Key>, AEither<Shape[K], AUnionOmit<Shape, Key, K>>> {
-		throw new Error("TODO");
+		const { shape, getDiscrimant } = this.union;
+		const omitted: AUnionOmit<Shape, Key, K> = omit(this.union, key) as never;
+		const output = either(shape[key] as Shape[K], omitted);
+		const evaluate: Evaluate<
+			AUnion<Shape, Key>,
+			AEither<Shape[K], AUnionOmit<Shape, Key, K>>
+		> = (x) => (getDiscrimant(x) === key ? { left: x } : { right: x });
+		return {
+			evaluate,
+			forward: makeForwardA(this.union, output, {
+				evaluate,
+				forward: (
+					x,
+					dx: DeriveUnionShapedChange<Shape, Key>,
+				): $D<typeof output> => {
+					const disc0 = getDiscrimant(x);
+					if (disc0 !== dx.type) {
+						throw new UnionCaseError(disc0, dx.type);
+					}
+
+					if (disc0 === key) {
+						return dLeft(dx.change);
+					}
+					return dRight(dx as $D<typeof omitted>);
+				},
+			}),
+			input: this.union,
+			output,
+		};
 	}
 
 	/** Inverse of focus, `r -> (r[k] + r without k)` */
 	unfocus<K extends Key>(
-		_key: K,
+		key: K,
 	): IFA<AEither<Shape[K], AUnionOmit<Shape, Key, K>>, AUnion<Shape, Key>> {
-		throw new Error("TODO");
+		const { shape } = this.union;
+		const omitted: AUnionOmit<Shape, Key, K> = omit(this.union, key) as never;
+		const input = either(shape[key] as Shape[K], omitted);
+		const evaluate: Evaluate<
+			AEither<Shape[K], AUnionOmit<Shape, Key, K>>,
+			AUnion<Shape, Key>
+		> = (e) => (isLeft(e) ? { left: e } : { right: e });
+		return {
+			evaluate,
+			forward: makeForwardA(input, this.union, {
+				evaluate,
+				forward: (
+					x,
+					dx: DeriveEitherShapedChange<Shape[K], typeof omitted>,
+				): $D<typeof this.union> => {
+					const side = isLeft(x) ? "left" : "right";
+					if (dx.type !== side) {
+						throw new UnionCaseError(side, dx.type);
+					}
+
+					if (side === "left") {
+						return {
+							type: key as K,
+							change: dx.change,
+						} as UnionChangeEntry<K, $D<Shape[K]>>;
+					}
+					return dx.change as never;
+				},
+			}),
+			input,
+			output: this.union,
+		};
 	}
 
 	/** Splits up `r -> (r[keys] + r[~keys])` */

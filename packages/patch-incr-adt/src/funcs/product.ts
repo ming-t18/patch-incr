@@ -4,7 +4,7 @@ import type {
 	DeriveProductShapedChange,
 	HasFromToRecord,
 } from "@/product";
-import type { ARecord } from "@/record";
+import { type ARecord, record } from "@/record";
 import type { DeriveRecordValue } from "@/record/types";
 import { type AOmit, type APick, omit, pick } from "@/record/utils";
 import type { Evaluate, IF, IFA } from "@/types/func";
@@ -83,6 +83,42 @@ export class FProduct<
 			output: this.prod.shape[key],
 		};
 	}
+
+	/** Converts the product to the record with the same shape. */
+	toRecord(
+		output = record<Shape, Key>(this.prod.shape),
+	): IFA<AProd, ARecord<Shape, Key>> {
+		const evaluate: Evaluate<AProd, ARecord<Shape, Key>> = (x) =>
+			this.prod.toRecord(x);
+
+		return {
+			evaluate,
+			forward: makeForwardA(this.prod, output, {
+				evaluate,
+				forward: (_x, dx) => dx,
+			}),
+			input: this.prod,
+			output,
+		};
+	}
+
+	/** Converts a record of the same shape to the product. */
+	fromRecord(
+		input = record<Shape, Key>(this.prod.shape),
+	): IFA<ARecord<Shape, Key>, AProd> {
+		const evaluate: Evaluate<ARecord<Shape, Key>, AProd> = (x) =>
+			this.prod.fromRecord(x);
+
+		return {
+			evaluate,
+			forward: makeForwardA(input, this.prod, {
+				evaluate,
+				forward: (_x, dx) => dx,
+			}),
+			input,
+			output: this.prod,
+		};
+	}
 }
 
 export class FRecord<
@@ -141,9 +177,32 @@ export class FRecord<
 
 	/** Splits up `r -> [r[k], r without k]` */
 	unfocus<K extends Key>(
-		_key: K,
+		key: K,
 	): IFA<APair<Shape[K], AOmit<Shape, Key, K>>, ARecord<Shape, Key>> {
-		throw new Error("TODO");
+		const input: APair<Shape[K], AOmit<Shape, Key, K>> = pair(
+			this.prod.shape[key],
+			omit(this.prod, key) as never,
+		);
+		const evaluate: Evaluate<
+			APair<Shape[K], AOmit<Shape, Key, K>>,
+			ARecord<Shape, Key>
+		> = ([value, rest]) =>
+			({
+				[key]: value,
+				...rest,
+			}) as never;
+		return {
+			evaluate,
+			forward: makeForwardA(input, this.prod, {
+				evaluate,
+				forward: (_, [dv, dr]: [$D<Shape[K]>, $D<AOmit<Shape, Key, K>>]) => ({
+					[key]: dv,
+					...dr,
+				}),
+			}),
+			input,
+			output: this.prod,
+		};
 	}
 
 	/** Splits up `r -> [r[keys], r[~keys]]` */

@@ -72,4 +72,4 @@ export const record = <
 	Key extends keyof Map = keyof Map,
 >(
 	map: Map,
-) => new ARecord(map);
+) => new ARecord<Map, Key>(map);

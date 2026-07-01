@@ -23,14 +23,17 @@ export type UnionChangeEntry<K, D> = {
 	readonly change: D;
 };
 
+export type DeriveUnionShapedChange<
+	Shape extends Record<Key, AnyApply>,
+	Key extends keyof Shape = keyof Shape,
+> = {
+	readonly [k in Key]: UnionChangeEntry<k, InferApplyChange<Shape[k]>>;
+}[Key];
+
 export type DeriveUnionChange<
 	Map extends Record<Key, AnyApply>,
 	Key extends keyof Map = keyof Map,
-> =
-	| {
-			readonly [k in Key]: UnionChangeEntry<k, InferApplyChange<Map[k]>>;
-	  }[Key]
-	| DRO<DeriveUnionValue<Map, Key>>;
+> = DeriveUnionShapedChange<Map, Key> | DRO<DeriveUnionValue<Map, Key>>;
 
 export type UnionApply<
 	Map extends Record<Key, AnyApply>,

@@ -20,8 +20,10 @@ export const pick = <
 	for (const key of keys) {
 		shape1[key] = shape[key];
 	}
-	// @ts-expect-error Can't be checked
-	return union(shape1, getDiscrimant);
+	return union<typeof shape1, Key & keyof ToIncludeR>(
+		shape1,
+		getDiscrimant as never,
+	);
 };
 
 export type AUnionOmit<
@@ -44,7 +46,7 @@ export const omit = <
 		delete shape1[key];
 	}
 	// @ts-expect-error Can't be checked
-	return union(shape1, getDiscrimant);
+	return union<typeof shape1, Key & keyof ToExcludeR>(shape1, getDiscrimant);
 };
 
 export const merge = <
