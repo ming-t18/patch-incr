@@ -20,13 +20,13 @@ export const either = <L extends AnyApply, R extends AnyApply>(
 
 export function isLeft<L extends AnyApply, R extends AnyApply>(
 	x: InferApplyValue<AEither<L, R>>,
-): x is Left<InferApplyValue<L>> {
+): x is Left<L> {
 	return "left" in x;
 }
 
 export function isRight<L extends AnyApply, R extends AnyApply>(
 	x: InferApplyValue<AEither<L, R>>,
-): x is Right<InferApplyValue<R>> {
+): x is Right<R> {
 	return "right" in x;
 }
 

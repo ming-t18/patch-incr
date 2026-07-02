@@ -6,6 +6,7 @@ import {
 	either,
 	isLeft,
 } from "@/either";
+import { getReplaceOnly } from "@/replaceOnly";
 import type { $A, $D, $T } from "@/types/abbr";
 import type { Evaluate, IF, IFA } from "@/types/func";
 import {
@@ -16,7 +17,7 @@ import {
 	type UnionChangeEntry,
 } from "@/union";
 import { type AUnionOmit, type AUnionPick, omit } from "@/union/utils";
-import { makeIF, makeIFA } from "./helpers";
+import { makeIF, makeIFA, ShapePartition } from "./helpers";
 
 export class FUnion<
 	Shape extends Record<Key, $A>,
@@ -220,25 +221,82 @@ export class FUnion<
 		Shape1 extends Record<K, $A>,
 		K extends Key,
 	>(
-		_aPart: APart,
+		aPart: APart,
 	): IFA<
 		AUnion<Shape, Key>,
 		AEither<AUnionPick<Shape, Key, K>, AUnionOmit<Shape, Key, K>>
 	> {
-		throw new Error("TODO");
+		const { shape, getDiscrimant } = this.union;
+		const part = new ShapePartition<Shape, Key, K>(shape, aPart.shape);
+		const output = either(
+			aPart,
+			omit(this.union, part.toPick),
+		) as never as AEither<AUnionPick<Shape, Key, K>, AUnionOmit<Shape, Key, K>>;
+		const evaluate: Evaluate<AUnion<Shape, Key>, typeof output> = (input) => {
+			const disc = getDiscrimant(input);
+			if (part.isPicked(disc)) {
+				return { left: input };
+			}
+			return { right: input };
+		};
+		// Not using IFA due to intra-case change between left/right
+		return {
+			evaluate,
+			forward: (x, dx): $D<typeof output> => {
+				if (this.union.isEmpty(dx)) {
+					return output.empty;
+				}
+				const disc = getDiscrimant(x);
+				const rep = this.union.isReplace(dx);
+				const p1 = part.isPicked(disc);
+				if (rep !== null) {
+					const x1 = getReplaceOnly(rep);
+					const disc1 = getDiscrimant(x1);
+
+					const p2 = part.isPicked(disc1);
+					if (p1 !== p2) {
+						// inter-side change
+						return output.fromReplace(evaluate(x1));
+					}
+				}
+
+				// intra-side change
+				if (p1) {
+					return { type: "left", change: { left: dx as never } };
+				} else {
+					return { type: "right", change: { right: dx as never } };
+				}
+			},
+			input: this.union,
+			output,
+		};
 	}
 
 	/** Inverse of partition. `(r[keys] + r[~keys]) -> r` */
 	merge<
-		APicked extends AUnion<ShapePicked, KPicked>,
-		ShapePicked extends Record<KPicked, $A>,
-		KPicked extends Key,
+		APicked extends AUnion<ShapePicked, K>,
+		ShapePicked extends Record<K, $A>,
+		K extends Key,
 	>(
-		_aPick: APicked,
-	): IFA<
-		AEither<APicked, AUnionOmit<Shape, Key, KPicked>>,
-		AUnion<Shape, Key>
-	> {
-		throw new Error("TODO");
+		aPart: APicked,
+	): IFA<AEither<APicked, AUnionOmit<Shape, Key, K>>, AUnion<Shape, Key>> {
+		const { shape } = this.union;
+		const part = new ShapePartition<Shape, Key, K>(shape, aPart.shape);
+		const input = either(aPart, omit(this.union, part.toPick));
+		const evaluate: Evaluate<typeof input, AUnion<Shape, Key>> = (x) => {
+			return "left" in x ? x.left : x.right;
+		};
+		return makeIFA(input, this.union, {
+			evaluate,
+			forward: (
+				_x,
+				dx: DeriveEitherShapedChange<APicked, AUnionOmit<Shape, Key, K>>,
+			) => {
+				// conditional required for type checking to pass
+				return dx.type === "left"
+					? dx.change[dx.type]
+					: dx.change[dx.type satisfies "right"];
+			},
+		});
 	}
 }
