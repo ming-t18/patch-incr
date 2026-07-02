@@ -3,6 +3,19 @@ import type { $A, $T } from "@/types/abbr";
 import type { IF, IFA } from "@/types/func";
 
 /** Given an `IF`, convert to an `IFA` by re-evaluating in the `forward` implementation. */
+export const fromIFA = <A extends $A, B extends $A>({
+	input,
+	output,
+	evaluate,
+	forward,
+}: IFA<A, B>): IF<A, B> => ({
+	input,
+	output,
+	evaluate,
+	forward: (x, dx, _y) => forward(x, dx),
+});
+
+/** Given an `IF`, convert to an `IFA` by re-evaluating in the `forward` implementation. */
 export const toIFA = <A extends $A, B extends $A>({
 	input,
 	output,
