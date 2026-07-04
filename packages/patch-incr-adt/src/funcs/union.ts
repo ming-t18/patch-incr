@@ -152,16 +152,16 @@ export class FUnion<
 		});
 	}
 
-	/** Splits up `r -> (r[k] + r without k)` */
+	/** Splits up `r -> (r without k + r[k])` */
 	focus<K extends Key>(
 		key: K,
-	): IFA<AUnion<Shape, Key>, AEither<Shape[K], AUnionOmit<Shape, Key, K>>> {
+	): IFA<AUnion<Shape, Key>, AEither<AUnionOmit<Shape, Key, K>, Shape[K]>> {
 		const { shape, getDiscrimant } = this.union;
 		const omitted: AUnionOmit<Shape, Key, K> = omit(this.union, key) as never;
-		const output = either(shape[key] as Shape[K], omitted);
+		const output = either(omitted, shape[key] as Shape[K]);
 		const evaluate: Evaluate<
 			AUnion<Shape, Key>,
-			AEither<Shape[K], AUnionOmit<Shape, Key, K>>
+			AEither<AUnionOmit<Shape, Key, K>, Shape[K]>
 		> = (x) => (getDiscrimant(x) === key ? { left: x } : { right: x });
 		return makeIFA(this.union, output, {
 			evaluate,
@@ -175,22 +175,22 @@ export class FUnion<
 				}
 
 				if (disc0 === key) {
-					return dLeft(dx.change);
+					return dRight(dx.change);
 				}
-				return dRight(dx as $D<typeof omitted>);
+				return dLeft(dx as $D<typeof omitted>);
 			},
 		});
 	}
 
-	/** Inverse of focus, `r -> (r[k] + r without k)` */
+	/** Inverse of focus, `r -> (r without k + r[k])` */
 	unfocus<K extends Key>(
 		key: K,
-	): IFA<AEither<Shape[K], AUnionOmit<Shape, Key, K>>, AUnion<Shape, Key>> {
+	): IFA<AEither<AUnionOmit<Shape, Key, K>, Shape[K]>, AUnion<Shape, Key>> {
 		const { shape } = this.union;
 		const omitted: AUnionOmit<Shape, Key, K> = omit(this.union, key) as never;
-		const input = either(shape[key] as Shape[K], omitted);
+		const input = either(omitted, shape[key] as Shape[K]);
 		const evaluate: Evaluate<
-			AEither<Shape[K], AUnionOmit<Shape, Key, K>>,
+			AEither<AUnionOmit<Shape, Key, K>, Shape[K]>,
 			AUnion<Shape, Key>
 		> = (e) => (isLeft(e) ? { left: e } : { right: e });
 		return makeIFA(input, this.union, {
@@ -204,7 +204,7 @@ export class FUnion<
 					throw new UnionCaseError(side, dx.type);
 				}
 
-				if (side === "left") {
+				if (side === "right") {
 					return {
 						type: key as K,
 						change: dx.change,
