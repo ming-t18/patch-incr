@@ -5,6 +5,7 @@ export * as Either from "./either";
 export type * from "./list";
 export * as List from "./list";
 export { cons, list } from "./list";
+export * from "./map";
 export * from "./optional";
 export * as Pair from "./pair";
 export * from "./record";

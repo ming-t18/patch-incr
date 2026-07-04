@@ -1,5 +1,10 @@
 import { getReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
-import { BaseApplyClass, type DRO, type ReplaceOnly } from "@/types/algebra";
+import {
+	ApplyStructure,
+	BaseApplyClass,
+	type DRO,
+	type ReplaceOnly,
+} from "@/types/algebra";
 
 export class AAtomic<T> extends BaseApplyClass<T, DRO<T>, null> {
 	declare readonly "~apply": {
@@ -11,7 +16,7 @@ export class AAtomic<T> extends BaseApplyClass<T, DRO<T>, null> {
 	};
 	readonly $type = "atomic" as const;
 	constructor() {
-		super(null);
+		super(null, ApplyStructure.Atomic);
 	}
 	fromReplace(x: T) {
 		return makeReplaceOnly(x);

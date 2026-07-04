@@ -9,6 +9,7 @@ import { AUnion, type DeriveUnionValue } from "@/union";
 export type { Arbitrary as Arb } from "fast-check";
 
 import "./types";
+import { AMapValue } from "@/map";
 import {
 	BaseProductShaped,
 	BaseProductShapedTuple,
@@ -275,6 +276,26 @@ AOptional.prototype.arbChange = function (value) {
 	});
 };
 
+AMapValue.prototype.arbValue = function <A extends AnyArbApply, T>(
+	this: AMapValue<A, T>,
+): Arb<T> {
+	return this.inner.arbValue().map(
+		(x) => this.map(x),
+		(x) => this.unmap(x as never),
+	);
+};
+
+AMapValue.prototype.arbChange = function <A extends AnyArbApply, T>(
+	this: AMapValue<A, T>,
+	value?: T,
+) {
+	// biome-ignore lint/complexity/noArguments: spread won't type check
+	if (arguments.length === 1) {
+		return this.inner.arbChange(this.unmap(value as T));
+	}
+	return this.inner.arbChange();
+};
+
 export interface GenApply<A extends $A> {
 	readonly apply: A;
 	readonly arbValue: Arb<$T<A>>;
@@ -289,34 +310,14 @@ export class AtomicWithGen<T> extends AAtomic<T> {
 
 export const atomicWithGen = <T>(gen: Arb<T>) => new AtomicWithGen<T>(gen);
 
-export const genValueFromApply = <A extends $A>(apply: A): Arb<$T<A>> => {
-	if (
-		apply instanceof AConstant ||
-		apply instanceof AAtomic ||
-		apply instanceof BaseProductShaped ||
-		apply instanceof BaseProductShapedTuple ||
-		apply instanceof AUnion ||
-		apply instanceof AOptional
-	) {
-		// @ts-expect-error Assuming it's defined here
-		return apply.arbValue();
-	}
-
-	throw new TypeError(`Unsupported subtype of Apply: ${apply.constructor}`);
+export const genValueFromApply = <A extends AnyArbApply>(
+	apply: A,
+): Arb<$T<A>> => {
+	return apply.arbValue();
 };
 
-export const genChangeFromApply = <A extends $A>(apply: A): Arb<$D<A>> => {
-	if (
-		apply instanceof AConstant ||
-		apply instanceof AAtomic ||
-		apply instanceof BaseProductShaped ||
-		apply instanceof BaseProductShapedTuple ||
-		apply instanceof AUnion ||
-		apply instanceof AOptional
-	) {
-		// @ts-expect-error Assuming it's defined here
-		return apply.arbChange();
-	}
-
-	throw new TypeError(`Unsupported subtype of Apply: ${apply.constructor}`);
+export const genChangeFromApply = <A extends AnyArbApply>(
+	apply: A,
+): Arb<$D<A>> => {
+	return apply.arbChange();
 };

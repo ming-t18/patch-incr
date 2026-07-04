@@ -1,10 +1,10 @@
 import { deepEquals } from "bun";
 import fc from "fast-check";
-import { AConstant } from "@/constant";
 import type { AnyArbApply } from "@/props";
 import { makePropsApply } from "@/props/change";
 import { genChangeFromApply, genValueFromApply } from "@/props/gen";
 import type { $A, $D, $T } from "@/types/abbr";
+import { ApplyStructure } from "@/types/algebra";
 
 export const propCanApplyApplies = <A extends $A>(
 	apply: A,
@@ -56,7 +56,7 @@ export const testCasesPropsApply = <A extends AnyArbApply>(apply: A) => {
 	});
 
 	describe("apply-replace", () => {
-		if (apply instanceof AConstant) {
+		if (apply.structure === ApplyStructure.One) {
 			testProp("isEmpty(R(a)) for constant type", () =>
 				fc.property(arbValue, (r) => apply.isEmpty(apply.fromReplace(r))),
 			);
@@ -71,8 +71,8 @@ export const testCasesPropsApply = <A extends AnyArbApply>(apply: A) => {
 		testProp("d <> R(b) = R(b)", () =>
 			fc.property(arbChange, arbValue, props.combineWithReplaceIsReplace),
 		);
-		testProp("a @ R(b) = R(b)", () =>
-			fc.property(arbChange, arbValue, props.applyReplaceReplaces),
+		testProp("a @ R(b) = b", () =>
+			fc.property(arbValue, arbValue, props.applyReplaceReplaces),
 		);
 	});
 

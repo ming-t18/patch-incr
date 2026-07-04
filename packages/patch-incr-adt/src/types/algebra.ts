@@ -51,6 +51,7 @@ export interface BaseApply<TypeTag extends string = string> {
 	 *  - product
 	 *  - union
 	 *  - optional
+	 *  - map
 	 */
 	$type: TypeTag;
 }
@@ -74,13 +75,33 @@ export interface Apply<in out T, in out DT = DRO<T>> extends Change<T, DT> {
 		/** Narrowed internal change type when `isEmpty` is false and `isReplace` is null. */
 		readonly internal: DT;
 	};
+	readonly structure: ApplyStructure;
+	/** Applies the patch on an object. */
 	readonly apply: (value: T, change: DT) => T;
 	/** If this method is defined, determines if the patch is applicable given a value. */
 	readonly canApply: (value: T, change: DT) => boolean;
 }
 
+/** An enum describing the structure of an `Apply` */
+export enum ApplyStructure {
+	/** The value-type is empty. (aka never, null) */
+	Zero = "Zero",
+	/** The value-type has only 1 element. (aka singleton, unit) */
+	One = "One",
+	/** The change-type has only zero or one elements. */
+	Atomic = "Atomic",
+	/**
+	 * The change-type between any two values can have any number of elements.
+	 * Also the default `ApplyStructure`.
+	 */
+	Complex = "Complex",
+}
+
 export abstract class BaseApplyClass<T, DT, DTEmpty extends DT = DT> {
-	constructor(readonly empty: DTEmpty) {}
+	constructor(
+		readonly empty: DTEmpty,
+		readonly structure = ApplyStructure.Complex,
+	) {}
 
 	getEmpty(): DTEmpty {
 		return this.empty;

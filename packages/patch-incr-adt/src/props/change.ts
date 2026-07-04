@@ -1,5 +1,11 @@
 import { getReplaceOnly } from "@/replaceOnly";
-import { type Apply, ApplyError, type Monoid, type ReplaceOnly } from "@/types";
+import {
+	type Apply,
+	ApplyError,
+	ApplyStructure,
+	type Monoid,
+	type ReplaceOnly,
+} from "@/types";
 
 export interface PropsMonoid<M> {
 	/** isEmpty(empty) */
@@ -22,7 +28,7 @@ export interface PropsApply<T, D> extends PropsMonoid<D> {
 	replaceOverridesFirstReplace: (rep1: T, rep2: T) => boolean;
 	/** d <> R(b) = R(b) */
 	combineWithReplaceIsReplace: (d1: D, rep: T) => boolean;
-	/** a <> R(b) = b */
+	/** a @ R(b) = b */
 	applyReplaceReplaces: (val: T, rep: T) => boolean;
 	canApplyEmptyAlwaysTrue: (val: T) => boolean;
 	canApplyReplaceAlwaysTrue: (val: T, rep: T) => boolean;
@@ -113,6 +119,13 @@ export const makePropsApply = <T, D>(
 		const rep1 = apply.isReplace(
 			apply.fromReplace(rep),
 		) as ReplaceOnly<T> | null;
-		return rep1 === null || Object.is(rep, getReplaceOnly(rep1));
+		// rep1 === null is for constant types
+		if (
+			apply.structure === ApplyStructure.One ||
+			apply.structure === ApplyStructure.Zero
+		) {
+			return rep1 === null;
+		}
+		return rep1 !== null && eqValue(rep, getReplaceOnly(rep1));
 	},
 });

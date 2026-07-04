@@ -2,6 +2,7 @@ import type { Arbitrary as Arb } from "fast-check";
 import type { DeriveProductChange, DeriveProductChangeTuple } from "@/product";
 import type { DeriveRecordValue } from "@/record/types";
 import type { AnyTuple, DeriveTupleValue } from "@/tuple";
+import type { $D } from "@/types/abbr";
 import type {
 	AnyApply,
 	Apply,
@@ -206,5 +207,16 @@ declare module "@/optional" {
 			this: AOptional<A, T, DT>,
 			value?: T,
 		) => Arb<DT | ReplaceOnly<undefined>>;
+	}
+}
+
+declare module "@/map" {
+	export interface AMapValue<A extends AnyApply, T> {
+		readonly "~arbApplyDefined": A extends AnyArbApply ? true : false;
+		arbValue: <A extends AnyArbApply, T>(this: AMapValue<A, T>) => Arb<T>;
+		arbChange: <A extends AnyArbApply, T>(
+			this: AMapValue<A, T>,
+			value?: T,
+		) => Arb<$D<A>>;
 	}
 }

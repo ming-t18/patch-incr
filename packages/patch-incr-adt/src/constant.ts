@@ -1,4 +1,8 @@
-import { BaseApplyClass, type ReplaceOnly } from "@/types/algebra";
+import {
+	ApplyStructure,
+	BaseApplyClass,
+	type ReplaceOnly,
+} from "@/types/algebra";
 
 export class AConstant<T, D> extends BaseApplyClass<T, D> {
 	declare readonly "~apply": {
@@ -14,7 +18,7 @@ export class AConstant<T, D> extends BaseApplyClass<T, D> {
 		readonly value: T,
 		empty: D,
 	) {
-		super(empty);
+		super(empty, ApplyStructure.One);
 	}
 	apply = (_v: T, _d: D): T => this.value;
 	canApply = (_: T, d: D) => d === this.empty;
