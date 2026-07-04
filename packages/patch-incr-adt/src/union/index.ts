@@ -16,7 +16,9 @@ import type {
 
 export class UnionCaseError extends ApplyError {
 	constructor(
+		/** Expected union case */
 		readonly case1: string | number | symbol,
+		/** Actual union case */
 		readonly case2: string | number | symbol,
 	) {
 		super(

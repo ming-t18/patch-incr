@@ -2,8 +2,11 @@ import { getReplaceOnly } from "@/replaceOnly";
 import type { $A, $D, $T } from "../types/abbr";
 import type { Evaluate, IF, IFA } from "../types/func/incrFunc";
 
+export const REEVAL = Symbol.for("patch-incr-adt:REEVAL");
+export type REEVAL = typeof REEVAL;
+
 export const makeForward =
-	<A extends $A, B extends $A, DASub = $D<A>>(
+	<A extends $A, B extends $A, DASub = A["~apply"]["internal"]>(
 		input: A,
 		output: B,
 		{
@@ -11,7 +14,7 @@ export const makeForward =
 			forward,
 		}: {
 			evaluate: Evaluate<A, B>;
-			forward: (x: $T<A>, dx: DASub, y: $T<B>) => $D<B>;
+			forward: (x: $T<A>, dx: DASub, y: $T<B>) => $D<B> | REEVAL;
 		},
 	) =>
 	(x: $T<A>, dx: $D<A>, y: $T<B>): $D<B> => {
@@ -23,11 +26,15 @@ export const makeForward =
 			return output.fromReplace(evaluate(getReplaceOnly(rep)));
 		}
 
-		return forward(x, dx as DASub, y);
+		const res = forward(x, dx as DASub, y);
+		if (res === REEVAL) {
+			return output.fromReplace(evaluate(input.apply(x, dx)));
+		}
+		return res;
 	};
 
 export const makeForwardA =
-	<A extends $A, B extends $A, DASub = $D<A>>(
+	<A extends $A, B extends $A, DASub = A["~apply"]["internal"]>(
 		input: A,
 		output: B,
 		{
@@ -35,7 +42,7 @@ export const makeForwardA =
 			forward,
 		}: {
 			evaluate: Evaluate<A, B>;
-			forward: (x: $T<A>, dx: DASub) => $D<B>;
+			forward: (x: $T<A>, dx: DASub) => $D<B> | REEVAL;
 		},
 	) =>
 	(x: $T<A>, dx: $D<A>): $D<B> => {
@@ -47,10 +54,18 @@ export const makeForwardA =
 			return output.fromReplace(evaluate(getReplaceOnly(rep)));
 		}
 
-		return forward(x, dx as DASub);
+		const res = forward(x, dx as DASub);
+		if (res === REEVAL) {
+			return output.fromReplace(evaluate(input.apply(x, dx)));
+		}
+		return res;
 	};
 
-export const makeIF = <A extends $A, B extends $A, DASub = $D<A>>(
+export const makeIF = <
+	A extends $A,
+	B extends $A,
+	DASub = A["~apply"]["internal"],
+>(
 	input: A,
 	output: B,
 	{
@@ -58,7 +73,7 @@ export const makeIF = <A extends $A, B extends $A, DASub = $D<A>>(
 		forward,
 	}: {
 		evaluate: Evaluate<A, B>;
-		forward: (x: $T<A>, dx: DASub, y: $T<B>) => $D<B>;
+		forward: (x: $T<A>, dx: DASub, y: $T<B>) => $D<B> | REEVAL;
 	},
 ): IF<A, B> => ({
 	evaluate,
@@ -67,7 +82,11 @@ export const makeIF = <A extends $A, B extends $A, DASub = $D<A>>(
 	output,
 });
 
-export const makeIFA = <A extends $A, B extends $A, DASub = $D<A>>(
+export const makeIFA = <
+	A extends $A,
+	B extends $A,
+	DASub = A["~apply"]["internal"],
+>(
 	input: A,
 	output: B,
 	{
@@ -75,7 +94,7 @@ export const makeIFA = <A extends $A, B extends $A, DASub = $D<A>>(
 		forward,
 	}: {
 		evaluate: Evaluate<A, B>;
-		forward: (x: $T<A>, dx: DASub) => $D<B>;
+		forward: (x: $T<A>, dx: DASub) => $D<B> | REEVAL;
 	},
 ): IFA<A, B> => ({
 	evaluate,
@@ -141,4 +160,9 @@ export class ShapePartition<
 		}
 		return merged;
 	}
+}
+
+export interface IsSubtype<T extends TSuper, TSuper> {
+	readonly t: T;
+	readonly tSuper: TSuper;
 }

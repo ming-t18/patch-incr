@@ -67,11 +67,11 @@ export interface Apply<in out T, in out DT = DRO<T>> extends Change<T, DT> {
 		readonly value: T;
 		/** The change-type. */
 		readonly change: DT;
-		/** Narrowed empty type when `isEmpty` is true. Optional. */
+		/** Narrowed empty type when `isEmpty` is true. */
 		readonly empty: DT;
-		/** Narrowed replace type when `isReplace` is non-null. Optional. */
+		/** Narrowed replace type when `isReplace` is non-null. */
 		readonly replace: DT;
-		/** Narrowed internal change type when `isEmpty` is false and `isReplace` is null. Optional. */
+		/** Narrowed internal change type when `isEmpty` is false and `isReplace` is null. */
 		readonly internal: DT;
 	};
 	readonly apply: (value: T, change: DT) => T;

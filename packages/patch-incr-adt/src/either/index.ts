@@ -1,4 +1,5 @@
 import { record } from "@/record";
+import { isReplaceOnly } from "@/replaceOnly";
 import type {
 	AnyApply,
 	InferApplyChange,
@@ -37,6 +38,39 @@ export const dLeft = <L extends AnyApply, R extends AnyApply>(
 export const dRight = <L extends AnyApply, R extends AnyApply>(
 	d: InferApplyChange<R>,
 ): InferApplyChange<AEither<L, R>> => ({ type: "right", change: { right: d } });
+
+export const matchDEither = <L extends AnyApply, R extends AnyApply>(
+	input: AEither<L, R>,
+	d: InferApplyChange<AEither<L, R>>,
+): { left: InferApplyChange<L> } | { right: InferApplyChange<R> } | null => {
+	const { shape } = input;
+	if (d === null || isReplaceOnly(d)) {
+		return null;
+	}
+	if (d.change === null) {
+		return null;
+	}
+	if (isReplaceOnly(d.change)) {
+		return null;
+	}
+	const d1 = d.change as unknown as DeriveEitherShapedChange<L, R>;
+	if (d1.type === "left") {
+		if (d1.change === null) {
+			return { left: shape.left.empty };
+		}
+		if (isReplaceOnly(d1.change)) {
+			return null;
+		}
+		return { left: d1.change.left };
+	}
+	if (d1.change === null) {
+		return { right: shape.right.empty };
+	}
+	if (isReplaceOnly(d1.change)) {
+		return null;
+	}
+	return { right: d1.change.right };
+};
 
 export type AEither<A extends AnyApply, B extends AnyApply> = ReturnType<
 	typeof either<A, B>
