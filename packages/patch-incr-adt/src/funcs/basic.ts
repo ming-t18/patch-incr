@@ -1,6 +1,7 @@
 import { type APair, pair } from "@/pair";
 import type { $A, $T } from "@/types/abbr";
 import type { IF, IFA } from "@/types/func";
+import type { IIsoA } from "@/types/func/iso";
 
 /** Given an `IF`, convert to an `IFA` by re-evaluating in the `forward` implementation. */
 export const fromIFA = <A extends $A, B extends $A>({
@@ -75,3 +76,37 @@ export const composeR = <A extends $A, B extends $A, C extends $A>(
 		return f2.forward(x, dy, z);
 	},
 });
+
+export const composeFromA = <A extends $A, B extends $A, C extends $A>(
+	f1: IFA<A, B>,
+	f2: IF<B, C>,
+): IF<A, C> => ({
+	input: f1.input,
+	output: f2.output,
+	evaluate: (x) => f2.evaluate(f1.evaluate(x)),
+	forward: (x, dx, z) => {
+		const y = f1.evaluate(x);
+		const dy = f1.forward(x, dx);
+		return f2.forward(x, dy, z);
+	},
+});
+
+export const composeWithIsoA = <A extends $A, B extends $A, C extends $A>(
+	f1: IF<A, B>,
+	{ fwd: f2, inv: f2i }: IIsoA<B, C>,
+): IF<A, C> => ({
+	input: f1.input,
+	output: f2.output,
+	evaluate: (x) => {
+		return f2.evaluate(f1.evaluate(x));
+	},
+	forward: (x, dx, z) => {
+		const dy = f1.forward(x, dx, f2i.evaluate(z));
+		return f2.forward(x, dy, z);
+	},
+});
+
+export const invertA = <A extends $A, B extends $A>({
+	fwd,
+	inv,
+}: IIsoA<A, B>): IIsoA<B, A> => ({ inv: fwd, fwd: inv });

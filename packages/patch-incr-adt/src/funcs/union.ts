@@ -9,6 +9,7 @@ import {
 import { getReplaceOnly } from "@/replaceOnly";
 import type { $A, $D, $T } from "@/types/abbr";
 import type { Evaluate, IF, IFA } from "@/types/func";
+import type { IIsoA } from "@/types/func/iso";
 import {
 	type AUnion,
 	type DeriveUnionShapedChange,
@@ -91,6 +92,26 @@ export class FUnion<
 				};
 			},
 		});
+	}
+
+	elimCase<K extends Key>(disc: K): IFA<AUnion<Shape, Key>, Shape[K]> {
+		const output = this.union.shape[disc];
+		const evaluate: Evaluate<AUnion<Shape, Key>, Shape[K]> = (x) => {
+			const disc1 = this.union.getDiscrimant(x);
+			if (disc1 !== disc) throw new UnionCaseError(disc, disc1);
+			return x as never;
+		};
+		return makeIFA<AUnion<Shape, Key>, Shape[K]>(this.union, output, {
+			evaluate,
+			forward: (_x, dx): $D<Shape[K]> => {
+				if (dx.type !== disc) throw new UnionCaseError(disc, dx.type);
+				return dx.change;
+			},
+		});
+	}
+
+	isoCase<K extends Key>(disc: K): IIsoA<Shape[K], AUnion<Shape, Key>> {
+		return { fwd: this.introCase(disc), inv: this.elimCase(disc) };
 	}
 
 	/** Performs pattern matching on the union: `x => funcs[union.getDiscrimant(x)](x)` */
@@ -262,9 +283,9 @@ export class FUnion<
 
 				// intra-side change
 				if (p1) {
-					return { type: "left", change: { left: dx as never } };
+					return { type: "left", change: dx as never };
 				} else {
-					return { type: "right", change: { right: dx as never } };
+					return { type: "right", change: dx as never };
 				}
 			},
 			input: this.union,

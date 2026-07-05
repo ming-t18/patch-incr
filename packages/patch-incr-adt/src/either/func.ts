@@ -1,59 +1,47 @@
-import { FRecord, FUnion } from "@/funcs";
+import { composeA, composeFromA, FUnion } from "@/funcs";
 import { makeIFA, REEVAL } from "@/funcs/helpers";
+import { FMapValue } from "@/funcs/map";
 import type { $A } from "@/types/abbr";
 import type { Evaluate, IF, IFA } from "@/types/func";
-import type { IIso, IIsoA } from "@/types/func/iso";
+import type { IIsoA } from "@/types/func/iso";
 import { UnionCaseError } from "@/union";
 import { type AZero, zeroType } from "@/unit";
 import { type AEither, dLeft, dRight, either, matchDEither } from ".";
 
-// Introduction rules
+export class FEither<A extends $A, B extends $A> {
+	constructor(
+		readonly either: AEither<A, B>,
+		readonly fUnion = new FUnion(either),
+		readonly fLeft = new FMapValue(either.shape.left),
+		readonly fRight = new FMapValue(either.shape.right),
+	) {}
 
-export const condA = <A extends $A, B extends $A, C extends $A>(
-	isRight: (input: A) => boolean,
-	fLeft: IFA<A, B>,
-	fRight: IFA<A, C>,
-): IFA<A, AEither<B, C>> => {
-	const input = fLeft.input;
-	const output = either(fLeft.output, fRight.output);
-	const fUnion = new FUnion(output);
-	return fUnion.introCondA((x) => (isRight(x) ? "right" : "left"), {
-		left: new FRecord(output.shape.left).introA(input, { left: fLeft }),
-		right: new FRecord(output.shape.right).introA(input, { right: fRight }),
-	});
-};
+	// Introduction rules
+	left(): IFA<A, AEither<A, B>> {
+		return composeA(this.fLeft.intro(), this.fUnion.introCase("left"));
+	}
 
-export const cond = <A extends $A, B extends $A, C extends $A>(
-	isRight: (input: A) => boolean,
-	fLeft: IF<A, B>,
-	fRight: IF<A, C>,
-): IF<A, AEither<B, C>> => {
-	const input = fLeft.input;
-	const output = either(fLeft.output, fRight.output);
-	const fUnion = new FUnion(output);
-	return fUnion.introCond((x) => (isRight(x) ? "right" : "left"), {
-		// @ts-expect-error TODO fix
-		left: new FRecord(output.shape.left).intro(input, { left: fLeft }),
-		// @ts-expect-error TODO fix
-		right: new FRecord(output.shape.right).intro(input, { right: fRight }),
-	});
-};
+	right(): IFA<B, AEither<A, B>> {
+		return composeA(this.fRight.intro(), this.fUnion.introCase("right"));
+	}
 
-declare const left: <A extends $A, B extends $A>(
-	either: AEither<A, B>,
-) => IFA<A, AEither<A, B>>;
+	elim<C extends $A>(left: IF<A, C>, right: IF<B, C>): IF<AEither<A, B>, C> {
+		return this.fUnion.elim(left.output, {
+			left: composeFromA(this.fLeft.elim(), left),
+			right: composeFromA(this.fRight.elim(), right),
+		});
+	}
 
-declare const right: <A extends $A, B extends $A>(
-	either: AEither<A, B>,
-) => IFA<A, AEither<A, B>>;
-
-// Elimination rules
-
-declare const elim: <A extends $A, B extends $A, C extends $A>(
-	either: AEither<A, B>,
-	left: IF<A, C>,
-	right: IF<B, C>,
-) => IIso<AEither<A, B>, C>;
+	elimA<C extends $A>(
+		left: IFA<A, C>,
+		right: IFA<B, C>,
+	): IFA<AEither<A, B>, C> {
+		return this.fUnion.elimA(left.output, {
+			left: composeA(this.fLeft.elim(), left),
+			right: composeA(this.fRight.elim(), right),
+		});
+	}
+}
 
 // Algebraic rules
 
@@ -79,7 +67,7 @@ export const elimZeroLeft = <A extends $A>(
 			return e.right;
 		},
 		forward: (_x, dx) => {
-			const dxm = matchDEither(input, dx);
+			const dxm = matchDEither(dx);
 			if (dxm === null || "left" in dxm) {
 				return REEVAL;
 			}
@@ -134,12 +122,12 @@ export const assocLR = <A extends $A, B extends $A, C extends $A>(
 	return makeIFA(input, output, {
 		evaluate,
 		forward: (_x, dx) => {
-			const dxm = matchDEither(input, dx);
+			const dxm = matchDEither(dx);
 			if (dxm === null) {
 				return REEVAL;
 			}
 			if ("left" in dxm) {
-				const dxlm = matchDEither(input, dxm.left);
+				const dxlm = matchDEither(dxm.left);
 				if (dxlm === null) {
 					return REEVAL;
 				}
@@ -170,7 +158,7 @@ export const assocRL = <A extends $A, B extends $A, C extends $A>(
 	return makeIFA(input, output, {
 		evaluate,
 		forward: (_x, dx) => {
-			const dxm = matchDEither(input, dx);
+			const dxm = matchDEither(dx);
 			if (dxm === null) {
 				return REEVAL;
 			}
@@ -178,7 +166,7 @@ export const assocRL = <A extends $A, B extends $A, C extends $A>(
 				return dLeft(dLeft(dxm.left));
 			}
 			if ("right" in dxm) {
-				const dxrm = matchDEither(input, dxm.right);
+				const dxrm = matchDEither(dxm.right);
 				if (dxrm === null) {
 					return REEVAL;
 				}

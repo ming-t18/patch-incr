@@ -225,12 +225,14 @@ AUnion.prototype.arbChange = function <
 	Map extends Record<Key, AnyArbApply>,
 	Key extends keyof Map = keyof Map,
 >(this: AUnion<Map, Key>, value?: DeriveUnionValue<Map, Key>) {
+  // biome-ignore lint/complexity/noArguments: value is optional and can conflate with undefined
+  const valueIsProvided = arguments.length > 1;
 	const entries: Arb<InferApplyChange<Map[Key]>>[] = [];
 	for (const disc of this.keys) {
 		if (typeof value !== "undefined" && this.getDiscrimant(value) !== disc) {
 			continue;
 		}
-		entries.push(this.shape[disc].arbChange(value));
+		entries.push(valueIsProvided ? this.shape[disc].arbChange(value) : this.shape[disc].arbChange() );
 	}
 	if (entries.length === 0) {
 		throw new Error("AUnion.arbChange: no cases generated");

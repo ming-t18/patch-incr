@@ -1,6 +1,7 @@
 import type { AMapValue } from "@/map";
 import type { $A } from "@/types/abbr";
 import type { IFA } from "@/types/func";
+import type { IIsoA } from "@/types/func/iso";
 
 export class FMapValue<A extends $A, T> {
 	constructor(readonly map: AMapValue<A, T>) {}
@@ -21,5 +22,9 @@ export class FMapValue<A extends $A, T> {
 			evaluate: (x) => this.map.unmap(x),
 			forward: (_x, dx) => dx,
 		};
+	}
+
+	iso(): IIsoA<A, AMapValue<A, T>> {
+		return { fwd: this.intro(), inv: this.elim() };
 	}
 }
