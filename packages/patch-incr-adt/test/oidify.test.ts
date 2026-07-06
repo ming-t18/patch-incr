@@ -1,3 +1,4 @@
+import { describe, it } from "bun:test";
 import * as s from "@/index";
 import * as o from "@/types/oid";
 

@@ -1,3 +1,4 @@
+import { describe } from "bun:test";
 import fc from "fast-check";
 import * as f from "@/funcs";
 import * as s from "@/index";

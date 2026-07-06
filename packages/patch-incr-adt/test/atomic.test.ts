@@ -1,3 +1,4 @@
+import { describe, it } from "bun:test";
 import fc from "fast-check";
 import * as s from "@/index";
 import { atomicWithGen } from "@/props/gen";

@@ -85,7 +85,7 @@ export const composeFromA = <A extends $A, B extends $A, C extends $A>(
 	output: f2.output,
 	evaluate: (x) => f2.evaluate(f1.evaluate(x)),
 	forward: (x, dx, z) => {
-		const y = f1.evaluate(x);
+		const _y = f1.evaluate(x);
 		const dy = f1.forward(x, dx);
 		return f2.forward(x, dy, z);
 	},

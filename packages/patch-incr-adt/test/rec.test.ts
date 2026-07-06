@@ -1,3 +1,4 @@
+import { describe, it } from "bun:test";
 import * as s from "@/index";
 
 // does not work due to self-referential "typeof"

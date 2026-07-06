@@ -1,3 +1,4 @@
+import { describe, expect, it, test } from "bun:test";
 import { deepEquals } from "bun";
 import fc from "fast-check";
 import type { AnyArbApply } from "@/props";
@@ -5,7 +6,6 @@ import { makePropsApply } from "@/props/change";
 import { genChangeFromApply, genValueFromApply } from "@/props/gen";
 import type { $A, $D, $T } from "@/types/abbr";
 import { ApplyStructure } from "@/types/algebra";
-
 export const propCanApplyApplies = <A extends $A>(
 	apply: A,
 	value: $T<A>,

@@ -1,3 +1,4 @@
+import { describe, it } from "bun:test";
 import * as s from "@/index";
 import "@/props";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
