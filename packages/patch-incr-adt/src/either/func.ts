@@ -16,6 +16,10 @@ export class FEither<A extends $A, B extends $A> {
 		readonly fRight = new FMapValue(either.shape.right),
 	) {}
 
+	flipped(): AEither<B, A> {
+		return either(this.either.shape.right.inner, this.either.shape.left.inner);
+	}
+
 	// Introduction rules
 	left(): IFA<A, AEither<A, B>> {
 		return composeA(this.fLeft.intro(), this.fUnion.introCase("left"));
@@ -40,6 +44,21 @@ export class FEither<A extends $A, B extends $A> {
 			left: composeA(this.fLeft.elim(), left),
 			right: composeA(this.fRight.elim(), right),
 		});
+	}
+
+	comm0(): IFA<AEither<A, B>, AEither<B, A>> {
+		return makeIFA(this.either, this.flipped(), {
+			evaluate: (e) => ("left" in e ? { right: e.left } : { left: e.right }),
+			forward: (_x, dx) =>
+				dx.type === "left" ? dRight(dx.change) : dLeft(dx.change),
+		});
+	}
+
+	comm(): IIsoA<AEither<A, B>, AEither<B, A>> {
+		return {
+			fwd: this.comm0(),
+			inv: new FEither(this.flipped()).comm0(),
+		};
 	}
 }
 
@@ -85,24 +104,6 @@ export const zeroRight = <A extends $A>(
 
 // TODO declare const zeroRight: <A extends $A>(left: A) => IIosA<A, AEither<A, AZero>>;
 
-export const comm0 = <A extends $A, B extends $A>(
-	a: A,
-	b: B,
-): IFA<AEither<A, B>, AEither<B, A>> =>
-	makeIFA(either(a, b), either(b, a), {
-		evaluate: (e) => ("left" in e ? { right: e.left } : { left: e.right }),
-		forward: (_x, dx) =>
-			dx.type === "left" ? dRight(dx.change) : dLeft(dx.change),
-	});
-
-export const comm = <A extends $A, B extends $A>(
-	a: A,
-	b: B,
-): IIsoA<AEither<A, B>, AEither<B, A>> => ({
-	fwd: comm0(a, b),
-	inv: comm0(b, a),
-});
-
 export const assocLR = <A extends $A, B extends $A, C extends $A>(
 	a: A,
 	b: B,
@@ -116,22 +117,24 @@ export const assocLR = <A extends $A, B extends $A, C extends $A>(
 	const evaluate: Evaluate<typeof input, typeof output> = (e) =>
 		"left" in e
 			? "left" in e.left
-				? { left: e }
-				: { right: { left: e } }
-			: { right: { right: e } };
+				? { left: e.left.left }
+				: { right: { left: e.left.right } }
+			: { right: { right: e.right } };
 	return makeIFA(input, output, {
 		evaluate,
 		forward: (_x, dx) => {
-			const dxm = matchDEither(dx);
+			const dxm = matchDEither<AEither<A, B>, C>(dx);
 			if (dxm === null) {
 				return REEVAL;
 			}
 			if ("left" in dxm) {
-				const dxlm = matchDEither(dxm.left);
+				const dxlm = matchDEither<A, B>(dxm.left);
 				if (dxlm === null) {
 					return REEVAL;
 				}
+				return "left" in dxlm ? dLeft(dxlm.left) : dRight(dLeft(dxlm.right));
 			} else if ("right" in dxm) {
+				console.log("here", dx, dxm);
 				return dRight(dRight(dxm.right));
 			}
 			return REEVAL;
@@ -151,14 +154,14 @@ export const assocRL = <A extends $A, B extends $A, C extends $A>(
 
 	const evaluate: Evaluate<typeof input, typeof output> = (e) =>
 		"left" in e
-			? { left: { left: e } }
+			? { left: { left: e.left } }
 			: "left" in e.right
 				? { left: { right: e.right.left } }
 				: { right: e.right.right };
 	return makeIFA(input, output, {
 		evaluate,
 		forward: (_x, dx) => {
-			const dxm = matchDEither(dx);
+			const dxm = matchDEither<A, AEither<B, C>>(dx);
 			if (dxm === null) {
 				return REEVAL;
 			}
@@ -166,11 +169,11 @@ export const assocRL = <A extends $A, B extends $A, C extends $A>(
 				return dLeft(dLeft(dxm.left));
 			}
 			if ("right" in dxm) {
-				const dxrm = matchDEither(dxm.right);
+				const dxrm = matchDEither<B, C>(dxm.right);
 				if (dxrm === null) {
 					return REEVAL;
 				}
-				return "left" in dxrm ? dRight(dLeft(dxrm.left)) : dRight(dxrm.right);
+				return "left" in dxrm ? dLeft(dRight(dxrm.left)) : dRight(dxrm.right);
 			}
 
 			return REEVAL;

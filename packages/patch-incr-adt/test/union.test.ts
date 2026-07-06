@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import fc from "fast-check";
+import { FUnion } from "@/funcs";
 import * as s from "@/index";
 import {
 	atomicWithGen,
@@ -7,6 +8,7 @@ import {
 	genValueFromApply,
 } from "@/props/gen";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
+import { testCasesIdentity, testCasesIFA } from "./fastCheck/testPropsIF.test";
 
 export const singleton = s.union(
 	{
@@ -54,6 +56,25 @@ describe("union", () => {
 		testCasesPropsApply(nestedSingleton);
 	});
 	describe("string|number", () => {
+		const dl: s.inferChange<typeof union1> = {
+			type: "left",
+			change: union1.shape.left.fromReplace("test"),
+		};
+		const dr: s.inferChange<typeof union1> = {
+			type: "right",
+			change: union1.shape.right.fromReplace(1),
+		};
+
+		it("canApply on matched case should be true", () => {
+			expect(union1.canApply("abc", dl)).toBe(true);
+			expect(union1.canApply(-1, dr)).toBe(true);
+		});
+
+		it("canApply on mismatched case should be false", () => {
+			expect(union1.canApply(1, dl)).toBe(false);
+			expect(union1.canApply("test", dr)).toBe(false);
+		});
+
 		it.skip("type checking on arb", () => {
 			const _shouldFailTypeCheck = [
 				// @ts-expect-error arbValue must fail type constraint
@@ -80,13 +101,53 @@ describe("union", () => {
 		});
 		testCasesPropsApply(union1);
 	});
-	it.skip("test 1", () => {
-		const v = "abcdef";
-		const d1: s.UnionChangeEntry<"left", s.DRO<string>> = {
-			type: "left" as const,
-			change: s.makeReplaceOnly<string>("xyz"),
-		};
-		expect(union1.apply(v, d1)).toBe("xyz");
-		expect(() => union1.apply(123, d1)).toThrow();
+});
+
+describe("union funcs", () => {
+	const f1 = new FUnion(union1);
+	const union2 = s.union(
+		{
+			rec: s.record({ a: atomicWithGen(fc.string()) }),
+			int: atomicWithGen(fc.integer()),
+		},
+		(x) => (typeof x === "number" ? "int" : "rec"),
+	);
+	const f2 = new FUnion(union2);
+	describe("union1", () => {
+		describe("introCondA(...) with elimCase", () => {
+			const introElim = f1.introCondA(union1.getDiscrimant, {
+				left: f1.elimCase("left"),
+				right: f1.elimCase("right"),
+			});
+			testCasesIFA(introElim);
+			describe("is identity", () => {
+				testCasesIdentity(introElim);
+			});
+		});
+		describe("introCase('left')", () => {
+			testCasesIFA(f1.introCase("left"));
+		});
+		describe("introCase('right')", () => {
+			testCasesIFA(f1.introCase("right"));
+		});
+	});
+
+	describe("union2", () => {
+		describe("introCondA(...) with elimCase", () => {
+			const introElim = f2.introCondA(union2.getDiscrimant, {
+				rec: f2.elimCase("rec"),
+				int: f2.elimCase("int"),
+			});
+			testCasesIFA(introElim);
+			describe("is identity", () => {
+				testCasesIdentity(introElim);
+			});
+		});
+		describe("introCase('rec')", () => {
+			testCasesIFA(f2.introCase("rec"));
+		});
+		describe("introCase('int')", () => {
+			testCasesIFA(f2.introCase("int"));
+		});
 	});
 });

@@ -33,6 +33,9 @@ export class AAtomic<T> extends BaseApplyClass<T, DRO<T>, null> {
 	combine(a: DRO<T>, b: DRO<T>): DRO<T> {
 		return b === null ? a : b;
 	}
+	override canCombine(_a: DRO<T>, _b: DRO<T>): boolean {
+		return true;
+	}
 	isEmpty(change: DRO<T>): boolean {
 		return change === null;
 	}

@@ -80,7 +80,7 @@ export class AUnion<
 			throw new UnionCaseError(disc, changeDisc);
 		}
 
-		return this.shape[disc].apply(value, change.change as never);
+		return this.shape[disc].apply(value, change.change);
 	}
 
 	override canApply(
@@ -97,7 +97,7 @@ export class AUnion<
 			return false;
 		}
 
-		return this.shape[disc].canApply(value, change.change ?? (null as never));
+		return this.shape[disc].canApply(value, change.change);
 	}
 
 	fromReplace(value: DeriveUnionValue<Map, Key>): DeriveUnionChange<Map, Key> {
@@ -143,6 +143,25 @@ export class AUnion<
 			type: disc1,
 			change: this.shape[disc1].combine(d1.change, d2.change),
 		};
+	}
+
+	override canCombine(
+		d1: DeriveUnionChange<Map, Key>,
+		d2: DeriveUnionChange<Map, Key>,
+	): boolean {
+		if (d1 === null || d2 === null || isReplaceOnly(d2)) {
+			return true;
+		}
+		if (isReplaceOnly(d1)) {
+			return this.canApply(getReplaceOnly(d1), d2);
+		}
+
+		const disc1: Key = d1.type;
+		const disc2: Key = d2.type;
+		if (disc1 !== disc2) {
+			return false;
+		}
+		return this.shape[disc1].canCombine(d1.change, d2.change);
 	}
 
 	isEmpty(change: DeriveUnionChange<Map, Key>): boolean {

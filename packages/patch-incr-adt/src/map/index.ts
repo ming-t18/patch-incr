@@ -7,7 +7,7 @@ import {
 	type InferApplyValue,
 	type ReplaceOnly,
 } from "@/types";
-import type { $T } from "@/types/abbr";
+import type { $D, $T } from "@/types/abbr";
 
 /**
  * Creates a new `Apply` based on an existing `Apply`, except with the value-type
@@ -19,7 +19,7 @@ import type { $T } from "@/types/abbr";
  * Often used for "wrappers" that do not introduce extra structure for the
  * change-type.
  */
-export class AMapValue<A extends AnyApply, T>
+export class AMapValue<A extends Apply<T0, DT0>, T, T0 = $T<A>, DT0 = $D<A>>
 	extends BaseApplyClass<T, InferApplyChange<A>, A["empty"]>
 	implements Apply<T, InferApplyChange<A>>
 {

@@ -93,10 +93,10 @@ export const testCasesPropsApply = <A extends AnyArbApply>(apply: A) => {
 	});
 
 	describe("canApply", () => {
-		testProp("canApply(empty)", () =>
+		testProp("canApply(empty) is always true", () =>
 			fc.property(arbValue, props.canApplyEmptyAlwaysTrue),
 		);
-		testProp("canApply(R(b))", () =>
+		testProp("canApply(R(b)) is always true", () =>
 			fc.property(arbValue, arbValue, props.canApplyReplaceAlwaysTrue),
 		);
 		testProp("canApply <=> apply suceeds", () =>

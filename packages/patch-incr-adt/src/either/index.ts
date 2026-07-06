@@ -36,11 +36,11 @@ export function isRight<L extends AnyApply, R extends AnyApply>(
 
 export const dLeft = <L extends AnyApply, R extends AnyApply>(
 	d: InferApplyChange<L>,
-): InferApplyChange<AEither<L, R>> => ({ type: "left", change: { left: d } });
+): InferApplyChange<AEither<L, R>> => ({ type: "left", change: d });
 
 export const dRight = <L extends AnyApply, R extends AnyApply>(
 	d: InferApplyChange<R>,
-): InferApplyChange<AEither<L, R>> => ({ type: "right", change: { right: d } });
+): InferApplyChange<AEither<L, R>> => ({ type: "right", change: d });
 
 export const matchDEither = <L extends AnyApply, R extends AnyApply>(
 	d: InferApplyChange<AEither<L, R>>,
@@ -54,9 +54,9 @@ export const matchDEither = <L extends AnyApply, R extends AnyApply>(
 	if (isReplaceOnly(d.change)) {
 		return null;
 	}
-	const d1 = d.change as unknown as DeriveEitherShapedChange<L, R>;
-	if (d1.type === "left") {
-		return { left: d1.change.left };
+	const d1 = d.change as unknown as DeriveEitherShapedChange<L, R>["change"];
+	if (d.type === "left") {
+		return { left: d1 };
 	}
-	return { right: d1.change.right };
+	return { right: d1 };
 };

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import fc from "fast-check";
 import * as s from "@/index";
-import { atomicWithGen } from "@/props/gen";
+import { atomicWithGen, genValueWithChange } from "@/props/gen";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 import type { AnyArbApply } from "./props";
 
@@ -19,7 +19,7 @@ const testPropsMapValue = <A extends AnyArbApply, T>(
 	});
 	it("same as inner apply", () => {
 		fc.assert(
-			fc.property(apply.arbValue(), apply.arbChange(), (xMap, dx) => {
+			fc.property(genValueWithChange(apply), ({ x: xMap, dx }) => {
 				expect(apply.apply(xMap, dx)).toEqual(
 					map(inner.apply(unmap(xMap), dx)),
 				);

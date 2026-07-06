@@ -28,7 +28,7 @@ export class FUnion<
 
 	/** Conditional branching: `x => funcs[getCase(x)](x)` */
 	introCond<A extends $A>(
-		getCase: (input: A) => Key,
+		getCase: (input: $T<A>) => Key,
 		funcs: { [key in Key]: IF<A, Shape[Key]> },
 	): IF<A, AUnion<Shape, Key>> {
 		const input: A = funcs[this.union.keys[0] as Key].input;
@@ -54,7 +54,7 @@ export class FUnion<
 
 	/** Conditional branching: `x => funcs[getCase(x)](x)` */
 	introCondA<A extends $A>(
-		getCase: (input: A) => Key,
+		getCase: (input: $T<A>) => Key,
 		funcs: { [key in Key]: IFA<A, Shape[Key]> },
 	): IFA<A, AUnion<Shape, Key>> {
 		const input: A = funcs[this.union.keys[0] as Key].input;

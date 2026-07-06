@@ -29,6 +29,10 @@ export const toIFA = <A extends $A, B extends $A>({
 	forward: (x, dx) => forward(x, dx, evaluate(x)),
 });
 
+export const hole = <A extends $A, B extends $A>(): IFA<A, B> => {
+	throw new Error("hole()");
+};
+
 export const identity = <A extends $A>(a: A): IFA<A, A> => ({
 	input: a,
 	output: a,

@@ -18,7 +18,7 @@ import {
 } from "@/product";
 import { ARecord } from "@/record";
 import { makeReplaceOnly } from "@/replaceOnly";
-import type { DRO, InferApplyChange } from "@/types/algebra";
+import type { Apply, DRO, InferApplyChange } from "@/types/algebra";
 import type {
 	AnyArbApply,
 	ArbProdChangeFromRecordArb,
@@ -229,13 +229,21 @@ AUnion.prototype.arbChange = function <
 	const valueIsProvided = arguments.length > 1;
 	const entries: Arb<InferApplyChange<Map[Key]>>[] = [];
 	for (const disc of this.keys) {
-		if (typeof value !== "undefined" && this.getDiscrimant(value) !== disc) {
+		if (valueIsProvided && this.getDiscrimant(value) !== disc) {
 			continue;
 		}
+
+		const genChange = valueIsProvided
+			? this.shape[disc].arbChange(value)
+			: this.shape[disc].arbChange();
 		entries.push(
-			valueIsProvided
-				? this.shape[disc].arbChange(value)
-				: this.shape[disc].arbChange(),
+			fc.record(
+				{
+					type: fc.constant(disc),
+					change: genChange,
+				},
+				{ noNullPrototype: true, requiredKeys: ["type", "change"] },
+			),
 		);
 	}
 	if (entries.length === 0) {
@@ -282,19 +290,30 @@ AOptional.prototype.arbChange = function (value) {
 	});
 };
 
-AMapValue.prototype.arbValue = function <A extends AnyArbApply, T>(
-	this: AMapValue<A, T>,
-): Arb<T> {
+AMapValue.prototype.arbValue = function <
+	A extends Apply<T0, DT0>,
+	T,
+	T0 = $T<A>,
+	DT0 = $D<A>,
+>(this: AMapValue<A, T>): Arb<T> {
+	if (!this.inner.arbValue) {
+		throw new Error();
+	}
 	return this.inner.arbValue().map(
 		(x) => this.map(x),
 		(x) => this.unmap(x as never),
 	);
 };
 
-AMapValue.prototype.arbChange = function <A extends AnyArbApply, T>(
-	this: AMapValue<A, T>,
-	value?: T,
-) {
+AMapValue.prototype.arbChange = function <
+	A extends Apply<T0, DT0>,
+	T,
+	T0 = $T<A>,
+	DT0 = $D<A>,
+>(this: AMapValue<A, T>, value?: T) {
+	if (!this.inner.arbChange) {
+		throw new Error();
+	}
 	// biome-ignore lint/complexity/noArguments: spread won't type check
 	if (arguments.length === 1) {
 		return this.inner.arbChange(this.unmap(value as T));
@@ -326,4 +345,46 @@ export const genChangeFromApply = <A extends AnyArbApply>(
 	apply: A,
 ): Arb<$D<A>> => {
 	return apply.arbChange();
+};
+
+export const genValueWithChange = <A extends AnyArbApply>(
+	apply: A,
+): Arb<{ x: $T<A>; dx: $D<A> }> => {
+	return apply
+		.arbValue()
+		.chain((v) =>
+			fc.record(
+				{
+					x: fc.constant(v),
+					dx: apply.arbChange(v),
+				},
+				{ noNullPrototype: true },
+			),
+		)
+		.filter(({ x, dx }) => apply.canApply(x, dx));
+};
+
+export const genValueWith2Changes = <A extends AnyArbApply>(
+	apply: A,
+): Arb<{ x: $T<A>; dx1: $D<A>; dx2: $D<A> }> => {
+	return apply
+		.arbValue()
+		.chain((v) =>
+			fc.record({
+				x: fc.constant(v),
+				dx1: apply.arbChange(v),
+			}),
+		)
+		.filter(({ x, dx1 }) => apply.canApply(x, dx1))
+		.chain(({ x, dx1 }) =>
+			fc.record(
+				{
+					x: fc.constant(x),
+					dx1: fc.constant(dx1),
+					dx2: apply.arbChange(apply.apply(x, dx1)),
+				},
+				{ noNullPrototype: true },
+			),
+		)
+		.filter(({ x, dx1, dx2 }) => apply.canApply(apply.apply(x, dx1), dx2));
 };

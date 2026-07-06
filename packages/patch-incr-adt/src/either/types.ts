@@ -13,8 +13,8 @@ export interface Right<T extends AnyApply> {
 	right: InferApplyValue<T>;
 }
 export type DeriveEitherShapedChange<L extends AnyApply, R extends AnyApply> =
-	| UnionChangeEntry<"left", { readonly left: InferApplyChange<L> }>
-	| UnionChangeEntry<"right", { readonly right: InferApplyChange<R> }>;
+	| UnionChangeEntry<"left", InferApplyChange<L>>
+	| UnionChangeEntry<"right", InferApplyChange<R>>;
 
 export type Either<A extends AnyApply, B extends AnyApply> = InferApplyValue<
 	AEither<A, B>
