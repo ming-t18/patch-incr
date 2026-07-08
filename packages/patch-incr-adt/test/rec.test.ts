@@ -9,10 +9,11 @@ import * as s from "@/index";
 // 	},
 // });
 
-// const tree = s.record({
+// does not work due to no inference
+// const tree0 = s.record({
 // 	name: s.string(),
 // 	get children(): s.AOptional<s.AList<typeof tree0>> {
-// 		return s.optional(s.list(tree));
+// 		return s.optional(s.list(tree0));
 // 	},
 // });
 

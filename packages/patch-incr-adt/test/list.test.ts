@@ -1,4 +1,6 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: for testing */
+
+import { describe, it } from "bun:test";
 import * as s from "@/index";
 import * as lp from "@/list/prod";
 

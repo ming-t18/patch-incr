@@ -313,10 +313,7 @@ export class FUnion<
 				_x,
 				dx: DeriveEitherShapedChange<APicked, AUnionOmit<Shape, Key, K>>,
 			) => {
-				// conditional required for type checking to pass
-				return dx.type === "left"
-					? dx.change[dx.type]
-					: dx.change[dx.type satisfies "right"];
+				return dx.change;
 			},
 		});
 	}
