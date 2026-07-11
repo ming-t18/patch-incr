@@ -4,7 +4,7 @@ import type {
 	InferApplyChange,
 	InferApplyValue,
 } from "@/types/algebra";
-import type { IF, IFA } from "@/types/func";
+import type { IF1, IFA } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
 import type { AUnit, AZero } from "@/unit";
 import { tuple } from "../tuple/tuple";
@@ -26,8 +26,8 @@ export type DPair<A extends AnyApply, B extends AnyApply> = InferApplyChange<
 declare const makePair: <C extends $A, A extends $A, B extends $A>(
 	c: C,
 	pair: APair<A, B>,
-	f1: IF<C, A>,
-	f2: IF<C, B>,
+	f1: IF1<C, A>,
+	f2: IF1<C, B>,
 ) => IFA<C, APair<A, B>>;
 
 // Elimination rules
@@ -44,14 +44,14 @@ declare const snd: <A extends $A, B extends $A>(
 declare const first: <A extends $A, B extends $A, A1 extends $A>(
 	pair: APair<A, B>,
 	a1: A1,
-	f1: IF<A, A1>,
-) => IF<APair<A, B>, APair<A1, B>>;
+	f1: IF1<A, A1>,
+) => IF1<APair<A, B>, APair<A1, B>>;
 
 declare const second: <A extends $A, B extends $A, B1 extends $A>(
 	pair: APair<A, B>,
 	b1: B1,
-	f2: IF<B, B1>,
-) => IF<APair<A, B>, APair<A, B1>>;
+	f2: IF1<B, B1>,
+) => IF1<APair<A, B>, APair<A, B1>>;
 
 declare const firstSecond: <
 	A extends $A,
@@ -62,9 +62,9 @@ declare const firstSecond: <
 	pair: APair<A, B>,
 	a1: A1,
 	b1: B1,
-	f1: IF<A, A1>,
-	f2: IF<B, B1>,
-) => IF<APair<A, B>, APair<A1, B1>>;
+	f1: IF1<A, A1>,
+	f2: IF1<B, B1>,
+) => IF1<APair<A, B>, APair<A1, B1>>;
 
 // Algebraic rules
 

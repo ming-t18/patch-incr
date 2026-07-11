@@ -50,8 +50,8 @@ export class AArray<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>>
 	override combine(
 		_a: SpliceTable<T, DT> | DRO<T[]>,
 		_b: SpliceTable<T, DT> | DRO<T[]>,
-	): boolean {
-		return true;
+	): SpliceTable<T, DT> | DRO<T[]> {
+		throw new Error("TODO");
 	}
 
 	override canCombine(

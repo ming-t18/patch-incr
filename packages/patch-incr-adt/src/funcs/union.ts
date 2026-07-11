@@ -8,7 +8,7 @@ import {
 } from "@/either";
 import { getReplaceOnly } from "@/replaceOnly";
 import type { $A, $D, $T } from "@/types/abbr";
-import type { Evaluate, IF, IFA } from "@/types/func";
+import { type Evaluate, type IF1, type IFA, IFKind } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
 import {
 	type AUnion,
@@ -29,8 +29,8 @@ export class FUnion<
 	/** Conditional branching: `x => funcs[getCase(x)](x)` */
 	introCond<A extends $A>(
 		getCase: (input: $T<A>) => Key,
-		funcs: { [key in Key]: IF<A, Shape[Key]> },
-	): IF<A, AUnion<Shape, Key>> {
+		funcs: { [key in Key]: IF1<A, Shape[Key]> },
+	): IF1<A, AUnion<Shape, Key>> {
 		const input: A = funcs[this.union.keys[0] as Key].input;
 		type Out = DeriveUnionValue<Shape, Key>;
 		const evaluate = (x: $T<A>): Out => {
@@ -117,8 +117,8 @@ export class FUnion<
 	/** Performs pattern matching on the union: `x => funcs[union.getDiscrimant(x)](x)` */
 	elim<B extends $A>(
 		output: B,
-		funcs: { [key1 in Key]: IF<Shape[key1], B> },
-	): IF<AUnion<Shape, Key>, B> {
+		funcs: { [key1 in Key]: IF1<Shape[key1], B> },
+	): IF1<AUnion<Shape, Key>, B> {
 		type Input = DeriveUnionValue<Shape, Key>;
 		const evaluate = (input: Input): $T<B> => {
 			const disc = this.union.getDiscrimant(input);
@@ -262,6 +262,7 @@ export class FUnion<
 		};
 		// Not using IFA due to intra-case change between left/right
 		return {
+			kind: IFKind.IFA,
 			evaluate,
 			forward: (x, dx): $D<typeof output> => {
 				if (this.union.isEmpty(dx)) {

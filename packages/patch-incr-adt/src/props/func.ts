@@ -1,7 +1,7 @@
 import { deepEquals } from "bun";
 import { fromIFA } from "@/funcs";
 import type { $A, $D, $T } from "@/types/abbr";
-import type { IF, IFA } from "@/types/func";
+import type { IF1, IFA } from "@/types/func";
 import type { Eq } from "./change";
 
 /**
@@ -45,7 +45,7 @@ export interface PropsIF<A extends $A, _B extends $A> {
 }
 
 export const makePropsIF = <A extends $A, B extends $A>(
-	func: IF<A, B>,
+	func: IF1<A, B>,
 	outputEq = deepEquals as Eq<$T<B>>,
 ): PropsIF<A, B> => {
 	const { input, output } = func;

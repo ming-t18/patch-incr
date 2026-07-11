@@ -2,7 +2,7 @@ import { composeA, composeFromA, FUnion } from "@/funcs";
 import { makeIFA, REEVAL } from "@/funcs/helpers";
 import { FMapValue } from "@/funcs/map";
 import type { $A } from "@/types/abbr";
-import type { Evaluate, IF, IFA } from "@/types/func";
+import type { Evaluate, IF1, IFA } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
 import { UnionCaseError } from "@/union";
 import { type AZero, zeroType } from "@/unit";
@@ -29,7 +29,7 @@ export class FEither<A extends $A, B extends $A> {
 		return composeA(this.fRight.intro(), this.fUnion.introCase("right"));
 	}
 
-	elim<C extends $A>(left: IF<A, C>, right: IF<B, C>): IF<AEither<A, B>, C> {
+	elim<C extends $A>(left: IF1<A, C>, right: IF1<B, C>): IF1<AEither<A, B>, C> {
 		return this.fUnion.elim(left.output, {
 			left: composeFromA(this.fLeft.elim(), left),
 			right: composeFromA(this.fRight.elim(), right),

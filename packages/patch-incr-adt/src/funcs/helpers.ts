@@ -1,6 +1,11 @@
 import { getReplaceOnly } from "@/replaceOnly";
 import type { $A, $D, $T } from "../types/abbr";
-import type { Evaluate, IF, IFA } from "../types/func/incrFunc";
+import {
+	type Evaluate,
+	type IF1,
+	type IFA,
+	IFKind,
+} from "../types/func/incrFunc";
 
 export const REEVAL = Symbol.for("patch-incr-adt:REEVAL");
 export type REEVAL = typeof REEVAL;
@@ -75,7 +80,8 @@ export const makeIF = <
 		evaluate: Evaluate<A, B>;
 		forward: (x: $T<A>, dx: DASub, y: $T<B>) => $D<B> | REEVAL;
 	},
-): IF<A, B> => ({
+): IF1<A, B> => ({
+	kind: IFKind.IF1,
 	evaluate,
 	forward: makeForward(input, output, { evaluate, forward }),
 	input,
@@ -97,6 +103,7 @@ export const makeIFA = <
 		forward: (x: $T<A>, dx: DASub) => $D<B> | REEVAL;
 	},
 ): IFA<A, B> => ({
+	kind: IFKind.IFA,
 	evaluate,
 	forward: makeForwardA(input, output, { evaluate, forward }),
 	input,

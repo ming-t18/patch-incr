@@ -1,6 +1,6 @@
 import { type APair, pair } from "@/pair";
 import type { $A, $T } from "@/types/abbr";
-import type { IF, IFA } from "@/types/func";
+import { type IF1, type IFA, IFKind } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
 
 /** Given an `IF`, convert to an `IFA` by re-evaluating in the `forward` implementation. */
@@ -9,7 +9,8 @@ export const fromIFA = <A extends $A, B extends $A>({
 	output,
 	evaluate,
 	forward,
-}: IFA<A, B>): IF<A, B> => ({
+}: IFA<A, B>): IF1<A, B> => ({
+	kind: IFKind.IF1,
 	input,
 	output,
 	evaluate,
@@ -22,7 +23,8 @@ export const toIFA = <A extends $A, B extends $A>({
 	output,
 	evaluate,
 	forward,
-}: IF<A, B>): IFA<A, B> => ({
+}: IF1<A, B>): IFA<A, B> => ({
+	kind: IFKind.IFA,
 	input,
 	output,
 	evaluate,
@@ -33,11 +35,21 @@ export const hole = <A extends $A, B extends $A>(): IFA<A, B> => {
 	throw new Error("hole()");
 };
 
+export const toIF1 = <A extends $A, B extends $A>({
+	input,
+	output,
+	evaluate,
+	forward,
+}: IFA<A, B>): IF1<A, B> => {
+	return { kind: IFKind.IF1, input, output, evaluate, forward };
+};
+
 export const identity = <A extends $A>(a: A): IFA<A, A> => ({
+	kind: IFKind.IFA,
 	input: a,
 	output: a,
 	evaluate: (x) => x,
-	forward: (_x, dx, _y) => dx,
+	forward: (_x, dx) => dx,
 });
 
 export const constant = <A extends $A, B extends $A>(
@@ -45,30 +57,33 @@ export const constant = <A extends $A, B extends $A>(
 	b: B,
 	value: $T<B>,
 ): IFA<A, B> => ({
+	kind: IFKind.IFA,
 	input: a,
 	output: b,
 	evaluate: (_) => value,
-	forward: (_x, _dx, _y) => b.empty,
+	forward: (_x, _dx) => b.empty,
 });
 
 export const composeA = <A extends $A, B extends $A, C extends $A>(
 	f1: IFA<A, B>,
 	f2: IFA<B, C>,
 ): IFA<A, C> => ({
+	kind: IFKind.IFA,
 	input: f1.input,
 	output: f2.output,
 	evaluate: (x) => f2.evaluate(f1.evaluate(x)),
-	forward: (x, dx, z) => {
+	forward: (x, dx) => {
 		const y = f1.evaluate(x);
-		const dy = f1.forward(x, dx, y);
-		return f2.forward(x, dy, z);
+		const dy = f1.forward(x, dx);
+		return f2.forward(y, dy);
 	},
 });
 
 export const composeR = <A extends $A, B extends $A, C extends $A>(
-	f1: IF<A, B>,
-	f2: IF<B, C>,
-): IF<A, APair<C, B>> => ({
+	f1: IF1<A, B>,
+	f2: IF1<B, C>,
+): IF1<A, APair<C, B>> => ({
+	kind: IFKind.IF1,
 	input: f1.input,
 	output: pair(f2.output, f1.output),
 	evaluate: (x) => {
@@ -83,8 +98,9 @@ export const composeR = <A extends $A, B extends $A, C extends $A>(
 
 export const composeFromA = <A extends $A, B extends $A, C extends $A>(
 	f1: IFA<A, B>,
-	f2: IF<B, C>,
-): IF<A, C> => ({
+	f2: IF1<B, C>,
+): IF1<A, C> => ({
+	kind: IFKind.IF1,
 	input: f1.input,
 	output: f2.output,
 	evaluate: (x) => f2.evaluate(f1.evaluate(x)),
@@ -96,9 +112,10 @@ export const composeFromA = <A extends $A, B extends $A, C extends $A>(
 });
 
 export const composeWithIsoA = <A extends $A, B extends $A, C extends $A>(
-	f1: IF<A, B>,
+	f1: IF1<A, B>,
 	{ fwd: f2, inv: f2i }: IIsoA<B, C>,
-): IF<A, C> => ({
+): IF1<A, C> => ({
+	kind: IFKind.IF1,
 	input: f1.input,
 	output: f2.output,
 	evaluate: (x) => {
@@ -106,7 +123,7 @@ export const composeWithIsoA = <A extends $A, B extends $A, C extends $A>(
 	},
 	forward: (x, dx, z) => {
 		const dy = f1.forward(x, dx, f2i.evaluate(z));
-		return f2.forward(x, dy, z);
+		return f2.forward(x, dy);
 	},
 });
 

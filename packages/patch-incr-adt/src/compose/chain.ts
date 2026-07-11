@@ -1,10 +1,11 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: WIP
 // @ts-nocheck
 // TODO finish this class
 import { composeA } from "@/funcs";
 import type { APair } from "@/pair";
 import type { AnyTuple, ATuple } from "@/tuple/tuple";
 import type { $A, $D, $T } from "@/types/abbr";
-import type { IF, IFA } from "@/types/func";
+import type { IF1, IFA } from "@/types/func";
 
 type ChainEntry =
 	| {
@@ -13,7 +14,7 @@ type ChainEntry =
 	  }
 	| {
 			type: "IF";
-			func: IF<$A, $A>;
+			func: IF1<$A, $A>;
 	  };
 
 export type InferIfChainOutput<
@@ -24,7 +25,7 @@ export class IFChain<
 	Input extends $A,
 	Output extends $A,
 	Residuals extends AnyTuple<$A>,
-> implements IF<Input, InferIfChainOutput<Residuals, Output>>
+> implements IF1<Input, InferIfChainOutput<Residuals, Output>>
 {
 	private constructor(
 		readonly input: Input,
@@ -56,12 +57,12 @@ export class IFChain<
 		);
 	}
 	addIF<B extends $A>(
-		func: IF<Output, B>,
+		func: IF1<Output, B>,
 	): IFChain<Input, B, [...Residuals, B]> {
 		return new IFChain([...this.chain, { type: "IF", func }], false);
 	}
 	addIFR<B extends $A, R extends $A>(
-		_f: IF<Output, APair<B, R>>,
+		_f: IF1<Output, APair<B, R>>,
 	): IFChain<Input, B, [...Residuals, APair<B, R>]> {
 		return new IFChain(
 			[

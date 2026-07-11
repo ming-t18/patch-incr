@@ -7,7 +7,7 @@ import type {
 	InferApplyValue,
 	Monoid,
 } from "../algebra";
-import type { IF, IFA, IO } from "../func/incrFunc";
+import type { IF1, IFA, IFBase } from "../func/incrFunc";
 import type { IIso, IIsoA } from "../func/iso";
 import type { ReplaceOnly } from "../replaceOnly";
 
@@ -46,7 +46,7 @@ export interface Applyoid<in out T, in out D> extends Changeoid<T, D> {
 export type $Point<A extends $A, P> = $T<A> & Point<P>;
 export type $Path<A extends $A, P, Q> = $T<A> & Path<P, Q>;
 
-export interface IFunctor<A extends $A, B extends $A> extends IO<A, B> {
+export interface IFunctor<A extends $A, B extends $A> extends IFBase<A, B> {
 	readonly evaluate: <P, Q>(x: $Point<A, P>) => $Point<B, Q>;
 	readonly forward: <P, Q>(
 		x: $Point<A, P>,
@@ -55,7 +55,7 @@ export interface IFunctor<A extends $A, B extends $A> extends IO<A, B> {
 	) => $Path<B, P, Q>;
 }
 
-export interface IFunctorA<A extends $A, B extends $A> extends IO<A, B> {
+export interface IFunctorA<A extends $A, B extends $A> extends IFBase<A, B> {
 	readonly evaluate: <P, Q>(x: $T<A> & Point<P>) => $T<B> & Point<Q>;
 	readonly forward: <P, Q>(
 		x: $T<A> & Point<P>,
@@ -81,7 +81,7 @@ export interface Oidify {
 	<T, D>(input: Change<T, D>): Changeoid<T, D>;
 	<T>(input: Group<T>): Groupoid<T>;
 	<T>(input: Monoid<T>): Monoidoid<T>;
-	<A extends $A, B extends $A>(input: IF<A, B>): IFunctor<A, B>;
+	<A extends $A, B extends $A>(input: IF1<A, B>): IFunctor<A, B>;
 	<A extends $A, B extends $A>(input: IFA<A, B>): IFunctorA<A, B>;
 	<A extends $A, B extends $A>(input: IIso<A, B>): IIsomorphism<A, B>;
 	<A extends $A, B extends $A>(input: IIsoA<A, B>): IIsomorphismA<A, B>;

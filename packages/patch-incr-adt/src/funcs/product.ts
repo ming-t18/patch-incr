@@ -7,7 +7,7 @@ import type {
 import { type ARecord, record } from "@/record";
 import type { DeriveRecordValue } from "@/record/types";
 import { type AOmit, type APick, omit, pick } from "@/record/utils";
-import type { Evaluate, IF, IFA } from "@/types/func";
+import { type Evaluate, type IF1, type IFA, IFKind } from "@/types/func";
 import type { $A, $D, $T } from "../types/abbr";
 import { makeForward, makeForwardA, makeIFA, ShapePartition } from "./helpers";
 
@@ -33,6 +33,7 @@ export class FProduct<
 				this.prod.mapShape((k1) => funcs[k1].evaluate(x)),
 			) satisfies Prod as $T<AProd>;
 		return {
+			kind: IFKind.IFA,
 			evaluate,
 			forward: makeForwardA(input, this.prod, {
 				evaluate,
@@ -49,13 +50,14 @@ export class FProduct<
 	 */
 	intro<A extends $A>(
 		input: A,
-		funcs: { [key in Key]: IF<A, Shape[Key]> },
-	): IF<A, AProd> {
+		funcs: { [key in Key]: IF1<A, Shape[Key]> },
+	): IF1<A, AProd> {
 		const evaluate = (x: $T<A>): $T<AProd> =>
 			this.prod.fromRecord(
 				this.prod.mapShape((k1) => funcs[k1].evaluate(x)),
 			) satisfies Prod as $T<AProd>;
 		return {
+			kind: IFKind.IF1,
 			evaluate,
 			forward: makeForward(input, this.prod, {
 				evaluate,
@@ -73,6 +75,7 @@ export class FProduct<
 	get<K extends Key>(key: K): IFA<AProd, Shape[Key]> {
 		const evaluate = (x: Prod) => this.prod.get(x, key);
 		return {
+			kind: IFKind.IFA,
 			evaluate,
 			forward: makeForwardA(this.prod, this.prod.shape[key], {
 				evaluate,
@@ -92,6 +95,7 @@ export class FProduct<
 			this.prod.toRecord(x);
 
 		return {
+			kind: IFKind.IFA,
 			evaluate,
 			forward: makeForwardA(this.prod, output, {
 				evaluate,
@@ -110,6 +114,7 @@ export class FProduct<
 			this.prod.fromRecord(x);
 
 		return {
+			kind: IFKind.IFA,
 			evaluate,
 			forward: makeForwardA(input, this.prod, {
 				evaluate,

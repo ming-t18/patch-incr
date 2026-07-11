@@ -84,7 +84,6 @@ export const merge = <
 		// @ts-expect-error Can't be checked
 		shape2[key] = shape1[key];
 	}
-	// @ts-expect-error Can't be checked
 	return record(shape2);
 };
 

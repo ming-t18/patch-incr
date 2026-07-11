@@ -1,22 +1,25 @@
 import { number, string } from "@/atomic";
-import { constant, identity } from "@/funcs/basic";
+import { constant, identity, toIF1 } from "@/funcs/basic";
 import { type ARecord, record } from "@/record";
 import { type ARecordMerge, type MergeShapes, merge } from "@/record/utils";
 import type { AnyApply } from "@/types";
 import type { $A, $D, $T } from "@/types/abbr";
-import type { IF, IFA } from "@/types/func";
+import type { IF1, IFA } from "@/types/func";
+import { IFKind } from "@/types/func";
 
 export class IFRC<
 	Input extends $A,
 	Output extends ARecord<Shape, Key>,
 	Shape extends Record<Key, AnyApply> = Output["shape"],
 	Key extends keyof Shape = keyof Shape,
-> implements IF<Input, Output>
+> implements IF1<Input, Output>
 {
+	readonly kind = IFKind.IF1 as const;
+
 	constructor(
 		readonly input: Input,
 		readonly output: Output,
-		readonly funcs: [string, IF<AnyApply, AnyApply>][],
+		readonly funcs: [string, IF1<AnyApply, AnyApply>][],
 	) {}
 
 	static create<Input extends AnyApply, K1 extends string>(
@@ -24,13 +27,13 @@ export class IFRC<
 		input: Input,
 	): IFRC<Input, ARecord<Record<K1, Input>>> {
 		return new IFRC(input, record({ [key1]: input } as Record<K1, Input>), [
-			[key1, identity(input)],
+			[key1, toIF1<AnyApply, AnyApply>(identity(input) as never)],
 		]);
 	}
 
 	add<K1 extends string, V extends AnyApply>(
 		key: K1,
-		fn: (m: Output) => IF<Output, V> | IFA<Output, V>,
+		fn: (m: Output) => IF1<Output, V> | IFA<Output, V>,
 	): IFRC<
 		Input,
 		ARecordMerge<Shape, Record<K1, V>, Key, K1>,

@@ -9,10 +9,10 @@ import {
 } from "@/props";
 import { makePropsIF, makePropsIFA, type PropsIF } from "@/props/func";
 import type { $T } from "@/types/abbr";
-import type { IF, IFA } from "@/types/func";
+import type { IF1, IFA } from "@/types/func";
 
 const propTestCase = <A extends AnyArbApply, B extends AnyArbApply>(
-	func: IF<A, B> | IFA<A, B>,
+	func: IF1<A, B> | IFA<A, B>,
 	props: PropsIF<A, B>,
 ) => {
 	const arbInput = genValueFromApply(func.input);
@@ -63,7 +63,7 @@ const propTestCase = <A extends AnyArbApply, B extends AnyArbApply>(
 };
 
 export const testCasesIF = <A extends AnyArbApply, B extends AnyArbApply>(
-	func: IF<A, B>,
+	func: IF1<A, B>,
 ) => {
 	const props = makePropsIF<A, B>(func);
 	propTestCase(func, props);

@@ -1,6 +1,6 @@
 import type { AMapValue } from "@/map";
 import type { $A } from "@/types/abbr";
-import type { IFA } from "@/types/func";
+import { type IFA, IFKind } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
 
 export class FMapValue<A extends $A, T> {
@@ -8,6 +8,7 @@ export class FMapValue<A extends $A, T> {
 
 	intro(): IFA<A, AMapValue<A, T>> {
 		return {
+			kind: IFKind.IFA,
 			input: this.map.inner,
 			output: this.map,
 			evaluate: (x) => this.map.map(x),
@@ -17,6 +18,7 @@ export class FMapValue<A extends $A, T> {
 
 	elim(): IFA<AMapValue<A, T>, A> {
 		return {
+			kind: IFKind.IFA,
 			input: this.map,
 			output: this.map.inner,
 			evaluate: (x) => this.map.unmap(x),
