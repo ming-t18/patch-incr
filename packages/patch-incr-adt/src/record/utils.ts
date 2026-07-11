@@ -46,19 +46,45 @@ export const omit = <
 	return record(shape1);
 };
 
+export type MergeShapes<
+	Map extends Record<Key, AnyApply>,
+	Shape1 extends Record<Key1, AnyApply>,
+	Key extends keyof Map = keyof Map,
+	Key1 extends keyof Shape1 = keyof Shape1,
+> = Key & Key1 extends never
+	? Map & Shape1
+	: {
+			[key in Key | Key1]: key extends Key1
+				? Shape1[key]
+				: key extends keyof Map
+					? Map[key]
+					: never;
+		};
+
+export type ARecordMerge<
+	Map extends Record<Key, AnyApply>,
+	Shape1 extends Record<Key1, AnyApply>,
+	Key extends keyof Map = keyof Map,
+	Key1 extends keyof Shape1 = keyof Shape1,
+> = ARecord<MergeShapes<Map, Shape1, Key, Key1>, Key | Key1>;
+
 export const merge = <
 	Map extends Record<Key, AnyApply>,
+	Shape1 extends Record<Key1, AnyApply>,
 	Key extends keyof Map = keyof Map,
-	Shape1 extends Record<string, AnyApply> = Record<string, never>,
+	Key1 extends keyof Shape1 = keyof Shape1,
 >(
 	{ shape }: ARecord<Map, Key>,
 	shape1: Shape1,
-): ARecord<Map & Shape1, Key | keyof Shape1> => {
-	const shape2: Map & Shape1 = { ...shape } as never;
+): ARecordMerge<Map, Shape1, Key, Key1> => {
+	const shape2: ARecordMerge<Map, Shape1, Key, Key1>["shape"] = {
+		...shape,
+	} as never;
 	for (const key of Object.keys(shape1)) {
 		// @ts-expect-error Can't be checked
 		shape2[key] = shape1[key];
 	}
+	// @ts-expect-error Can't be checked
 	return record(shape2);
 };
 

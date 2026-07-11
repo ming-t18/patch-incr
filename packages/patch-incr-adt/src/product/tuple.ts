@@ -134,15 +134,26 @@ export abstract class BaseProductShapedTuple<
 	}
 
 	project(
-		keys: KeyOfTuple<Shape>[],
+		keys: KeyOfTuple<Shape>[] | null | undefined,
 		change: DeriveProductChangeTuple<Prod, Shape>,
 	): DeriveProductShapedChangeTuple<Shape> {
-		const change1: DeriveProductShapedChangeTuple<Shape> = [
-			...this.keys,
-		] as never;
-		for (const key of keys) {
+		const change1: DeriveProductShapedChangeTuple<Shape> = this.keys.map(
+			(_, i) => this.shape[i]?.empty,
+		) as never;
+		if (change === null) {
+			return change1;
+		}
+		if (isReplaceOnly(change)) {
+			const ro = getReplaceOnly(change);
+			for (const key of keys ?? this.keys) {
+				// @ts-expect-error Bypassing `readonly`
+				change1[key] = this.shape[key].fromReplace(ro[key]);
+			}
+			return change1;
+		}
+		for (const key of keys ?? this.keys) {
 			// @ts-expect-error Bypassing `readonly`
-			change1[key] = change[key as KeySub];
+			change1[key] = change[key];
 		}
 		return change1;
 	}
