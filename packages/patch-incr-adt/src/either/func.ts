@@ -134,7 +134,6 @@ export const assocLR = <A extends $A, B extends $A, C extends $A>(
 				}
 				return "left" in dxlm ? dLeft(dxlm.left) : dRight(dLeft(dxlm.right));
 			} else if ("right" in dxm) {
-				console.log("here", dx, dxm);
 				return dRight(dRight(dxm.right));
 			}
 			return REEVAL;
