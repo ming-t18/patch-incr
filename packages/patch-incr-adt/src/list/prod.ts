@@ -1,6 +1,7 @@
 import { type AConstant, nullType } from "@/constant";
-import type { ProductApply } from "@/product";
+import type { BaseProductShaped } from "@/product";
 import { product } from "@/product";
+import type { DeriveRecordValue } from "@/record/types";
 import type { AnyApply, InferApplyValue } from "@/types/algebra";
 import { type AUnion, union } from "@/union";
 
@@ -43,14 +44,20 @@ export const fromArray = <T>(xs: T[]): List<T> => {
 	return l;
 };
 
-export interface ConsShape<TA extends AnyApply, TRec extends AnyApply> {
-	head: TA;
-	tail: TRec;
+export interface ConsShape<A extends AnyApply, Rec extends AnyApply> {
+	head: A;
+	tail: Rec;
 }
 
-export interface ListShape<TA extends AnyApply, Rec extends AnyApply> {
+export interface ACons<A extends AnyApply, Rec extends AnyApply = AList<A>>
+	extends BaseProductShaped<Cons<InferApplyValue<A>>, ConsShape<A, Rec>> {
+	fromRecord: (rec: DeriveRecordValue<ConsShape<A, Rec>>) => Cons<A>;
+	toRecord: (cons: Cons<A>) => DeriveRecordValue<ConsShape<A, Rec>>;
+}
+
+export interface ListShape<A extends AnyApply, Rec extends AnyApply> {
 	nil: AConstant<null, null>;
-	cons: ProductApply<Cons<InferApplyValue<TA>>, ConsShape<TA, Rec>>;
+	cons: ACons<A, Rec>;
 }
 
 export interface AList<A extends AnyApply>

@@ -19,10 +19,8 @@ export const product = <
 	toRecord,
 }: ProductImpl<Prod, Shape, Key> & {
 	shape: Shape;
-	fromRecord?:
-		| ((recordForm: DeriveRecordValue<Shape, Key>) => Prod)
-		| undefined;
-	toRecord?: ((prod: Prod) => DeriveRecordValue<Shape, Key>) | undefined;
+	fromRecord(recordForm: DeriveRecordValue<Shape, Key>): Prod;
+	toRecord(prod: Prod): DeriveRecordValue<Shape, Key>;
 }) => {
 	class AProductImpl extends BaseProductShaped<Prod, Shape, Key> {
 		declare readonly "~apply": {

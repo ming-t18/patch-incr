@@ -66,6 +66,7 @@ export const makeForwardA =
 		return res;
 	};
 
+// TODO rename to makeIF1
 export const makeIF = <
 	A extends $A,
 	B extends $A,

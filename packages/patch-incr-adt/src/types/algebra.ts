@@ -128,10 +128,11 @@ export type AnyApplyOf<T> = Apply<T, any>;
 export type UnknownApply = Apply<unknown, unknown>;
 
 export type InferApplyValue<A extends AnyApply> = A["~apply"]["value"];
-// A extends AnyApply ? A["~apply"]["value"] : never;
 
 export type InferApplyChange<A extends AnyApply> = A["~apply"]["change"];
-// A extends AnyApply ? A["~apply"]["change"] : never;
+
+export type InferApplyInternalChange<A extends AnyApply> =
+	A["~apply"]["internal"];
 
 export type infer<A extends AnyApply> = InferApplyValue<A>;
 export type inferChange<A extends AnyApply> = InferApplyChange<A>;

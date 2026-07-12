@@ -26,7 +26,7 @@ export class FProduct<
 	 */
 	introA<A extends $A>(
 		input: A,
-		funcs: { [key in Key]: IFA<A, Shape[Key]> },
+		funcs: { [k in Key]: IFA<A, Shape[k]> },
 	): IFA<A, AProd> {
 		const evaluate = (x: $T<A>): $T<AProd> =>
 			this.prod.fromRecord(
@@ -50,7 +50,7 @@ export class FProduct<
 	 */
 	intro<A extends $A>(
 		input: A,
-		funcs: { [key in Key]: IF1<A, Shape[Key]> },
+		funcs: { [k in Key]: IF1<A, Shape[k]> },
 	): IF1<A, AProd> {
 		const evaluate = (x: $T<A>): $T<AProd> =>
 			this.prod.fromRecord(
@@ -72,7 +72,7 @@ export class FProduct<
 	}
 
 	/** Getter: `x => x[key]` */
-	get<K extends Key>(key: K): IFA<AProd, Shape[Key]> {
+	get<K extends Key>(key: K): IFA<AProd, Shape[K]> {
 		const evaluate = (x: Prod) => this.prod.get(x, key);
 		return {
 			kind: IFKind.IFA,

@@ -1,8 +1,8 @@
-import { type APair, pair } from "@/pair";
-import type { UnknownApply } from "@/types";
+import type { InferApplyValue } from "@/types";
 import type { $A, $T } from "@/types/abbr";
-import { type IF1, type IFA, IFKind, type IFR } from "@/types/func";
+import { type IF1, type IFA, IFKind } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
+import { makeIF, makeIFA, REEVAL } from "./helpers";
 
 /** Given an `IF`, convert to an `IFA` by re-evaluating in the `forward` implementation. */
 export const fromIFA = <A extends $A, B extends $A>({
@@ -65,182 +65,6 @@ export const constant = <A extends $A, B extends $A>(
 	forward: (_x, _dx) => b.empty,
 });
 
-export const composeA = <A extends $A, B extends $A, C extends $A>(
-	f1: IFA<A, B>,
-	f2: IFA<B, C>,
-): IFA<A, C> => ({
-	kind: IFKind.IFA,
-	input: f1.input,
-	output: f2.output,
-	evaluate: (x) => f2.evaluate(f1.evaluate(x)),
-	forward: (x, dx) => {
-		const y = f1.evaluate(x);
-		const dy = f1.forward(x, dx);
-		return f2.forward(y, dy);
-	},
-});
-
-export const compose1 = <A extends $A, B extends $A, C extends $A>(
-	f1: IF1<A, B>,
-	f2: IF1<B, C>,
-): IFR<A, C, B> => ({
-	kind: IFKind.IFR,
-	input: f1.input,
-	output: pair(f2.output, f1.output),
-	evaluate: (x) => {
-		const y = f1.evaluate(x);
-		return [f2.evaluate(y), y];
-	},
-	forward: (x, dx, [z, y]) => {
-		const dy = f1.forward(x, dx, y);
-		return f2.forward(x, dy, z);
-	},
-});
-
-export const composeA1 = <A extends $A, B extends $A, C extends $A>(
-	f1: IFA<A, B>,
-	f2: IF1<B, C>,
-): IF1<A, C> => ({
-	kind: IFKind.IF1,
-	input: f1.input,
-	output: f2.output,
-	evaluate: (x) => f2.evaluate(f1.evaluate(x)),
-	forward: (x, dx, z) => {
-		const _y = f1.evaluate(x);
-		const dy = f1.forward(x, dx);
-		return f2.forward(x, dy, z);
-	},
-});
-
-export const composeAR = <
-	A extends $A,
-	B extends $A,
-	C extends $A,
-	R extends $A = UnknownApply,
->(
-	f1: IFA<A, B>,
-	f2: IFR<B, C, R>,
-): IFR<A, C, R> => ({
-	kind: IFKind.IFR,
-	input: f1.input,
-	output: f2.output,
-	evaluate: (x) => f2.evaluate(f1.evaluate(x)),
-	forward: (x, dx, [z, r]) => {
-		const dy = f1.forward(x, dx);
-		const y = f1.evaluate(x);
-		return f2.forward(y, dy, [z, r]);
-	},
-});
-
-export const compose1A = <A extends $A, B extends $A, C extends $A>(
-	f1: IF1<A, B>,
-	f2: IFA<B, C>,
-): IFR<A, C, B> => ({
-	kind: IFKind.IFR,
-	input: f1.input,
-	output: pair(f2.output, f1.output),
-	evaluate: (x) => {
-		const y = f1.evaluate(x);
-		return [f2.evaluate(y), y];
-	},
-	forward: (x, dx, [_, y]) => {
-		const dy = f1.forward(x, dx, y);
-		return f2.forward(x, dy);
-	},
-});
-
-export const compose1R = <
-	A extends $A,
-	B extends $A,
-	C extends $A,
-	R extends $A = UnknownApply,
->(
-	f1: IF1<A, B>,
-	f2: IFR<B, C, R>,
-): IFR<A, C, APair<B, R>> => ({
-	kind: IFKind.IFR,
-	input: f1.input,
-	output: pair(f2.output.shape[0], pair(f1.output, f2.output.shape[1])),
-	evaluate: (x) => {
-		const y = f1.evaluate(x);
-		const [z, r] = f2.evaluate(y);
-		return [z, [y, r]];
-	},
-	forward: (x, dx, [z, [y, r]]) => {
-		const dy = f1.forward(x, dx, y);
-		return f2.forward(x, dy, [z, r]);
-	},
-});
-
-export const composeRA = <
-	A extends $A,
-	B extends $A,
-	C extends $A,
-	R extends $A = UnknownApply,
->(
-	f1: IFR<A, B, R>,
-	f2: IFA<B, C>,
-): IFR<A, C, APair<B, R>> => ({
-	kind: IFKind.IFR,
-	input: f1.input,
-	output: pair(f2.output, f1.output),
-	evaluate: (x) => {
-		const [y, r] = f1.evaluate(x);
-		return [f2.evaluate(y), r];
-	},
-	forward: (x, dx, [_, [y, r]]) => {
-		const dy = f1.forward(x, dx, [y, r]);
-		return f2.forward(x, dy);
-	},
-});
-
-export const composeR1 = <
-	A extends $A,
-	B extends $A,
-	C extends $A,
-	R extends $A = UnknownApply,
->(
-	f1: IFR<A, B, R>,
-	f2: IF1<B, C>,
-): IFR<A, C, APair<B, R>> => ({
-	kind: IFKind.IFR,
-	input: f1.input,
-	output: pair(f2.output, f1.output),
-	evaluate: (x) => {
-		const [y, r] = f1.evaluate(x);
-		return [f2.evaluate(y), [y, r]];
-	},
-	forward: (x, dx, [z, [y, r]]) => {
-		const dy = f1.forward(x, dx, [y, r]);
-		return f2.forward(x, dy, z);
-	},
-});
-
-export const composeR = <
-	A extends $A,
-	B extends $A,
-	C extends $A,
-	R1 extends $A = UnknownApply,
-	R2 extends $A = UnknownApply,
->(
-	f1: IFR<A, B, R1>,
-	f2: IFR<B, C, R2>,
-): IFR<A, C, APair<APair<B, R1>, R2>> => ({
-	kind: IFKind.IFR,
-	input: f1.input,
-	output: pair(f2.output.shape[0], pair(f1.output, f2.output.shape[1])),
-	evaluate: (x) => {
-		const yr1 = f1.evaluate(x);
-		const [y, _r1] = yr1;
-		const [_z, r2] = f2.evaluate(x);
-		return [f2.evaluate(y), [yr1, r2]];
-	},
-	forward: (x, dx, [z, [yr1, r2]]) => {
-		const dy = f1.forward(x, dx, yr1);
-		return f2.forward(x, dy, [z, r2]);
-	},
-});
-
 export const composeWithIsoA = <A extends $A, B extends $A, C extends $A>(
 	f1: IF1<A, B>,
 	{ fwd: f2, inv: f2i }: IIsoA<B, C>,
@@ -261,3 +85,67 @@ export const invertA = <A extends $A, B extends $A>({
 	fwd,
 	inv,
 }: IIsoA<A, B>): IIsoA<B, A> => ({ inv: fwd, fwd: inv });
+
+export const condA = <A extends $A, B extends $A>(
+	pred: (value: InferApplyValue<A>) => boolean,
+	fLeft: IFA<A, B>,
+	fRight: IFA<A, B>,
+	input = fLeft.input,
+	output = fLeft.output,
+): IFA<A, B> => {
+	return makeIFA(input, output, {
+		evaluate: (x) => (pred(x) ? fLeft.evaluate(x) : fRight.evaluate(x)),
+		forward: (x, dx) => {
+			const x1 = fLeft.input.apply(x, dx);
+			const p0 = pred(x);
+			const p1 = pred(x1);
+			if (p0 !== p1) {
+				return REEVAL;
+			}
+			return p0 ? fLeft.forward(x, dx) : fRight.forward(x, dx);
+		},
+	});
+};
+
+export const cond1 = <A extends $A, B extends $A>(
+	pred: (value: InferApplyValue<A>) => boolean,
+	fLeft: IF1<A, B>,
+	fRight: IF1<A, B>,
+	input = fLeft.input,
+	output = fLeft.output,
+): IF1<A, B> => {
+	return makeIF(input, output, {
+		evaluate: (x) => (pred(x) ? fLeft.evaluate(x) : fRight.evaluate(x)),
+		forward: (x, dx, y) => {
+			const x1 = fLeft.input.apply(x, dx);
+			const p0 = pred(x);
+			const p1 = pred(x1);
+			if (p0 !== p1) {
+				return REEVAL;
+			}
+			return p0 ? fLeft.forward(x, dx, y) : fRight.forward(x, dx, y);
+		},
+	});
+};
+
+export const trimA = <A extends $A>(
+	func: IFA<A, A>,
+	isEqual = Object.is as (a: $T<A>, b: $T<A>) => boolean,
+): IFA<A, A> => {
+	return makeIFA(func.input, func.output, {
+		evaluate: (x) => {
+			const y = func.evaluate(x);
+			// Return input by reference
+			return isEqual(x, y) ? x : y;
+			// return y;
+		},
+		forward: (x, dx) => {
+			const dy = func.forward(x, dx);
+			const y = func.evaluate(x);
+			const y1 = func.output.apply(y, dy);
+			return isEqual(y, y1) ? func.output.empty : dy;
+		},
+	});
+};
+
+export * from "./compose/general";

@@ -1,7 +1,7 @@
-import { composeA, composeA1, FUnion } from "@/funcs";
+import { composeA, composeA1, composeWithIsoA, FUnion } from "@/funcs";
 import { makeIFA, REEVAL } from "@/funcs/helpers";
 import { FMapValue } from "@/funcs/map";
-import type { $A } from "@/types/abbr";
+import type { $A, $T } from "@/types/abbr";
 import type { Evaluate, IF1, IFA } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
 import { UnionCaseError } from "@/union";
@@ -27,6 +27,28 @@ export class FEither<A extends $A, B extends $A> {
 
 	right(): IFA<B, AEither<A, B>> {
 		return composeA(this.fRight.intro(), this.fUnion.introCase("right"));
+	}
+
+	introCond<C extends $A>(
+		isRight: (input: $T<C>) => boolean,
+		funcs: { left: IF1<C, A>; right: IF1<C, B> },
+	): IF1<C, AEither<A, B>> {
+		const left = composeWithIsoA(funcs.left, this.fLeft.iso());
+		const right = composeWithIsoA(funcs.right, this.fRight.iso());
+		return this.fUnion.introCond((x) => (isRight(x) ? "right" : "left"), {
+			left,
+			right,
+		});
+	}
+
+	introCondA<C extends $A>(
+		isRight: (input: $T<C>) => boolean,
+		funcs: { left: IFA<C, A>; right: IFA<C, B> },
+	): IFA<C, AEither<A, B>> {
+		return this.fUnion.introCondA((x) => (isRight(x) ? "right" : "left"), {
+			left: composeA(funcs.left, this.fLeft.intro()),
+			right: composeA(funcs.right, this.fRight.intro()),
+		});
 	}
 
 	elim<C extends $A>(left: IF1<A, C>, right: IF1<B, C>): IF1<AEither<A, B>, C> {
