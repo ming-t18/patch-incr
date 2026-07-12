@@ -1,4 +1,4 @@
-import { composeA, composeFromA, FUnion } from "@/funcs";
+import { composeA, composeA1, FUnion } from "@/funcs";
 import { makeIFA, REEVAL } from "@/funcs/helpers";
 import { FMapValue } from "@/funcs/map";
 import type { $A } from "@/types/abbr";
@@ -31,8 +31,8 @@ export class FEither<A extends $A, B extends $A> {
 
 	elim<C extends $A>(left: IF1<A, C>, right: IF1<B, C>): IF1<AEither<A, B>, C> {
 		return this.fUnion.elim(left.output, {
-			left: composeFromA(this.fLeft.elim(), left),
-			right: composeFromA(this.fRight.elim(), right),
+			left: composeA1(this.fLeft.elim(), left),
+			right: composeA1(this.fRight.elim(), right),
 		});
 	}
 

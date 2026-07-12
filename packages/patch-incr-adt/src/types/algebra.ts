@@ -125,6 +125,8 @@ export type AnyApply = Apply<any, any>;
 // biome-ignore lint/suspicious/noExplicitAny: intentional
 export type AnyApplyOf<T> = Apply<T, any>;
 
+export type UnknownApply = Apply<unknown, unknown>;
+
 export type InferApplyValue<A extends AnyApply> = A["~apply"]["value"];
 // A extends AnyApply ? A["~apply"]["value"] : never;
 

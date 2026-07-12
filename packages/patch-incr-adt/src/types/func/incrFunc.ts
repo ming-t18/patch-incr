@@ -56,8 +56,12 @@ export interface IF1<A extends $A, B extends $A> extends IFBase<A, B> {
 export interface IFR<A extends $A, B extends $A, R extends $A>
 	extends IFBase<A, APair<B, R>> {
 	readonly kind: IFKind.IFR;
-	readonly evaluate: (x: $T<A>) => APair<$T<B>, $T<R>>;
-	readonly forward: (x: $T<A>, dx: $D<A>, y: [$T<B>, $T<R>]) => $D<APair<B, R>>;
+	readonly evaluate: (x: $T<A>) => Readonly<[$T<B>, $T<R>]>;
+	readonly forward: (
+		x: $T<A>,
+		dx: $D<A>,
+		y: Readonly<[$T<B>, $T<R>]>,
+	) => $D<APair<B, R>>;
 }
 
 /**

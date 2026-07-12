@@ -1,6 +1,7 @@
 import { type APair, pair } from "@/pair";
+import type { UnknownApply } from "@/types";
 import type { $A, $T } from "@/types/abbr";
-import { type IF1, type IFA, IFKind } from "@/types/func";
+import { type IF1, type IFA, IFKind, type IFR } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
 
 /** Given an `IF`, convert to an `IFA` by re-evaluating in the `forward` implementation. */
@@ -79,11 +80,11 @@ export const composeA = <A extends $A, B extends $A, C extends $A>(
 	},
 });
 
-export const composeR = <A extends $A, B extends $A, C extends $A>(
+export const compose1 = <A extends $A, B extends $A, C extends $A>(
 	f1: IF1<A, B>,
 	f2: IF1<B, C>,
-): IF1<A, APair<C, B>> => ({
-	kind: IFKind.IF1,
+): IFR<A, C, B> => ({
+	kind: IFKind.IFR,
 	input: f1.input,
 	output: pair(f2.output, f1.output),
 	evaluate: (x) => {
@@ -96,7 +97,7 @@ export const composeR = <A extends $A, B extends $A, C extends $A>(
 	},
 });
 
-export const composeFromA = <A extends $A, B extends $A, C extends $A>(
+export const composeA1 = <A extends $A, B extends $A, C extends $A>(
 	f1: IFA<A, B>,
 	f2: IF1<B, C>,
 ): IF1<A, C> => ({
@@ -108,6 +109,135 @@ export const composeFromA = <A extends $A, B extends $A, C extends $A>(
 		const _y = f1.evaluate(x);
 		const dy = f1.forward(x, dx);
 		return f2.forward(x, dy, z);
+	},
+});
+
+export const composeAR = <
+	A extends $A,
+	B extends $A,
+	C extends $A,
+	R extends $A = UnknownApply,
+>(
+	f1: IFA<A, B>,
+	f2: IFR<B, C, R>,
+): IFR<A, C, R> => ({
+	kind: IFKind.IFR,
+	input: f1.input,
+	output: f2.output,
+	evaluate: (x) => f2.evaluate(f1.evaluate(x)),
+	forward: (x, dx, [z, r]) => {
+		const dy = f1.forward(x, dx);
+		const y = f1.evaluate(x);
+		return f2.forward(y, dy, [z, r]);
+	},
+});
+
+export const compose1A = <A extends $A, B extends $A, C extends $A>(
+	f1: IF1<A, B>,
+	f2: IFA<B, C>,
+): IFR<A, C, B> => ({
+	kind: IFKind.IFR,
+	input: f1.input,
+	output: pair(f2.output, f1.output),
+	evaluate: (x) => {
+		const y = f1.evaluate(x);
+		return [f2.evaluate(y), y];
+	},
+	forward: (x, dx, [_, y]) => {
+		const dy = f1.forward(x, dx, y);
+		return f2.forward(x, dy);
+	},
+});
+
+export const compose1R = <
+	A extends $A,
+	B extends $A,
+	C extends $A,
+	R extends $A = UnknownApply,
+>(
+	f1: IF1<A, B>,
+	f2: IFR<B, C, R>,
+): IFR<A, C, APair<B, R>> => ({
+	kind: IFKind.IFR,
+	input: f1.input,
+	output: pair(f2.output.shape[0], pair(f1.output, f2.output.shape[1])),
+	evaluate: (x) => {
+		const y = f1.evaluate(x);
+		const [z, r] = f2.evaluate(y);
+		return [z, [y, r]];
+	},
+	forward: (x, dx, [z, [y, r]]) => {
+		const dy = f1.forward(x, dx, y);
+		return f2.forward(x, dy, [z, r]);
+	},
+});
+
+export const composeRA = <
+	A extends $A,
+	B extends $A,
+	C extends $A,
+	R extends $A = UnknownApply,
+>(
+	f1: IFR<A, B, R>,
+	f2: IFA<B, C>,
+): IFR<A, C, APair<B, R>> => ({
+	kind: IFKind.IFR,
+	input: f1.input,
+	output: pair(f2.output, f1.output),
+	evaluate: (x) => {
+		const [y, r] = f1.evaluate(x);
+		return [f2.evaluate(y), r];
+	},
+	forward: (x, dx, [_, [y, r]]) => {
+		const dy = f1.forward(x, dx, [y, r]);
+		return f2.forward(x, dy);
+	},
+});
+
+export const composeR1 = <
+	A extends $A,
+	B extends $A,
+	C extends $A,
+	R extends $A = UnknownApply,
+>(
+	f1: IFR<A, B, R>,
+	f2: IF1<B, C>,
+): IFR<A, C, APair<B, R>> => ({
+	kind: IFKind.IFR,
+	input: f1.input,
+	output: pair(f2.output, f1.output),
+	evaluate: (x) => {
+		const [y, r] = f1.evaluate(x);
+		return [f2.evaluate(y), [y, r]];
+	},
+	forward: (x, dx, [z, [y, r]]) => {
+		const dy = f1.forward(x, dx, [y, r]);
+		return f2.forward(x, dy, z);
+	},
+});
+
+export const composeR = <
+	A extends $A,
+	B extends $A,
+	C extends $A,
+	R1 extends $A = UnknownApply,
+	R2 extends $A = UnknownApply,
+>(
+	f1: IFR<A, B, R1>,
+	f2: IFR<B, C, R2>,
+): IFR<A, C, APair<APair<B, R1>, R2>> => ({
+	kind: IFKind.IFR,
+	input: f1.input,
+	output: pair(f2.output.shape[0], pair(f1.output, f2.output.shape[1])),
+	evaluate: (x) => {
+		const yr1 = f1.evaluate(x);
+		const [y, _r1] = yr1;
+		const [_z, r2] = f2.evaluate(x);
+		return [f2.evaluate(y), [yr1, r2]];
+	},
+	forward: (x, dx, [z, [yr1, r2]]) => {
+		const dy = f1.forward(x, dx, yr1);
+		return f2.forward(x, dy, [z, r2]);
 	},
 });
 
