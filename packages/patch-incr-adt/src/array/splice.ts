@@ -1,20 +1,20 @@
 // biome-ignore-all lint/style/noNonNullAssertion: for checked array access
-import type { Apply, DRO } from "@/types/algebra";
 
-/**
- * An entry in the splice operation.
- */
+import { type Apply, ApplyError } from "@/types";
+
 export interface SpliceEntry<T> {
-	/** The start index of the splice operation. */
-	readonly index: number;
-	/** The number of elements to remove. */
-	readonly lenToRemove: number;
-	/** The elements to replace. */
-	readonly replace: T[];
+	readonly i: number;
+	readonly di: number;
+	readonly j: number;
+	readonly dj: number;
+	readonly replace: readonly T[];
 }
 
 export interface ApplyEntry<DT> {
-	readonly index: number;
+	readonly i: number;
+	readonly di: 1;
+	readonly j: number;
+	readonly dj: 1;
 	readonly change: DT;
 }
 
@@ -22,8 +22,37 @@ export type SpliceTableEntry<T, DT> = SpliceEntry<T> | ApplyEntry<DT>;
 
 export type SpliceEntries<T, DT> = SpliceTableEntry<T, DT>[];
 
+export interface ParSpliceEntry<T> {
+	readonly index: number;
+	readonly lenToRemove: number;
+	readonly replace: readonly T[];
+}
+
+export interface ParApplyEntry<DT> {
+	readonly index: number;
+	readonly change: DT;
+}
+
+export type ParSpliceEntries<T, DT> = (ParSpliceEntry<T> | ParApplyEntry<DT>)[];
+
+export enum MapResult {
+	Unchanged = "Unchanged",
+	Added = "Added",
+	Removed = "Removed",
+	Replaced = "Replaced",
+}
+
+export interface MapIndexResult<T, DT> {
+	readonly index: number;
+	readonly entry: SpliceTableEntry<T, DT> | null;
+	readonly result: MapResult;
+}
+
+export class IndexError extends ApplyError {}
+
 /**
- * The change-type for an array. Consists of a list of concurrent splices or internal changes.
+ * The change-type for an array or array-like type.
+ * Consists of a list of concurrent splices or internal changes.
  *
  * ## Array operations
  * All array operations can be expressed in terms of `splice`.
@@ -52,203 +81,354 @@ export type SpliceEntries<T, DT> = SpliceTableEntry<T, DT>[];
  *  - cannot be no-op (zero removed and zero added)
  */
 export class SpliceTable<T, DT> {
-	constructor(
-		readonly entries: Readonly<SpliceEntries<T, DT>>,
-		readonly offsets: Readonly<number[]>,
-	) {}
+	constructor(readonly entries: Readonly<SpliceEntries<T, DT>>) {}
 
-	toBuilder(): SpliceTableBuilder<T, DT> {
-		return new SpliceTableBuilder([...this.entries], [...this.offsets]);
-	}
-}
-
-/*
- * Index variable naming conventions:
- *  - `i`: index of the source array (pre-splice)
- *  - `j`: index of the destination array (post-splice)
- *  - `k`: index of the splice table entry
- */
-
-/** Builder for a `SpliceTable`. Is internally mutable but each `SpliceTableEntry` remains immutable. */
-export class SpliceTableBuilder<T, DT> {
-	private offsets: number[];
-	constructor(
-		/**
-		 * The splice/apply entries, sorted by `iStart`.
-		 * The intervals `[iStart, iStart + dLen)` for each element do not overlap where `dLen`
-		 * is `lenToRemove` for `SpliceEntry` and `1` for `ApplyEntry`.
-		 */
-		readonly entries: SpliceEntries<T, DT> = [],
-		/**
-		 * For `this.entries[iEntry]`, `this.offsets[iEntry]` is the index of
-		 * the output-array at that entry.
-		 */
-		offsets = computeOffsets([], this.entries),
-	) {
-		this.offsets = offsets;
+	/** Gets the minimum array length required to apply this `SpliceTable`. */
+	get requiredLength() {
+		const kLast = this.entries.length - 1;
+		return kLast < 0 ? 0 : this.entries[kLast]!.i + this.entries[kLast]!.di;
 	}
 
-	build(): SpliceTable<T, DT> {
-		return new SpliceTable(this.entries, this.offsets);
-	}
+	// region Mapping
 
-	private recomputeOffsets() {
-		this.offsets = computeOffsets([], this.entries);
-	}
-
-	private cleanUpEntries() {
-		let changed = true;
-		while (changed) {
-			changed = false;
-			// Delete empty entries
-			for (let k = this.entries.length - 1; k >= 0; k--) {
-				const e = this.entries[k]!;
-				if (!("replace" in e)) {
-					continue;
-				}
-				if (e.replace.length === 0 && e.lenToRemove === 0) {
-					changed = true;
-					this.entries.splice(k, 1);
-					break;
-				}
+	mapIndex(index: number): MapIndexResult<T, DT> {
+		if (this.entries.length === 0) {
+			return { index, entry: null, result: MapResult.Unchanged };
+		}
+		for (let k = 0; k < this.entries.length; k++) {
+			const entry = this.entries[k]!;
+			const nextEntry =
+				k + 1 === this.entries.length ? null : this.entries[k + 1]!;
+			if (index < entry.i) {
+				return { index, entry: null, result: MapResult.Unchanged };
 			}
 
-			// Merge adjacent entries
-			for (let k = this.entries.length - 2; k >= 0; k--) {
-				const e = this.entries[k]!;
-				const e1 = this.entries[k + 1]!;
-				if (!("replace" in e && "replace" in e1)) {
+			const iMax = entry.i + entry.di;
+			if (index >= iMax) {
+				if (nextEntry && index >= nextEntry.i) {
 					continue;
 				}
-				if (e1.index === e.index + e.lenToRemove) {
-					this.entries.splice(k, 1, {
-						index: e.index,
-						lenToRemove: e.lenToRemove + e1.lenToRemove,
-						replace: [...e.replace, ...e1.replace],
-					});
+				// [i,   iMax)   ----- +off
+				// [j,          jMax]  ----- +off
+				const off = index - iMax;
+				const jMax = entry.j + entry.dj;
+				return {
+					index: jMax + off,
+					entry: null,
+					result: MapResult.Unchanged,
+				};
+			}
+			if (entry.dj === entry.di) {
+				return {
+					index: entry.j + (index - entry.i),
+					entry,
+					result: MapResult.Replaced,
+				};
+			}
+			const n = entry.dj < entry.di ? entry.dj : entry.di;
+			if (index < entry.i + n) {
+				return {
+					index: entry.j + (index - entry.i),
+					entry,
+					result: MapResult.Replaced,
+				};
+			}
+			return {
+				index: entry.j + entry.dj,
+				entry,
+				result: entry.dj < entry.di ? MapResult.Removed : MapResult.Added,
+			};
+		}
+
+		const last = this.entries[this.entries.length - 1]!;
+		return {
+			index: index + (last.j + last.dj) - (last.i + last.di),
+			entry: null,
+			result: MapResult.Unchanged,
+		};
+	}
+
+	unmapIndex(index: number): MapIndexResult<T, DT> {
+		if (this.entries.length === 0) {
+			return { index, entry: null, result: MapResult.Unchanged };
+		}
+		for (let k = 0; k < this.entries.length; k++) {
+			const entry = this.entries[k]!;
+			const nextEntry =
+				k + 1 === this.entries.length ? null : this.entries[k + 1]!;
+			if (index < entry.j) {
+				return { index, entry: null, result: MapResult.Unchanged };
+			}
+
+			const jMax = entry.j + entry.dj;
+			if (index >= jMax) {
+				if (nextEntry && index >= nextEntry.j) {
+					continue;
 				}
-				if (e.replace.length === 0 && e.lenToRemove === 0) {
-					changed = true;
-					this.entries.splice(k, 1);
-					break;
-				}
+				// [i,   iMax)   ----- +off
+				// [j,          jMax]  ----- +off
+				const off = index - jMax;
+				const iMax = entry.i + entry.di;
+				return {
+					index: iMax + off,
+					entry: null,
+					result: MapResult.Unchanged,
+				};
+			}
+			if (entry.dj === entry.di) {
+				return {
+					index: entry.i + (index - entry.j),
+					entry,
+					result: MapResult.Replaced,
+				};
+			}
+			const n = entry.dj < entry.di ? entry.dj : entry.di;
+			if (index < entry.j + n) {
+				return {
+					index: entry.i + (index - entry.j),
+					entry,
+					result: MapResult.Replaced,
+				};
+			}
+			return {
+				index: entry.i + entry.di,
+				entry,
+				result: entry.dj < entry.di ? MapResult.Removed : MapResult.Added,
+			};
+		}
+
+		const last = this.entries[this.entries.length - 1]!;
+		return {
+			index: index + (last.i + last.di) - (last.j + last.dj),
+			entry: null,
+			result: MapResult.Unchanged,
+		};
+	}
+
+	// endregion
+
+	// region Apply
+
+	apply(array: readonly T[], apply: Apply<T, DT>): readonly T[] {
+		if (array.length < this.requiredLength) {
+			throw new IndexError();
+		}
+
+		const res: T[] = [];
+		let i = 0;
+		for (const entry of this.entries) {
+			if (entry.i > i) {
+				res.push(...array.slice(i, entry.i));
+				i = entry.i;
+			}
+			if ("change" in entry) {
+				res.push(apply.apply(array[entry.i]!, entry.change));
+				i += 1;
+				continue;
+			}
+
+			res.push(...entry.replace);
+			i += entry.di;
+		}
+		if (i < array.length) {
+			res.push(...array.slice(i));
+		}
+		return res;
+	}
+
+	canApply(array: readonly T[], apply: Apply<T, DT>): boolean {
+		if (array.length < this.requiredLength) {
+			return false;
+		}
+
+		for (const entry of this.entries) {
+			if ("change" in entry && !apply.canApply(array[entry.i]!, entry.change)) {
+				return false;
 			}
 		}
+		return true;
 	}
 
-	applyAtI(
-		i: number,
+	combineWithChange(
+		index: number,
 		change: DT,
-		{ apply, combine }: Pick<Apply<T, DT>, "apply" | "combine">,
-	): this {
-		const k = findK(this.entries, i);
-		if (k === -2) {
-			this.entries.unshift({ index: i, change });
-		} else if (k === -1) {
-			this.entries.push({ index: i, change });
-		} else {
-			const e = this.entries[k]!;
-			if ("change" in e) {
-				this.entries[k] = { index: i, change: combine(e.change, change) };
-			} else {
-				if (i < e.index + e.replace.length) {
-					const replace1 = [...e.replace];
-					const di = i - e.index;
-					replace1[di] = apply(replace1[di]!, change);
-					this.entries[k] = {
-						index: e.index,
-						lenToRemove: e.lenToRemove,
-						replace: replace1,
-					};
-				} else {
-					this.entries.splice(k + 1, 0, { index: i, change });
-				}
+		apply: Apply<T, DT>,
+	): SpliceTable<T, DT> {
+		const res = this.mapIndex(index);
+		if (!res.entry) {
+			const k = 0; // TODO
+			return new SpliceTable([
+				...this.entries.slice(0, k),
+				...SpliceTable._applyOffset(this.entries.slice(k), 1, 1),
+			]);
+		}
+		const k = this.entries.indexOf(res.entry);
+		if ("change" in res.entry) {
+			return new SpliceTable([
+				...this.entries.slice(0, k),
+				{ ...res.entry, change: apply.combine(res.entry.change, change) },
+				...SpliceTable._applyOffset(this.entries.slice(k - 1), 1, 1),
+			]);
+		}
+		// TODO need to split up entry
+		// TODO fix this
+		return new SpliceTable([
+			...this.entries.slice(0, k),
+			...SpliceTable._applyOffset(this.entries.slice(k), 1, 1),
+		]);
+	}
+
+	private static _applyOffset<T, DT>(
+		entries: SpliceTableEntry<T, DT>[],
+		di: number,
+		dj: number,
+	): SpliceTableEntry<T, DT>[] {
+		return entries.map(({ i, j, ...rest }) => ({
+			i: i + di,
+			j: j + dj,
+			...rest,
+		}));
+	}
+
+	// endregion
+
+	// region Update
+
+	updateToApply(entryIndex: number, change: DT): SpliceTable<T, DT> {
+		const entry = this.entries[entryIndex];
+		if (!entry) {
+			throw new Error("entryIndex out of bounds");
+		}
+
+		return this._replaceEntry(entryIndex, {
+			i: entry.i,
+			j: entry.j,
+			di: 1,
+			dj: 1,
+			change,
+		});
+	}
+
+	updateToSplice(
+		entryIndex: number,
+		newToDelete: number,
+		newReplace: readonly T[],
+	): SpliceTable<T, DT> {
+		const entry = this.entries[entryIndex];
+		if (!entry) {
+			throw new Error("entryIndex out of bounds");
+		}
+
+		return this._replaceEntry(entryIndex, {
+			i: entry.i,
+			j: entry.j,
+			di: newToDelete,
+			dj: newReplace.length,
+			replace: newReplace,
+		});
+	}
+
+	private _replaceEntry(
+		entryIndex: number,
+		newEntry: SpliceTableEntry<T, DT>,
+	): SpliceTable<T, DT> {
+		const entry = this.entries[entryIndex]!;
+		const iOff = newEntry.di - entry.di;
+		const jOff = newEntry.dj - entry.dj;
+		const newEntries = [...this.entries];
+		newEntries[entryIndex] = newEntry;
+		// Shift over the index mapping for rest of the table
+		for (let k = entryIndex + 1; k < newEntries.length; k++) {
+			const e = newEntries[k]!;
+			const { i: i0, j: j0 } = e;
+			newEntries[k] = { ...e, i: i0 + iOff, j: j0 + jOff };
+		}
+		return new SpliceTable(newEntries);
+	}
+
+	// endregion
+
+	// region Factory
+
+	static identity<T, DT>(): SpliceTable<T, DT> {
+		return new SpliceTable([]);
+	}
+
+	static fromChange<T, DT>(i: number, change: DT): SpliceTable<T, DT> {
+		return new SpliceTable([
+			{
+				i,
+				di: 1,
+				j: i,
+				dj: 1,
+				change,
+			},
+		]);
+	}
+
+	static fromSplice<T, DT>(
+		i: number,
+		toDelete: number,
+		replace: readonly T[],
+	): SpliceTable<T, DT> {
+		if (toDelete === 0 && replace.length === 0) {
+			return new SpliceTable([]);
+		}
+
+		return new SpliceTable([
+			{
+				i,
+				di: toDelete,
+				j: i,
+				dj: replace.length,
+				replace,
+			},
+		]);
+	}
+
+	static fromParallelEntries<T, DT>(
+		entries: ParSpliceEntries<T, DT>,
+	): SpliceTable<T, DT> {
+		const entries1: SpliceTableEntry<T, DT>[] = [];
+		let offset = 0;
+		for (const entry of entries) {
+			if ("change" in entry) {
+				entries1.push({
+					i: entry.index,
+					di: 1,
+					j: entry.index + offset,
+					dj: 1,
+					change: entry.change,
+				});
+				continue;
 			}
+
+			entries1.push({
+				i: entry.index,
+				di: entry.lenToRemove,
+				j: entry.index + offset,
+				dj: entry.replace.length,
+				replace: entry.replace,
+			});
+
+			offset += entry.replace.length - entry.lenToRemove;
 		}
-		this.cleanUpEntries();
-		this.recomputeOffsets();
-		return this;
+		return new SpliceTable(entries1);
 	}
 
-	spliceI(_iIn: number, _lenIn: number, _replacement = [] as T[]): this {
-		// const k = findOverlap(this.entries, iIn);
-		throw new Error("TODO implement");
-	}
-
-	/** The minimum length of the source array for the splice operations to be applicable. */
-	minLength() {
-		if (this.entries.length === 0) return 0;
-		const last = this.entries[this.entries.length - 1] as SpliceEntry<T>;
-		return last.index + last.replace.length;
-	}
-
-	/** Gets the splice table entry at a particular index. */
-	lookupEntry(i: number): SpliceEntry<T> | ApplyEntry<DT> | null {
-		const k = findK(this.entries, i);
-		if (k < 0) {
-			return null;
-		}
-		return this.entries[k]!;
-	}
-
-	/**
-	 * Given an input to the input array,
-	 * return the remapped index and the change applied:
-	 * - Apply internal chang
-	 * - Replaced (by splice)
-	 * - Unchanged
-	 */
-	lookupIndex(_i: number): { index: number; change: DRO<T> | ApplyEntry<DT> } {
-		throw new Error("TODO implement");
-	}
+	// endregion
 }
 
-function _toSequentialForm<T, DT>(
-	entries: SpliceEntries<T, DT>,
-): SpliceEntries<T, DT> {
-	let di = 0;
-	const entries1 = [] as SpliceEntries<T, DT>;
-	for (const e of entries) {
-		entries.push(
-			"replace" in e
-				? { ...e, index: e.index + di }
-				: { ...e, index: e.index + di },
-		);
-		if ("replace" in e) {
-			di += e.replace.length - e.lenToRemove;
-		}
-	}
-	return entries1;
+export function mapIndex<T, DT>(
+	entries: ParSpliceEntries<T, DT>,
+	index: number,
+) {
+	return SpliceTable.fromParallelEntries(entries).mapIndex(index);
 }
 
-/**
- * Find the largest $k$ that that `entries[k].index <= i`.
- * @returns -2 if `i` is before all entries, -1 if `i` is after all entries, otherwise, the index to the entry
- */
-function findK<T, DT>(entries: SpliceEntries<T, DT>, i: number): number {
-	if (entries.length === 0 || i < entries[0]!.index) {
-		return -2;
-	}
-	for (let k = 0; k < entries.length; k++) {
-		const e = entries[k]!;
-		if (e.index <= i) {
-			return k;
-		}
-	}
-	return -1;
-}
-
-function computeOffsets<T, DT>(
-	outOffsets: number[],
-	entries: SpliceEntries<T, DT>,
-	iEntryStart = 0,
-): number[] {
-	let i = 0;
-	for (let k = iEntryStart; k < entries.length; k++) {
-		const e = entries[k]!;
-		outOffsets.push(i);
-		i = i + ("replace" in e ? e.replace.length - e.lenToRemove : 1);
-	}
-
-	return outOffsets;
+export function unmapIndex<T, DT>(
+	entries: ParSpliceEntries<T, DT>,
+	index: number,
+) {
+	return SpliceTable.fromParallelEntries(entries).unmapIndex(index);
 }

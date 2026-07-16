@@ -3,6 +3,11 @@ import { type Apply, BaseApplyClass, type ReplaceOnly } from "@/types";
 import type { $D, $T, DRO } from "@/types/abbr";
 import type { SpliceTable } from "./splice";
 
+/**
+ * The change-type for a JavaScript array (`T[]`) is an ordered list of concurrent splice operations,
+ * (or internal changes at particular indexes.
+ * @see `SpliceTable`
+ */
 export class AArray<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>>
 	extends BaseApplyClass<T[], SpliceTable<T, DT> | DRO<T[]>, null>
 	implements Apply<T[], SpliceTable<T, DT> | DRO<T[]>>
