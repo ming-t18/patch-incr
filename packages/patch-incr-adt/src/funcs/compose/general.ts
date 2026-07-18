@@ -180,6 +180,20 @@ export const composeR = <
 	},
 });
 
+/**
+ * The overload-based signature for the binary incremental function composition
+ * operation.
+ *
+ * The basic idea is to avoid re-evaluating `IF1/IFR` in the `forward` methods of
+ * `IF1/IFR` by adding the intermediate result of type `B` in the residual.
+ *
+ *  - `IFA >> IFA = IFA`
+ *  - `? >> IFA = IF1`
+ *  - `IFA >> ? = IF1`
+ *  - `IF1 >> IF1 = IFR`
+ *  - `IFR >> ? = IFR`
+ *  - `? >> IFR = IFR`
+ */
 export interface ComposeFunc {
 	// IFA
 	<A extends $A, B extends $A, C extends $A>(
@@ -222,6 +236,12 @@ export interface ComposeFunc {
 		f1: IFR<A, B, R1>,
 		f2: IFR<B, C, R2>,
 	): IFR<A, C, APair<APair<B, R1>, R2>>;
+
+	// General
+	<A extends $A, B extends $A, C extends $A>(
+		f1: IF<A, B>,
+		f2: IF<B, C>,
+	): IF<A, C>;
 }
 
 export const composeNonOverload = <A extends $A, B extends $A, C extends $A>(

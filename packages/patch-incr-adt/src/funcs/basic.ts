@@ -110,6 +110,10 @@ export const toIF1 = <A extends $A, B extends $A>({
 	return { kind: IFKind.IF1, input, output, evaluate, forward };
 };
 
+/**
+ * The identity incremental function.
+ * The evaluate returns the input and the forward returns the input change as-is without any processing.
+ */
 export const identity = <A extends $A>(a: A): IFA<A, A> => ({
 	kind: IFKind.IFA,
 	input: a,
@@ -118,6 +122,10 @@ export const identity = <A extends $A>(a: A): IFA<A, A> => ({
 	forward: (_x, dx) => dx,
 });
 
+/**
+ * The constant incremental function.
+ * The evaluate returns the specified constant and the foward returns the empty change regardless.
+ */
 export const constant = <A extends $A, B extends $A>(
 	a: A,
 	b: B,
@@ -157,8 +165,8 @@ export const condA = <A extends $A, B extends $A>(
 	fRight: IFA<A, B>,
 	input = fLeft.input,
 	output = fLeft.output,
-): IFA<A, B> => {
-	return makeIFA(input, output, {
+): IFA<A, B> =>
+	makeIFA(input, output, {
 		evaluate: (x) => (pred(x) ? fLeft.evaluate(x) : fRight.evaluate(x)),
 		forward: (x, dx) => {
 			const x1 = fLeft.input.apply(x, dx);
@@ -170,7 +178,6 @@ export const condA = <A extends $A, B extends $A>(
 			return p0 ? fLeft.forward(x, dx) : fRight.forward(x, dx);
 		},
 	});
-};
 
 export const cond1 = <A extends $A, B extends $A>(
 	pred: (value: InferApplyValue<A>) => boolean,
@@ -178,8 +185,8 @@ export const cond1 = <A extends $A, B extends $A>(
 	fRight: IF1<A, B>,
 	input = fLeft.input,
 	output = fLeft.output,
-): IF1<A, B> => {
-	return makeIF(input, output, {
+): IF1<A, B> =>
+	makeIF(input, output, {
 		evaluate: (x) => (pred(x) ? fLeft.evaluate(x) : fRight.evaluate(x)),
 		forward: (x, dx, y) => {
 			const x1 = fLeft.input.apply(x, dx);
@@ -191,18 +198,23 @@ export const cond1 = <A extends $A, B extends $A>(
 			return p0 ? fLeft.forward(x, dx, y) : fRight.forward(x, dx, y);
 		},
 	});
-};
 
+/**
+ * Given an `IFA<A, A>`, returns a new `IFA<A, A>`
+ * that detect the actual change made in evaluating the function and
+ * returns
+ *  - the input by reference if there ar no changees
+ *  - empty change in `forward` if there are no changes post-patch.
+ */
 export const trimA = <A extends $A>(
 	func: IFA<A, A>,
 	isEqual = Object.is as (a: $T<A>, b: $T<A>) => boolean,
-): IFA<A, A> => {
-	return makeIFA(func.input, func.output, {
+): IFA<A, A> =>
+	makeIFA(func.input, func.output, {
 		evaluate: (x) => {
 			const y = func.evaluate(x);
 			// Return input by reference
 			return isEqual(x, y) ? x : y;
-			// return y;
 		},
 		forward: (x, dx) => {
 			const dy = func.forward(x, dx);
@@ -211,6 +223,5 @@ export const trimA = <A extends $A>(
 			return isEqual(y, y1) ? func.output.empty : dy;
 		},
 	});
-};
 
 export * from "./compose/general";
