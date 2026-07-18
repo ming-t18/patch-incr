@@ -18,29 +18,70 @@ export const fromIFA = <A extends $A, B extends $A>({
 	forward: (x, dx, _y) => forward(x, dx),
 });
 
+/**
+ * Given a non-incremental function, convert it to an `IFA`.
+ * If it is costly to re-evaluate `func`, consider using `atomicFunc`.
+ * The `forward` returns empty or replace changes only.
+ *
+ * The final two arguments, `inputEquals` and `outputEquals`, are evaluated
+ * to avoid returning non-replace changes.
+ */
+export const atomicFuncA = <A extends $A, B extends $A>(
+	input: A,
+	output: B,
+	func: (value: $T<A>) => $T<B>,
+	inputEquals = Object.is as (a: $T<A>, b: $T<A>) => boolean,
+	outputEquals = Object.is as (a: $T<B>, b: $T<B>) => boolean,
+): IFA<A, B> => ({
+	kind: IFKind.IFA,
+	input,
+	output,
+	evaluate: (x) => func(x),
+	forward: (x, dx) => {
+		if (input.isEmpty(dx)) {
+			return output.empty;
+		}
+		const x1 = input.apply(x, dx);
+		if (inputEquals(x, x1)) {
+			return output.empty;
+		}
+
+		const y = func(x);
+		const y1 = func(x1);
+		return outputEquals(y, y1) ? output.empty : output.fromReplace(y1);
+	},
+});
+
+/**
+ * Given a non-incremental function, convert it to an `IFA`.
+ *
+ * The final two arguments, `inputEquals` and `outputEquals`, are evaluated
+ * to avoid returning non-replace changes.
+ */
 export const atomicFunc = <A extends $A, B extends $A>(
 	input: A,
 	output: B,
 	func: (value: $T<A>) => $T<B>,
 	inputEquals = Object.is as (a: $T<A>, b: $T<A>) => boolean,
-): IFA<A, B> => {
-	return {
-		kind: IFKind.IFA,
-		input,
-		output,
-		evaluate: (x) => func(x),
-		forward: (x, dx) => {
-			if (input.isEmpty(dx)) {
-				return output.empty;
-			}
-			const x1 = input.apply(x, dx);
-			if (inputEquals(x, x1)) {
-				return output.empty;
-			}
-			return output.fromReplace(func(x1));
-		},
-	};
-};
+	outputEquals = Object.is as (a: $T<B>, b: $T<B>) => boolean,
+): IF1<A, B> => ({
+	kind: IFKind.IF1,
+	input,
+	output,
+	evaluate: (x) => func(x),
+	forward: (x, dx, y) => {
+		if (input.isEmpty(dx)) {
+			return output.empty;
+		}
+		const x1 = input.apply(x, dx);
+		if (inputEquals(x, x1)) {
+			return output.empty;
+		}
+
+		const y1 = func(x1);
+		return outputEquals(y, y1) ? output.empty : output.fromReplace(y1);
+	},
+});
 
 /** Given an `IF`, convert to an `IFA` by re-evaluating in the `forward` implementation. */
 export const toIFA = <A extends $A, B extends $A>({
