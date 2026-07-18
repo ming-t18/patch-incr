@@ -66,7 +66,7 @@ export type ARecordMerge<
 	Shape1 extends Record<Key1, AnyApply>,
 	Key extends keyof Map = keyof Map,
 	Key1 extends keyof Shape1 = keyof Shape1,
-> = ARecord<MergeShapes<Map, Shape1, Key, Key1>, Key | Key1>;
+> = ARecord<{} & MergeShapes<Map, Shape1, Key, Key1>, Key | Key1>;
 
 export const merge = <
 	Map extends Record<Key, AnyApply>,

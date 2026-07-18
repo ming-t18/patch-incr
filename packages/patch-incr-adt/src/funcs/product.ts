@@ -200,6 +200,27 @@ export class FRecord<
 		});
 	}
 
+	/** Picks a subset of keys. */
+	pick<
+		APart extends ARecord<Shape1, K>,
+		Shape1 extends Record<K, $A>,
+		K extends Key,
+	>(aPart: APart): IFA<ARecord<Shape, Key>, APick<Shape, Key, K>> {
+		const part = new ShapePartition(this.prod.shape, aPart.shape);
+		const output = pick(this.prod, part.toPick);
+		const evaluate: Evaluate<ARecord<Shape, Key>, typeof output> = (
+			x: DeriveRecordValue<Shape, Key>,
+		) => part.pickRecord(x);
+
+		return makeIFA(this.prod, output, {
+			evaluate,
+			forward: (
+				_x: DeriveRecordValue<Shape, Key>,
+				dx: DeriveProductShapedChange<Shape, Key>,
+			) => part.pickRecord(dx),
+		});
+	}
+
 	/** Splits up `r -> [r[keys], r[~keys]]` */
 	partition<
 		APart extends ARecord<Shape1, K>,

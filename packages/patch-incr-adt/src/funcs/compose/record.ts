@@ -1,90 +1,125 @@
-import { number, string } from "@/atomic";
-import { constant, identity, toIF1 } from "@/funcs/basic";
 import { type ARecord, record } from "@/record";
 import { type ARecordMerge, type MergeShapes, merge } from "@/record/utils";
-import type { AnyApply } from "@/types";
-import type { $A, $D, $T } from "@/types/abbr";
-import type { IF1, IFA } from "@/types/func";
-import { IFKind } from "@/types/func";
+import type { $A, $D, $T, IF1, IFA, IFR } from "@/types";
+import { compose1A, identity } from "../basic";
+import { makeIF } from "../helpers";
+import { FRecord } from "../product";
 
-export class IFRC<
+export const assignSingleton = <
 	Input extends $A,
-	Output extends ARecord<Shape, Key>,
-	Shape extends Record<Key, AnyApply> = Output["shape"],
+	K extends string,
+	Value extends $A,
+>(
+	key: K,
+	getValue: IF1<Input, Value> | IFA<Input, Value>,
+): IF1<Input, ARecord<Record<K, Value>, K>> => {
+	const output = record({ [key]: getValue.output } as Record<K, Value>);
+	return makeIF(getValue.input, output, {
+		evaluate: (x) =>
+			({ [key as K]: getValue.evaluate(x) }) as Record<K, $T<Value>>,
+		forward: (x, dx, y) => {
+			const dy = getValue.forward(x, dx, y);
+			if (getValue.output.isEmpty(dy)) {
+				return output.empty;
+			}
+			return { [key as K]: dy } as Record<K, $D<Value>>;
+		},
+	});
+};
+
+export const composeAssign = <
+	Input extends $A,
+	K extends string,
+	Value extends $A,
+	Shape extends Record<Key, $A>,
 	Key extends keyof Shape = keyof Shape,
-> implements IF1<Input, Output>
-{
-	readonly kind = IFKind.IF1 as const;
+>(
+	func: IF1<Input, ARecord<Shape, Key>>,
+	key: K,
+	getValue: IF1<ARecord<Shape, Key>, Value> | IFA<ARecord<Shape, Key>, Value>,
+): IF1<Input, ARecordMerge<Shape, Record<K, Value>, Key, K>> => {
+	if (Object.hasOwn(func.output.shape, key)) {
+		throw new Error("cannot reassign existing key");
+	}
+	type Rec1 = ARecordMerge<Shape, Record<K, Value>, Key, K>;
+	const output = merge(func.output, { [key]: getValue.output } as Record<
+		K,
+		Value
+	>) as Rec1;
+	return makeIF(func.input, output, {
+		evaluate: (x) => {
+			const r = func.evaluate(x);
+			return { ...r, [key]: getValue.evaluate(r) } as $T<Rec1>;
+		},
+		forward: (x, dx, y): $D<Rec1> => {
+			const r = { ...y };
+			delete r[key];
+			const dr = func.forward(x, dx, r);
+			const dv = getValue.forward(r, dr, y);
+			return { ...dr, [key]: dv };
+		},
+	});
+};
 
-	constructor(
-		readonly input: Input,
-		readonly output: Output,
-		readonly funcs: [string, IF1<AnyApply, AnyApply>][],
-	) {}
+/**
+ * Helper for composing a chain of incremental functions in the form of:
+ * ```
+ * var1 := f1(input)
+ * var2 := f2({ var1 })
+ * var3 := f3({ var1, var2 })
+ * var4 := f4({ var1, var2, var3 })
+ * ...
+ * varN := fN({ ... })
+ * ```
+ * The "context" is a list of variable assignments of `ARecord<Shape, Key>`.
+ * To compose a new function on top of it, call `set(key, getValue)` where `key`
+ * is a new variable name.
+ */
+export class AssignComposer<
+	Input extends $A,
+	Shape extends Record<Key, $A>,
+	Key extends keyof Shape = keyof Shape,
+> {
+	constructor(readonly func: IF1<Input, ARecord<Shape, Key>>) {}
 
-	static create<Input extends AnyApply, K1 extends string>(
-		key1: K1,
+	static identity<Input extends $A, K extends string>(
+		key: K,
 		input: Input,
-	): IFRC<Input, ARecord<Record<K1, Input>>> {
-		return new IFRC(input, record({ [key1]: input } as Record<K1, Input>), [
-			[key1, toIF1<AnyApply, AnyApply>(identity(input) as never)],
-		]);
+	): AssignComposer<Input, Record<K, Input>, K> {
+		return new this(assignSingleton(key, identity<Input>(input)));
 	}
 
-	add<K1 extends string, V extends AnyApply>(
-		key: K1,
-		fn: (m: Output) => IF1<Output, V> | IFA<Output, V>,
-	): IFRC<
-		Input,
-		ARecordMerge<Shape, Record<K1, V>, Key, K1>,
-		MergeShapes<Shape, Record<K1, V>, Key, K1>,
-		Key | K1
-	> {
-		if (Object.hasOwn(this.output.shape, key)) {
-			throw new TypeError("cannot overwrite key");
-		}
+	static single<Input extends $A, K extends string, Value extends $A>(
+		key: K,
+		getValue: IF1<Input, Value>,
+	): AssignComposer<Input, Record<K, Value>, K> {
+		return new this(assignSingleton(key, getValue));
+	}
 
-		const f1 = fn(this.output);
-		return new IFRC(
-			this.input,
-			// @ts-expect-error Can't be checked
-			merge(this.output, { [key as K1]: f1.output }),
-			[...this.funcs, [key, f1]],
+	set<K extends string, Value extends $A>(
+		key: K,
+		getValue: (
+			inputType: ARecord<Shape, Key>,
+		) => IF1<ARecord<Shape, Key>, Value> | IFA<ARecord<Shape, Key>, Value>,
+	): AssignComposer<
+		Input,
+		MergeShapes<Shape, Record<K, Value>, Key, K>,
+		Key | K
+	> {
+		return new AssignComposer(
+			composeAssign<Input, K, Value, Shape, Key>(
+				this.func,
+				key,
+				getValue(this.func.output),
+			),
 		);
 	}
 
-	evaluate(x: $T<Input>): $T<Output> {
-		let acc: $T<$A> = x;
-		let first = true;
-		for (const [k, f] of this.funcs) {
-			acc = first ? { [k]: f.evaluate(acc) } : { ...acc, [k]: f.evaluate(acc) };
-			first = false;
-		}
-		return acc;
+	build(): IF1<Input, ARecord<Shape, Key>> {
+		return this.func;
 	}
 
-	forward(_x: $T<Input>, dx: $D<Input>, y: $T<Output>): $D<Output> {
-		if (this.input.isEmpty(dx)) {
-			return this.output.empty;
-		}
-
-		let dAcc: $D<$A> = dx;
-		let first = true;
-		for (const [k, f] of this.funcs) {
-			const k1 = k as Key;
-			dAcc = first
-				? { [k]: f.forward(y, dAcc, y[k1]) }
-				: { ...dAcc, [k]: f.forward(y, dAcc, y[k1]) };
-			first = false;
-		}
-		return dAcc;
+	get<K extends Key>(key: K): IFR<Input, Shape[K], ARecord<Shape, Key>> {
+		return compose1A(this.func, new FRecord(this.func.output).get(key));
 	}
 }
-
-const _test1 = () => {
-	const _f = IFRC.create("str", string())
-		.add("abc", (m) => constant(m, number(), 2))
-		.add("def", (m) => constant(m, number(), 4))
-		.add("ghi", (m) => constant(m, string(), "test"))
-		.add("id1", (m) => identity(m));
-};

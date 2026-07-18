@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, test } from "bun:test";
 import fc from "fast-check";
 import * as s from "@/index";
 import { atomicWithGen } from "@/props/gen";
@@ -63,12 +63,23 @@ describe("record types", () => {
 		testCasesPropsApply(nestedSingleton);
 	});
 	describe("item", () => {
+		test("key ordering of shape", () => {
+			expect(Object.keys(item.shape)).toEqual(["id", "done", "description"]);
+		});
 		testCasesPropsApply(item);
 	});
 	describe("omitted", () => {
 		testCasesPropsApply(omitted);
 	});
 	describe("merged", () => {
+		test("key ordering of shape, added to the end", () => {
+			expect(Object.keys(merged.shape)).toEqual([
+				"id",
+				"done",
+				"description",
+				"isChanged",
+			]);
+		});
 		testCasesPropsApply(merged);
 	});
 });

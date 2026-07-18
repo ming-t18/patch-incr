@@ -148,6 +148,20 @@ export class ShapePartition<
 		return [xIn, xOut];
 	}
 
+	pickRecord<R extends Partial<Record<Key, unknown>>>(x: R): Pick<R, Picked> {
+		const xIn: Pick<R, Picked> = {} as never;
+		for (const key of this.shapeKeys) {
+			if (!Object.hasOwn(x, key)) {
+				continue;
+			}
+			if (Object.hasOwn(this.toPick, key)) {
+				// @ts-expect-error key is from picked part
+				xIn[key] = x[key];
+			}
+		}
+		return xIn;
+	}
+
 	mergeRecord<R extends Partial<Record<Key, unknown>>>(
 		left: Pick<R, Picked>,
 		right: Omit<R, Picked>,

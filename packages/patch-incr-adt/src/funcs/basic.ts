@@ -18,6 +18,30 @@ export const fromIFA = <A extends $A, B extends $A>({
 	forward: (x, dx, _y) => forward(x, dx),
 });
 
+export const atomicFunc = <A extends $A, B extends $A>(
+	input: A,
+	output: B,
+	func: (value: $T<A>) => $T<B>,
+	inputEquals = Object.is as (a: $T<A>, b: $T<A>) => boolean,
+): IFA<A, B> => {
+	return {
+		kind: IFKind.IFA,
+		input,
+		output,
+		evaluate: (x) => func(x),
+		forward: (x, dx) => {
+			if (input.isEmpty(dx)) {
+				return output.empty;
+			}
+			const x1 = input.apply(x, dx);
+			if (inputEquals(x, x1)) {
+				return output.empty;
+			}
+			return output.fromReplace(func(x1));
+		},
+	};
+};
+
 /** Given an `IF`, convert to an `IFA` by re-evaluating in the `forward` implementation. */
 export const toIFA = <A extends $A, B extends $A>({
 	input,
