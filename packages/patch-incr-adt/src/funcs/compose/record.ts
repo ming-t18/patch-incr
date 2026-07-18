@@ -75,7 +75,7 @@ export const composeAssign = <
  * To compose a new function on top of it, call `set(key, getValue)` where `key`
  * is a new variable name.
  */
-export class AssignComposer<
+export class RecordComposer<
 	Input extends $A,
 	Shape extends Record<Key, $A>,
 	Key extends keyof Shape = keyof Shape,
@@ -85,14 +85,14 @@ export class AssignComposer<
 	static identity<Input extends $A, K extends string>(
 		key: K,
 		input: Input,
-	): AssignComposer<Input, Record<K, Input>, K> {
+	): RecordComposer<Input, Record<K, Input>, K> {
 		return new this(assignSingleton(key, identity<Input>(input)));
 	}
 
 	static single<Input extends $A, K extends string, Value extends $A>(
 		key: K,
 		getValue: IF1<Input, Value>,
-	): AssignComposer<Input, Record<K, Value>, K> {
+	): RecordComposer<Input, Record<K, Value>, K> {
 		return new this(assignSingleton(key, getValue));
 	}
 
@@ -101,12 +101,12 @@ export class AssignComposer<
 		getValue: (
 			inputType: ARecord<Shape, Key>,
 		) => IF1<ARecord<Shape, Key>, Value> | IFA<ARecord<Shape, Key>, Value>,
-	): AssignComposer<
+	): RecordComposer<
 		Input,
 		MergeShapes<Shape, Record<K, Value>, Key, K>,
 		Key | K
 	> {
-		return new AssignComposer(
+		return new RecordComposer(
 			composeAssign<Input, K, Value, Shape, Key>(
 				this.func,
 				key,

@@ -9,13 +9,13 @@ const num = atomicWithGen(fc.bigInt({ min: -5n, max: 5n }));
 // const sq = f.atomicFunc(num, num, (x) => x * x);
 const xy = s.record({ x: num, y: num });
 
-const nested = f.AssignComposer.identity("x", num)
+const nested = f.RecordComposer.identity("x", num)
 	.set("y", f.identity)
 	.set("z", f.identity)
 	.set("w", f.identity)
 	.build();
 
-const pyth = new f.AssignComposer(f.toIF1(f.identity(xy)))
+const pyth = new f.RecordComposer(f.toIF1(f.identity(xy)))
 	.set("xsq", (r) => f.atomicFunc(r, num, ({ x }) => x * x))
 	.set("ysq", (r) => f.atomicFunc(r, num, ({ y }) => y * y))
 	.set("pyth", (r) => f.atomicFunc(r, num, ({ xsq, ysq }) => xsq + ysq))
