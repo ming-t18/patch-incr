@@ -180,7 +180,51 @@ export const composeR = <
 	},
 });
 
-export const compose = <A extends $A, B extends $A, C extends $A>(
+export interface ComposeFunc {
+	// IFA
+	<A extends $A, B extends $A, C extends $A>(
+		f1: IFA<A, B>,
+		f2: IFA<B, C>,
+	): IFA<A, C>;
+	<A extends $A, B extends $A, C extends $A>(
+		f1: IFA<A, B>,
+		f2: IF1<B, C>,
+	): IF1<A, C>;
+	<A extends $A, B extends $A, C extends $A, R extends $A>(
+		f1: IFA<A, B>,
+		f2: IFR<B, C, R>,
+	): IFR<A, C, R>;
+
+	// IF1
+	<A extends $A, B extends $A, C extends $A>(
+		f1: IF1<A, B>,
+		f2: IFA<B, C>,
+	): IFR<A, C, B>;
+	<A extends $A, B extends $A, C extends $A>(
+		f1: IF1<A, B>,
+		f2: IF1<B, C>,
+	): IFR<A, C, B>;
+	<A extends $A, B extends $A, C extends $A, R extends $A>(
+		f1: IF1<A, B>,
+		f2: IFR<B, C, R>,
+	): IFR<A, C, APair<B, R>>;
+
+	// IFR
+	<A extends $A, B extends $A, C extends $A, R extends $A>(
+		f1: IFR<A, B, R>,
+		f2: IFA<B, C>,
+	): IFR<A, C, APair<B, R>>;
+	<A extends $A, B extends $A, C extends $A, R extends $A>(
+		f1: IFR<A, B, R>,
+		f2: IF1<B, C>,
+	): IFR<A, C, APair<B, R>>;
+	<A extends $A, B extends $A, C extends $A, R1 extends $A, R2 extends $A>(
+		f1: IFR<A, B, R1>,
+		f2: IFR<B, C, R2>,
+	): IFR<A, C, APair<APair<B, R1>, R2>>;
+}
+
+export const composeNonOverload = <A extends $A, B extends $A, C extends $A>(
 	f1: IF<A, B>,
 	f2: IF<B, C>,
 ): IF<A, C> => {
@@ -226,3 +270,5 @@ export const compose = <A extends $A, B extends $A, C extends $A>(
 	}
 	return f1 satisfies never;
 };
+
+export const compose = composeNonOverload as ComposeFunc;
