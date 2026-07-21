@@ -53,9 +53,10 @@ export const composeAssign = <
 		},
 		forward: (x, dx, y): $D<Rec1> => {
 			const r = { ...y };
+			const v: $T<Value> = y[key];
 			delete r[key];
-			const dr = func.forward(x, dx, r);
-			const dv = getValue.forward(r, dr, y);
+			const dr = func.forward(x, dx, r as $T<ARecord<Shape, Key>>);
+			const dv = getValue.forward(r, dr, v);
 			return { ...dr, [key]: dv };
 		},
 	});

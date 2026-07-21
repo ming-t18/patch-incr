@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import fc from "fast-check";
 import * as f from "@/funcs";
 import * as s from "@/index";
-import { atomicWithGen } from "@/props";
+import { atomicWithGen, genValueFromApply } from "@/props";
 import { testCasesIF } from "./fastCheck/testPropsIF.test";
 
 const num = atomicWithGen(fc.bigInt({ min: -5n, max: 5n }));
@@ -19,6 +19,11 @@ const pyth = new f.RecordComposer(f.toIF1(f.identity(xy)))
 	.set("xsq", (r) => f.atomicFunc(r, num, ({ x }) => x * x))
 	.set("ysq", (r) => f.atomicFunc(r, num, ({ y }) => y * y))
 	.set("pyth", (r) => f.atomicFunc(r, num, ({ xsq, ysq }) => xsq + ysq))
+	.build();
+
+const diverging = new f.RecordComposer(f.toIF1(f.identity(xy)))
+	.set("xsq", (r) => f.atomicFunc(r, num, ({ x }) => x * x))
+	.set("ysq", (r) => f.atomicFunc(r, num, ({ y }) => y * y))
 	.build();
 
 describe("nested", () => {
@@ -65,4 +70,31 @@ describe("pyth", () => {
 		});
 	});
 	testCasesIF(pyth);
+});
+
+describe("diverging", () => {
+	test("evaluate", () => {
+		expect(diverging.evaluate({ x: 2n, y: 3n })).toEqual({
+			x: 2n,
+			y: 3n,
+			xsq: 4n,
+			ysq: 9n,
+		});
+	});
+
+	test("forward should not change y or ysq when x changes", () => {
+		fc.assert(
+			fc.property(genValueFromApply(xy), genValueFromApply(num), (input, x) => {
+				const res = diverging.evaluate(input);
+				const dInput = { x: xy.shape.x.fromReplace(x) };
+				const dRes = diverging.forward(input, dInput, res);
+				return (
+					!s.isDRO(dRes) &&
+					(dRes?.y ?? null) === null &&
+					(dRes?.ysq ?? null) === null
+				);
+			}),
+		);
+	});
+	testCasesIF(diverging);
 });

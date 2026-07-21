@@ -9,6 +9,10 @@ export const isReplaceOnly = <T>(value: unknown): value is ReplaceOnly<T> => {
 	return !!value && typeof value === "object" && ReplaceOnly in value;
 };
 
+export const isDRO = <T>(value: unknown): value is DRO<T> => {
+	return value === null || (typeof value === "object" && ReplaceOnly in value);
+};
+
 export const getReplaceOnly = <T>(value: ReplaceOnly<T>) => value[ReplaceOnly];
 
 export const getDRO = <T>(value: DRO<T> | unknown): DRO<T> =>
