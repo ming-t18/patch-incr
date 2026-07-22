@@ -65,6 +65,7 @@ export interface AList<A extends AnyApply>
 
 export const list = <TA extends AnyApply>(apply: TA): AList<TA> => {
 	type T = InferApplyValue<TA>;
+	// @ts-expect-error TODO fix infinite recursion issue due to "@/props/types": HasArbApply
 	const rec: AList<TA> = union(
 		{
 			nil: nullType(),

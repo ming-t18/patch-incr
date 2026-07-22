@@ -1,29 +1,37 @@
 import type { Arbitrary as Arb } from "fast-check";
-import type { DeriveProductChange, DeriveProductChangeTuple } from "@/product";
 import type { DeriveRecordValue } from "@/record/types";
 import type { AnyTuple, DeriveTupleValue } from "@/tuple";
 import type { $D, $T } from "@/types/abbr";
 import type {
 	AnyApply,
 	Apply,
-	DRO,
 	InferApplyChange,
 	InferApplyValue,
-	ReplaceOnly,
 } from "@/types/algebra";
-import type { DeriveUnionChange, DeriveUnionValue } from "@/union";
 
 export type { Arbitrary as Arb } from "fast-check";
 
-export interface ArbApply<T, DT = DRO<T>> extends Apply<T, DT> {
-	/** Boolean flag to determine if `ArbApply` is defined. */
-	readonly "~arbApplyDefined": true;
-	arbValue: () => Arb<T>;
-	arbChange: (value?: T) => Arb<DT>;
+export const NO_VALUE = Symbol.for("patch-incr-adt:NO_VALUE");
+export type NO_VALUE = typeof NO_VALUE;
+
+export interface ArbChangeConfig<T> {
+	readonly value?: T;
+	readonly droWeight?: number;
+	readonly nullWeight?: number;
+	readonly depth?: number;
+}
+
+export interface ArbApply<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>> {
+	readonly arbValue: () => Arb<T>;
+	readonly arbChange: (opts?: ArbChangeConfig<T>) => Arb<DT>;
+}
+
+export interface HasArbApply<T, DT> extends Apply<T, DT> {
+	getArbApply: () => ArbApply<this>;
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: intentional
-export type AnyArbApply = ArbApply<any, any>;
+export type AnyHasArbApply = HasArbApply<any, any>;
 
 export type ArbRecordValueFromRecordArb<
 	Shape extends Record<Key, AnyApply>,
@@ -49,9 +57,7 @@ declare module "@/types/algebra" {
 declare module "@/constant" {
 	// The `interface` keyword augments the `class`
 	export interface AConstant<T, D> {
-		readonly "~arbApplyDefined": true;
-		arbValue: () => Arb<T>;
-		arbChange: (value?: T) => Arb<D>;
+		getArbApply: () => ArbApply<this>;
 	}
 }
 
@@ -63,17 +69,14 @@ declare module "@/atomic" {
 	export interface AAtomic<T> {
 		/** Used by `arbValue`/`arbChange`. Must be defined or else they throw. */
 		readonly gen?: Arb<T> | null | undefined;
-		readonly "~arbApplyDefined": this extends HasAtomicGen<T> ? true : false;
-
-		arbValue: this extends HasAtomicGen<T> ? <T>() => Arb<T> : undefined;
-		arbChange: this extends HasAtomicGen<T>
-			? (value?: T) => Arb<DRO<T>>
+		getArbApply: this extends HasAtomicGen<T>
+			? () => ArbApply<this>
 			: undefined;
 	}
 }
 
 export interface HasArbProductRecord<
-	Shape extends Record<Key, AnyArbApply>,
+	Shape extends Record<Key, AnyHasArbApply>,
 	Key extends keyof Shape = keyof Shape,
 > {
 	arbProductRecord: () => Arb<DeriveRecordValue<Shape, Key>>;
@@ -91,27 +94,13 @@ declare module "@/product/object" {
 		 */
 		arbProductRecord?: (() => Arb<DeriveRecordValue<Shape, Key>>) | undefined;
 
-		arbValue: <
-			Prod,
-			Shape extends Record<Key, AnyArbApply>,
-			Key extends keyof Shape = keyof Shape,
-		>(
-			this: BaseProductShaped<Prod, Shape, Key> &
-				HasArbProductRecord<Shape, Key>,
-		) => Arb<Prod>;
-		arbChange: <
-			Prod,
-			Shape extends Record<Key, AnyArbApply>,
-			Key extends keyof Shape = keyof Shape,
-		>(
-			this: BaseProductShaped<Prod, Shape, Key> &
-				HasArbProductRecord<Shape, Key>,
-			value?: Prod,
-		) => Arb<DeriveProductChange<Prod, Shape, Key>>;
+		getArbApply: Shape extends Record<Key, AnyHasArbApply>
+			? () => ArbApply<this>
+			: undefined;
 	}
 }
 
-export interface HasArbProductTuple<Shape extends AnyTuple<AnyArbApply>> {
+export interface HasArbProductTuple<Shape extends AnyTuple<AnyHasArbApply>> {
 	arbProductTuple: () => Arb<DeriveTupleValue<Shape>>;
 }
 
@@ -126,16 +115,8 @@ declare module "@/product/tuple" {
 		 */
 		arbProductTuple?: (() => Arb<DeriveTupleValue<Shape>>) | undefined;
 
-		arbValue<Prod, Shape extends AnyTuple<AnyArbApply>>(
-			this: BaseProductShapedTuple<Prod, Shape> & HasArbProductTuple<Shape>,
-		): Arb<Prod>;
-		// The commented out code above doesn't pass type checking of correctly implementing interface
-		// arbChange<Prod, Shape extends AnyTuple<AnyArbApply>>(
-		// 	this: BaseProductShapedTuple<Prod, Shape> & HasArbProductTuple<Shape>,
-		// 	value?: Prod,
-		// ): Arb<DeriveProductChangeTuple<Prod, Shape>>;
-		arbChange: Shape extends AnyTuple<AnyArbApply>
-			? (value?: Prod) => Arb<DeriveProductChangeTuple<Prod, Shape>>
+		getArbApply: Shape extends AnyTuple<AnyHasArbApply>
+			? () => ArbApply<this>
 			: undefined;
 	}
 }
@@ -145,10 +126,7 @@ declare module "@/record" {
 		Map extends Record<Key, AnyApply>,
 		Key extends keyof Map = keyof Map,
 	> {
-		readonly "~arbApplyDefined": Map extends Record<Key, AnyArbApply>
-			? true
-			: false;
-		arbProductRecord: Map extends Record<Key, AnyArbApply>
+		arbProductRecord: Map extends Record<Key, AnyHasArbApply>
 			? () => Arb<DeriveRecordValue<Map, Key>>
 			: undefined;
 	}
@@ -156,10 +134,7 @@ declare module "@/record" {
 
 declare module "@/tuple/tuple" {
 	export interface ATuple<Shape extends AnyTuple<AnyApply>> {
-		readonly "~arbApplyDefined": Shape extends AnyTuple<AnyArbApply>
-			? true
-			: false;
-		arbProductTuple: Shape extends AnyTuple<AnyArbApply>
+		arbProductTuple: Shape extends AnyTuple<AnyHasArbApply>
 			? () => Arb<DeriveTupleValue<Shape>>
 			: undefined;
 	}
@@ -170,22 +145,9 @@ declare module "@/union" {
 		Map extends Record<Key, AnyApply>,
 		Key extends keyof Map = keyof Map,
 	> {
-		readonly "~arbApplyDefined": Map extends Record<Key, AnyArbApply>
-			? true
-			: false;
-		arbValue: <
-			Map extends Record<Key, AnyArbApply>,
-			Key extends keyof Map = keyof Map,
-		>(
-			this: AUnion<Map, Key>,
-		) => Arb<DeriveUnionValue<Map, Key>>;
-		arbChange: <
-			Map extends Record<Key, AnyArbApply>,
-			Key extends keyof Map = keyof Map,
-		>(
-			this: AUnion<Map, Key>,
-			value?: DeriveUnionValue<Map, Key>,
-		) => Arb<DeriveUnionChange<Map, Key>>;
+		getArbApply: Map extends Record<Key, AnyHasArbApply>
+			? () => ArbApply<this>
+			: undefined;
 	}
 }
 
@@ -195,18 +157,9 @@ declare module "@/optional" {
 		T = InferApplyValue<A>,
 		DT = InferApplyChange<A>,
 	> {
-		readonly "~arbApplyDefined": A extends AnyArbApply ? true : false;
-		arbValue: <
-			A extends ArbApply<T, DT>,
-			T = InferApplyValue<A>,
-			DT = InferApplyChange<A>,
-		>(
-			this: AOptional<A, T, DT>,
-		) => Arb<T | undefined>;
-		arbChange: <A extends ArbApply<T, DT>, T, DT>(
-			this: AOptional<A, T, DT>,
-			value?: T,
-		) => Arb<DT | ReplaceOnly<undefined>>;
+		getArbApply: A extends HasArbApply<T, DT>
+			? () => ArbApply<this>
+			: undefined;
 	}
 }
 
@@ -217,13 +170,8 @@ declare module "@/map" {
 		T0 = $T<A>,
 		DT0 = $D<A>,
 	> {
-		readonly "~arbApplyDefined": A extends AnyArbApply ? true : false;
-		arbValue: <A extends Apply<T0, DT0>, T, T0 = $T<A>, DT0 = $D<A>>(
-			this: AMapValue<A, T>,
-		) => Arb<T>;
-		arbChange: <A extends Apply<T0, DT0>, T, T0 = $T<A>, DT0 = $D<A>>(
-			this: AMapValue<A, T>,
-			value?: T,
-		) => Arb<$D<A>>;
+		getArbApply: A extends HasArbApply<T0, DT0>
+			? () => ArbApply<this>
+			: undefined;
 	}
 }

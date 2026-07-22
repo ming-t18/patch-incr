@@ -84,7 +84,6 @@ describe("either", () => {
 					return propCanApplyApplies(either, v, d);
 				},
 			),
-			{ verbose: true },
 		);
 	});
 });

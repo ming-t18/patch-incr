@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import fc from "fast-check";
 import {
-	type AnyArbApply,
+	type AnyHasArbApply,
 	genChangeFromApply,
 	genValueFromApply,
 	genValueWith2Changes,
@@ -11,7 +11,7 @@ import { makePropsIF, makePropsIFA, type PropsIF } from "@/props/func";
 import type { $T } from "@/types/abbr";
 import type { IF1, IFA } from "@/types/func";
 
-const propTestCase = <A extends AnyArbApply, B extends AnyArbApply>(
+const propTestCase = <A extends AnyHasArbApply, B extends AnyHasArbApply>(
 	func: IF1<A, B> | IFA<A, B>,
 	props: PropsIF<A, B>,
 ) => {
@@ -62,21 +62,24 @@ const propTestCase = <A extends AnyArbApply, B extends AnyArbApply>(
 	});
 };
 
-export const testCasesIF = <A extends AnyArbApply, B extends AnyArbApply>(
+export const testCasesIF = <A extends AnyHasArbApply, B extends AnyHasArbApply>(
 	func: IF1<A, B>,
 ) => {
 	const props = makePropsIF<A, B>(func);
 	propTestCase(func, props);
 };
 
-export const testCasesIFA = <A extends AnyArbApply, B extends AnyArbApply>(
+export const testCasesIFA = <
+	A extends AnyHasArbApply,
+	B extends AnyHasArbApply,
+>(
 	func: IFA<A, B>,
 ) => {
 	const props = makePropsIFA<A, B>(func);
 	propTestCase(func, props);
 };
 
-export const testCasesIdentity = <A extends AnyArbApply>(
+export const testCasesIdentity = <A extends AnyHasArbApply>(
 	func: IFA<A, A>,
 	strict = false,
 ) => {
@@ -115,7 +118,10 @@ export const testCasesIdentity = <A extends AnyArbApply>(
 	});
 };
 
-export const testCasesConstant = <A extends AnyArbApply, C extends AnyArbApply>(
+export const testCasesConstant = <
+	A extends AnyHasArbApply,
+	C extends AnyHasArbApply,
+>(
 	constValue: $T<C>,
 	func: IFA<A, C>,
 ) => {

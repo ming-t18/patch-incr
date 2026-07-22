@@ -1,7 +1,7 @@
 import { describe, expect, it, test } from "bun:test";
 import { deepEquals } from "bun";
 import fc from "fast-check";
-import type { AnyArbApply } from "@/props";
+import type { AnyHasArbApply } from "@/props";
 import { makePropsApply } from "@/props/change";
 import { genChangeFromApply, genValueFromApply } from "@/props/gen";
 import type { $A, $D, $T } from "@/types/abbr";
@@ -16,7 +16,7 @@ export const propCanApplyApplies = <A extends $A>(
 	return true;
 };
 
-export const testCasesPropsApply = <A extends AnyArbApply>(apply: A) => {
+export const testCasesPropsApply = <A extends AnyHasArbApply>(apply: A) => {
 	const arbValue = genValueFromApply(apply);
 	const arbChange = genChangeFromApply(apply);
 	const props = makePropsApply(apply, deepEquals, deepEquals);

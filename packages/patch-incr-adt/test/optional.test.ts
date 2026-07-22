@@ -24,14 +24,9 @@ describe("optional", () => {
 	it.skip("type checking for optional arb", () => {
 		const _shouldNotTypeCheck = [
 			// @ts-expect-error must fail type constraint
-			recordOpt.arbValue(),
-			// @ts-expect-error must fail type constraint
-			recordOpt.arbChange(),
+			recordOpt.getArbApply(),
 		];
-		const _shouldTypeCheck = [
-			recordOptWithArb.arbValue(),
-			recordOptWithArb.arbChange(),
-		];
+		const _shouldTypeCheck = [recordOptWithArb.getArbApply()];
 	});
 	it("should replace defined to undefined", () => {
 		expect(recordOpt.apply(defined, recordOpt.toUndefined)).toBeUndefined();

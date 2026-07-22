@@ -2,9 +2,9 @@ import fc, { type Arbitrary as Arb } from "fast-check";
 import { AAtomic } from "@/atomic";
 import { AConstant } from "@/constant";
 import { AOptional } from "@/optional";
-import { type AnyTuple, ATuple, type KeyOfTuple } from "@/tuple";
+import type { AnyTuple, ATuple, KeyOfTuple } from "@/tuple";
 import type { $A, $D, $T } from "@/types/abbr";
-import { AUnion, type DeriveUnionValue } from "@/union";
+import { AUnion } from "@/union";
 
 export type { Arbitrary as Arb } from "fast-check";
 
@@ -19,12 +19,15 @@ import {
 import { ARecord } from "@/record";
 import { makeReplaceOnly } from "@/replaceOnly";
 import type { Apply, DRO, InferApplyChange } from "@/types/algebra";
+import { diveArbChangeConfig } from "./opts";
 import type {
-	AnyArbApply,
+	AnyHasArbApply,
+	ArbApply,
+	ArbChangeConfig,
 	ArbProdChangeFromRecordArb,
 	ArbRecordValueFromRecordArb,
+	HasArbApply,
 	HasArbProductRecord,
-	HasArbProductTuple,
 } from "./types";
 
 export const arbEmptyOrReplace = <A extends $A, T extends $T<A> = $T<A>>(
@@ -77,255 +80,341 @@ export const mapShapeTuple = <
 
 const DRO_WEIGHT = 3;
 
-AConstant.prototype.arbValue = function <T, D>(this: AConstant<T, D>) {
-	return fc.constant(this.value);
+export class ArbConstant<A extends AConstant<T, D>, T = $T<A>, D = $D<A>>
+	implements ArbApply<A, T, D>
+{
+	constructor(readonly apply: A) {}
+
+	arbValue(): Arb<T> {
+		return fc.constant(this.apply.value);
+	}
+	arbChange(_?: ArbChangeConfig<T>): Arb<D> {
+		return fc.constant(this.apply.empty);
+	}
+}
+
+AConstant.prototype.getArbApply = function <T, D>(this: AConstant<T, D>) {
+	return new ArbConstant(this);
 };
 
-AConstant.prototype.arbChange = function <T, D>(this: AConstant<T, D>, _?: T) {
-	return fc.constant(this.empty);
-};
+export class ArbAtomic<A extends AAtomic<T>, T = $T<A>> implements ArbApply<A> {
+	constructor(readonly apply: A) {}
 
-AAtomic.prototype.arbValue = function <T>(this: AAtomic<T>): Arb<T> {
-	if (!this.gen) {
-		throw new Error("this.gen is not defined");
+	arbValue(): Arb<T> {
+		const gen = this.apply.gen;
+		if (!gen) {
+			throw new Error("this.gen is not defined");
+		}
+		return gen;
 	}
-	return this.gen;
+
+	arbChange(_?: ArbChangeConfig<T>): Arb<$D<A>> {
+		return fc.constant(this.apply.empty);
+	}
+}
+
+AAtomic.prototype.getArbApply = function <T>(this: AAtomic<T>) {
+	return new ArbAtomic(this);
 } as never;
 
-AAtomic.prototype.arbChange = function <T>(
-	this: AAtomic<T>,
-	_?: T,
-): Arb<DRO<T>> {
-	if (!this.gen) {
-		throw new Error("this.gen is not defined");
-	}
-	return arbEmptyOrReplace(this, this.gen);
-} as never;
-
-BaseProductShaped.prototype.arbValue = function <
+export class ArbProductShaped<
+	A extends BaseProductShaped<Prod, Shape, Key>,
 	Prod,
-	Shape extends Record<Key, AnyArbApply>,
+	Shape extends Record<Key, AnyHasArbApply>,
+	Key extends keyof Shape = keyof Shape,
+> implements ArbApply<A>
+{
+	constructor(readonly apply: A) {}
+
+	arbValue() {
+		const apply = this.apply;
+		if (!(apply.fromRecord && apply.arbProductRecord)) {
+			throw new Error("BaseProductShaped methods must be defined");
+		}
+
+		const toRecord = apply.toRecord;
+		return apply
+			.arbProductRecord()
+			.map(
+				apply.fromRecord,
+				toRecord ? (x) => toRecord(x as never) : undefined,
+			);
+	}
+
+	arbChange(opts?: ArbChangeConfig<Prod>): Arb<$D<A>> {
+		const repPart = arbEmptyOrReplace(this.apply, this.arbValue());
+		const isDefined = opts && "value" in opts && opts.value;
+		return fc.oneof(
+			{ weight: opts?.droWeight ?? DRO_WEIGHT, arbitrary: repPart },
+			{
+				weight: 1,
+				arbitrary: fc.record<ArbProdChangeFromRecordArb<Shape, Key>, Key>(
+					mapShape<Shape, ArbProdChangeFromRecordArb<Shape, Key>, Key>(
+						(key, inner) => {
+							return inner.getArbApply().arbChange({
+								...opts,
+								...(isDefined
+									? {
+											value: this.apply.get(opts.value, key),
+										}
+									: {}),
+							});
+						},
+						this.apply.shape,
+					),
+					{ requiredKeys: [], noNullPrototype: true },
+				),
+			},
+		) as Arb<DeriveProductChange<Prod, Shape, Key>>;
+	}
+}
+
+BaseProductShaped.prototype.getArbApply = function <
+	Prod,
+	Shape extends Record<Key, AnyHasArbApply>,
 	Key extends keyof Shape = keyof Shape,
 >(this: BaseProductShaped<Prod, Shape, Key> & HasArbProductRecord<Shape, Key>) {
-	if (!(this.fromRecord && this.arbProductRecord)) {
-		throw new Error("BaseProductShaped methods must be defined");
-	}
-
-	const { fromRecord, toRecord } = this;
-	return this.arbProductRecord().map(
-		fromRecord,
-		toRecord ? (x) => toRecord(x as never) : undefined,
-	);
+	// @ts-expect-error Passing "this"
+	return new ArbProductShaped(this);
 };
 
-BaseProductShapedTuple.prototype.arbValue = function <
-	Prod,
-	Shape extends AnyTuple<AnyArbApply>,
->(
-	this: BaseProductShapedTuple<Prod, Shape> & HasArbProductTuple<Shape>,
-): Arb<Prod> {
-	if (!(this.fromTuple && this.toTuple)) {
-		throw new Error("BaseProductShapedTuple methods must be defined");
-	}
-
-	const { fromTuple, toTuple } = this;
-	return this.arbProductTuple().map(
-		fromTuple,
-		toTuple ? (x) => toTuple(x as never) : undefined,
+ARecord.prototype.arbProductRecord = function <
+	Map extends Record<Key, AnyHasArbApply>,
+	Key extends keyof Map = keyof Map,
+>(this: ARecord<Map, Key>) {
+	const keys = this.keys;
+	const shape = this.shape;
+	return fc.record<ArbRecordValueFromRecordArb<Map, Key>, Key>(
+		mapShape<Map, ArbRecordValueFromRecordArb<Map, Key>, Key>(
+			(_key, inner) => inner.getArbApply().arbValue(),
+			shape,
+		),
+		{ requiredKeys: keys as Key[] as never[], noNullPrototype: true },
 	);
 };
 
 ARecord.prototype.arbProductRecord = function <
-	Map extends Record<Key, AnyArbApply>,
+	Map extends Record<Key, AnyHasArbApply>,
 	Key extends keyof Map = keyof Map,
 >(this: ARecord<Map, Key>) {
+	const keys = this.keys;
+	const shape = this.shape;
 	return fc.record<ArbRecordValueFromRecordArb<Map, Key>, Key>(
 		mapShape<Map, ArbRecordValueFromRecordArb<Map, Key>, Key>(
-			(_key, inner) => inner.arbValue(),
-			this.shape,
+			(_key, inner) => inner.getArbApply().arbValue(),
+			shape,
 		),
-		{ requiredKeys: this.keys as Key[] as never[], noNullPrototype: true },
+		{ requiredKeys: keys as Key[] as never[], noNullPrototype: true },
 	);
 };
 
-ATuple.prototype.arbProductTuple = function <
-	Shape extends AnyTuple<AnyArbApply>,
->(this: ATuple<Shape>) {
-	return fc.tuple(...this.shape.map((inner) => inner.arbValue())) as Arb<never>;
-};
-
-BaseProductShaped.prototype.arbChange = function <
+export class ArbTupleShaped<
+	A extends BaseProductShapedTuple<Prod, Shape>,
 	Prod,
-	Shape extends Record<Key, AnyArbApply>,
-	Key extends keyof Shape = keyof Shape,
->(
-	this: BaseProductShaped<Prod, Shape, Key> & HasArbProductRecord<Shape, Key>,
-	value?: Prod,
-) {
-	const repPart = arbEmptyOrReplace(this, this.arbValue());
-	const isDefined = typeof value !== "undefined";
-	return fc.oneof(
-		{ weight: DRO_WEIGHT, arbitrary: repPart },
-		{
-			weight: 1,
-			arbitrary: fc.record<ArbProdChangeFromRecordArb<Shape, Key>, Key>(
-				mapShape<Shape, ArbProdChangeFromRecordArb<Shape, Key>, Key>(
-					(key, inner) =>
-						isDefined
-							? inner.arbChange(
-									// @ts-expect-error value is defined here
-									value[key],
-								)
-							: inner.arbChange(),
-					this.shape,
-				),
-				{ requiredKeys: [], noNullPrototype: true },
-			),
-		},
-	) as Arb<DeriveProductChange<Prod, Shape, Key>>;
-};
+	Shape extends AnyTuple<AnyHasArbApply> = A["shape"],
+> implements ArbApply<A>
+{
+	constructor(readonly apply: A) {}
 
-BaseProductShapedTuple.prototype.arbChange = function <
-	Prod,
-	Shape extends AnyTuple<AnyArbApply>,
->(
-	this: BaseProductShapedTuple<Prod, Shape> & HasArbProductTuple<Shape>,
-	value?: Prod,
-) {
-	const repPart = arbEmptyOrReplace(this, this.arbValue());
-	return fc.oneof(
-		{ weight: DRO_WEIGHT, arbitrary: repPart },
-		{
-			weight: 1,
-			arbitrary: fc.tuple(
-				...this.shape.map((inner, key) =>
-					inner.arbChange(
-						// @ts-expect-error This access can't be checked
-						value?.[key],
-					),
-				),
-			),
-		},
-	) as Arb<DeriveProductChangeTuple<Prod, Shape>>;
-};
-
-AUnion.prototype.arbValue = function <
-	Map extends Record<Key, AnyArbApply>,
-	Key extends keyof Map = keyof Map,
->(this: AUnion<Map, Key>) {
-	return fc.oneof(
-		...Object.values(this.shape).map((inner) => ({
-			weight: 1,
-			arbitrary: genValueFromApply(inner as never),
-		})),
-	);
-};
-
-AUnion.prototype.arbChange = function <
-	Map extends Record<Key, AnyArbApply>,
-	Key extends keyof Map = keyof Map,
->(this: AUnion<Map, Key>, value?: DeriveUnionValue<Map, Key>) {
-	// biome-ignore lint/complexity/noArguments: value is optional and can conflate with undefined
-	const valueIsProvided = arguments.length > 1;
-	const entries: Arb<InferApplyChange<Map[Key]>>[] = [];
-	for (const disc of this.keys) {
-		if (valueIsProvided && this.getDiscrimant(value) !== disc) {
-			continue;
+	arbValue(): Arb<Prod> {
+		const apply = this.apply;
+		if (!(apply.fromTuple && apply.arbProductTuple)) {
+			throw new Error("BaseProductShapedTuple methods must be defined");
 		}
 
-		const genChange = valueIsProvided
-			? this.shape[disc].arbChange(value)
-			: this.shape[disc].arbChange();
-		entries.push(
-			fc.record(
-				{
-					type: fc.constant(disc),
-					change: genChange,
-				},
-				{ noNullPrototype: true, requiredKeys: ["type", "change"] },
-			),
+		const toTuple = apply.toTuple;
+		return apply
+			.arbProductTuple()
+			.map(apply.fromTuple, toTuple ? (x) => toTuple(x as never) : undefined);
+	}
+
+	arbChange(opts?: ArbChangeConfig<Prod>): Arb<$D<A>> {
+		const repPart = arbEmptyOrReplace(
+			this.apply,
+			(this.apply as A & AnyHasArbApply).getArbApply().arbValue(),
+		);
+		return fc.oneof(
+			{ weight: opts?.droWeight ?? DRO_WEIGHT, arbitrary: repPart },
+			{
+				weight: 1,
+				arbitrary: fc.tuple(
+					...this.apply.shape.map((inner, key) =>
+						inner
+							.getArbApply()
+							.arbChange(
+								diveArbChangeConfig(
+									(x) => this.apply.get(x, key as never),
+									opts,
+								),
+							),
+					),
+				),
+			},
+		) as Arb<DeriveProductChangeTuple<Prod, Shape>>;
+	}
+}
+
+BaseProductShapedTuple.prototype.arbProductTuple = function <
+	Prod,
+	Shape extends AnyTuple<AnyHasArbApply>,
+>(this: BaseProductShapedTuple<Prod, Shape>) {
+	return fc.tuple(
+		...this.shape.map((inner) => inner.getArbApply().arbValue()),
+	) as Arb<never>;
+};
+
+BaseProductShapedTuple.prototype.getArbApply = function <
+	Shape extends AnyTuple<AnyHasArbApply>,
+>(this: ATuple<Shape>) {
+	return new ArbTupleShaped(this as never);
+};
+
+export class ArbUnion<
+	A extends AUnion<Shape, Key>,
+	Shape extends Record<Key, AnyHasArbApply>,
+	Key extends keyof Shape = keyof Shape,
+> implements ArbApply<A>
+{
+	constructor(readonly apply: A) {}
+	arbValue(): Arb<$T<A>> {
+		return fc.oneof(
+			...Object.values(this.apply.shape).map((inner) => ({
+				weight: 1,
+				arbitrary: (inner as Shape[Key]).getArbApply().arbValue(),
+			})),
 		);
 	}
-	if (entries.length === 0) {
-		throw new Error("AUnion.arbChange: no cases generated");
+
+	arbChange(opts?: ArbChangeConfig<$T<A>> | undefined): Arb<$D<A>> {
+		const valueIsProvided = opts && "value" in opts;
+		const entries: Arb<InferApplyChange<Shape[Key]>>[] = [];
+		const apply = this.apply;
+		const shape = apply.shape;
+		const keys = apply.keys;
+		for (const disc of keys) {
+			if (valueIsProvided && this.apply.getDiscrimant(opts.value) !== disc) {
+				continue;
+			}
+
+			const genChange = (shape[disc] as AnyHasArbApply)
+				.getArbApply()
+				.arbChange(diveArbChangeConfig((x) => x, opts));
+			entries.push(
+				fc.record(
+					{
+						type: fc.constant(disc),
+						change: genChange,
+					},
+					{ noNullPrototype: true, requiredKeys: ["type", "change"] },
+				),
+			);
+		}
+		if (entries.length === 0) {
+			throw new Error("AUnion.arbChange: no cases generated");
+		}
+
+		return fc.oneof(
+			{
+				weight: opts?.droWeight ?? DRO_WEIGHT,
+				arbitrary: arbEmptyOrReplace(this.apply, this.arbValue()),
+			},
+			{
+				weight: 1,
+				arbitrary: fc.oneof(...entries),
+			},
+		);
 	}
-
-	return fc.oneof(
-		{
-			weight: DRO_WEIGHT,
-			arbitrary: arbEmptyOrReplace(this, this.arbValue()),
-		},
-		{
-			weight: 1,
-			arbitrary: fc.oneof(...entries),
-		},
-	);
-};
-
-AOptional.prototype.arbValue = function () {
-	return fc.oneof(
-		{ weight: 1, arbitrary: fc.constant(undefined) },
-		{ weight: 4, arbitrary: this.inner.arbValue() },
-	);
-};
-
-AOptional.prototype.arbChange = function (value) {
-	// biome-ignore lint/complexity/noArguments: value is optional and can conflate with undefined
-	const valueIsProvided = arguments.length === 1;
-	const undefinedPart = {
-		weight: 1,
-		arbitrary: fc.constant(makeReplaceOnly<undefined>(undefined)),
-	};
-	const arbChangeInner = this.inner.arbChange(
-		...(valueIsProvided ? [value] : []),
-	);
-	return fc.oneof(undefinedPart, {
-		weight: 4,
-		arbitrary: valueIsProvided
-			? // only replace is accepted if original value is undefined
-				value === undefined
-				? arbChangeInner.filter((d) => this.inner.isReplace(d) !== null)
-				: arbChangeInner
-			: arbChangeInner,
-	});
-};
-
-AMapValue.prototype.arbValue = function <
-	A extends Apply<T0, DT0>,
-	T,
-	T0 = $T<A>,
-	DT0 = $D<A>,
->(this: AMapValue<A, T>): Arb<T> {
-	if (!this.inner.arbValue) {
-		throw new Error();
-	}
-	return this.inner.arbValue().map(
-		(x) => this.map(x),
-		(x) => this.unmap(x as never),
-	);
-};
-
-AMapValue.prototype.arbChange = function <
-	A extends Apply<T0, DT0>,
-	T,
-	T0 = $T<A>,
-	DT0 = $D<A>,
->(this: AMapValue<A, T>, value?: T) {
-	if (!this.inner.arbChange) {
-		throw new Error();
-	}
-	// biome-ignore lint/complexity/noArguments: spread won't type check
-	if (arguments.length === 1) {
-		return this.inner.arbChange(this.unmap(value as T));
-	}
-	return this.inner.arbChange();
-};
-
-export interface GenApply<A extends $A> {
-	readonly apply: A;
-	readonly arbValue: Arb<$T<A>>;
-	readonly arbChange: Arb<$D<A>>;
 }
+
+AUnion.prototype.getArbApply = function <
+	Map extends Record<Key, AnyHasArbApply>,
+	Key extends keyof Map = keyof Map,
+>(this: AUnion<Map, Key>) {
+	return new ArbUnion<AUnion<Map, Key>, Map, Key>(this);
+};
+
+export class ArbOptional<
+	A extends AOptional<AInner>,
+	AInner extends AnyHasArbApply & Apply<T, DT>,
+	T = $T<AInner>,
+	DT = $D<AInner>,
+> implements ArbApply<A>
+{
+	constructor(readonly apply: A) {}
+
+	arbValue() {
+		return fc.oneof(
+			{ weight: 1, arbitrary: fc.constant(undefined) },
+			{ weight: 4, arbitrary: this.apply.inner.getArbApply().arbValue() },
+		);
+	}
+	arbChange(opts?: ArbChangeConfig<$T<A>>) {
+		const valueIsProvided = opts && "value" in opts;
+		const undefinedPart = {
+			weight: 1,
+			arbitrary: fc.constant(makeReplaceOnly<undefined>(undefined)),
+		};
+		const arbChangeInner = this.apply.inner
+			.getArbApply()
+			.arbChange(diveArbChangeConfig((x) => x, opts));
+		return fc.oneof(undefinedPart, {
+			weight: 4,
+			arbitrary: valueIsProvided
+				? // only replace is accepted if original value is undefined
+					opts.value === undefined
+					? arbChangeInner.filter((d) => this.apply.inner.isReplace(d) !== null)
+					: arbChangeInner
+				: arbChangeInner,
+		});
+	}
+}
+
+AOptional.prototype.getArbApply = function <
+	AInner extends AnyHasArbApply & Apply<T, DT>,
+	T = $T<AInner>,
+	DT = $D<AInner>,
+>(this: AOptional<AInner>) {
+	return new ArbOptional(this);
+};
+
+export class ArbMapValue<
+	A extends AMapValue<AInner, T, T0, DT0>,
+	AInner extends HasArbApply<T0, DT0>,
+	T,
+	T0 = $T<AInner>,
+	DT0 = $T<AInner>,
+> implements ArbApply<A>
+{
+	constructor(readonly apply: A) {}
+	arbValue(): Arb<T> {
+		return this.apply.inner
+			.getArbApply()
+			.arbValue()
+			.map(
+				(x) => this.apply.map(x),
+				(x) => this.apply.unmap(x as never),
+			);
+	}
+
+	arbChange(opts?: ArbChangeConfig<T>): Arb<DT0> {
+		const arbA = this.apply.inner.getArbApply();
+		if (opts && "value" in opts) {
+			return arbA.arbChange(
+				diveArbChangeConfig((x) => this.apply.unmap(x), opts),
+			);
+		}
+		return arbA.arbChange();
+	}
+}
+
+AMapValue.prototype.getArbApply = function <
+	AInner extends HasArbApply<T0, DT0>,
+	T,
+	T0 = $T<AInner>,
+	DT0 = $D<AInner>,
+>(this: AMapValue<AInner, T, T0, DT0>) {
+	return new ArbMapValue<typeof this, AInner, T, T0, DT0>(this);
+};
 
 export class AtomicWithGen<T> extends AAtomic<T> {
 	constructor(override readonly gen: Arb<T>) {
@@ -335,28 +424,29 @@ export class AtomicWithGen<T> extends AAtomic<T> {
 
 export const atomicWithGen = <T>(gen: Arb<T>) => new AtomicWithGen<T>(gen);
 
-export const genValueFromApply = <A extends AnyArbApply>(
+export const genValueFromApply = <A extends AnyHasArbApply>(
 	apply: A,
 ): Arb<$T<A>> => {
-	return apply.arbValue();
+	return apply.getArbApply().arbValue();
 };
 
-export const genChangeFromApply = <A extends AnyArbApply>(
+export const genChangeFromApply = <A extends AnyHasArbApply>(
 	apply: A,
 ): Arb<$D<A>> => {
-	return apply.arbChange();
+	return apply.getArbApply().arbChange();
 };
 
-export const genValueWithChange = <A extends AnyArbApply>(
+export const genValueWithChange = <A extends AnyHasArbApply>(
 	apply: A,
 ): Arb<{ x: $T<A>; dx: $D<A> }> => {
-	return apply
+	const arbA = apply.getArbApply();
+	return arbA
 		.arbValue()
 		.chain((v) =>
 			fc.record(
 				{
 					x: fc.constant(v),
-					dx: apply.arbChange(v),
+					dx: arbA.arbChange({ value: v }),
 				},
 				{ noNullPrototype: true },
 			),
@@ -364,15 +454,16 @@ export const genValueWithChange = <A extends AnyArbApply>(
 		.filter(({ x, dx }) => apply.canApply(x, dx));
 };
 
-export const genValueWith2Changes = <A extends AnyArbApply>(
+export const genValueWith2Changes = <A extends AnyHasArbApply>(
 	apply: A,
 ): Arb<{ x: $T<A>; dx1: $D<A>; dx2: $D<A> }> => {
-	return apply
+	const arbA = apply.getArbApply();
+	return arbA
 		.arbValue()
 		.chain((v) =>
 			fc.record({
 				x: fc.constant(v),
-				dx1: apply.arbChange(v),
+				dx1: arbA.arbChange({ value: v }),
 			}),
 		)
 		.filter(({ x, dx1 }) => apply.canApply(x, dx1))
@@ -381,7 +472,7 @@ export const genValueWith2Changes = <A extends AnyArbApply>(
 				{
 					x: fc.constant(x),
 					dx1: fc.constant(dx1),
-					dx2: apply.arbChange(apply.apply(x, dx1)),
+					dx2: arbA.arbChange({ value: apply.apply(x, dx1) }),
 				},
 				{ noNullPrototype: true },
 			),

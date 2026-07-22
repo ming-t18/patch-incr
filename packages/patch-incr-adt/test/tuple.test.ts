@@ -41,12 +41,10 @@ describe("tuple", () => {
 		expect(t2).toEqual(["def", 5, null]);
 	});
 	it.skip("type checking", () => {
-		const _shouldTypeCheck = [tup.arbValue(), tup.arbChange()];
+		const _shouldTypeCheck = [tup.getArbApply()];
 		const _shouldNotTypeCheck = [
 			// @ts-expect-error should fail
-			tupNoArb.arbValue(),
-			// @ts-expect-error should fail
-			tupNoArb.arbChange(),
+			tupNoArb.getArbApply(),
 		];
 	});
 	describe("properties", () => {

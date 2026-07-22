@@ -78,13 +78,11 @@ describe("union", () => {
 		it.skip("type checking on arb", () => {
 			const _shouldFailTypeCheck = [
 				// @ts-expect-error arbValue must fail type constraint
-				union1NoGen.arbValue(),
-				// @ts-expect-error arbChange must fail type constraint
-				union1NoGen.arbChange(),
+				union1NoGen.getArbApply(),
 				// @ts-expect-error error message should mention "right" is causing the problem
-				union1NoGenFailOnRight.arbChange(),
+				union1NoGenFailOnRight.getArbApply(),
 			];
-			const _shouldPassTypeCheck = [union1.arbValue(), union1.arbChange()];
+			const _shouldPassTypeCheck = [union1.getArbApply()];
 		});
 		it("applying any valid patch returns a value of correct type", () => {
 			fc.assert(

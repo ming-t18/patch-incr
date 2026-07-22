@@ -41,18 +41,12 @@ type _ItemChange = s.inferChange<typeof item>;
 
 describe("record types", () => {
 	it.skip("type checking for gen", () => {
-		const _shouldPassTypeCheck = [
-			item.arbProductRecord(),
-			item.arbValue(),
-			item.arbChange(),
-		];
+		const _shouldPassTypeCheck = [item.arbProductRecord(), item.getArbApply()];
 		const _shouldFailTypeCheck = [
 			// @ts-expect-error Should fail
 			itemNoGen.arbProductRecord(),
 			// @ts-expect-error Should fail
-			itemNoGen.arbValue(),
-			// @ts-expect-error Should fail
-			itemNoGen.arbChange(),
+			itemNoGen.getArbApply(),
 		];
 	});
 

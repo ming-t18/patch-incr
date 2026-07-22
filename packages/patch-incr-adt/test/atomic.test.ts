@@ -8,14 +8,9 @@ describe("atomic", () => {
 	it.skip("type checking on arb", () => {
 		const _shouldFailTypeCheck = [
 			// @ts-expect-error arbValue must fail type constraint
-			s.boolean().arbValue(),
-			// @ts-expect-error arbChange must fail type constraint
-			s.boolean().arbChange(),
+			s.boolean().getArbApply(),
 		];
-		const _shouldPassTypeCheck = [
-			atomicWithGen(fc.boolean()).arbValue(),
-			atomicWithGen(fc.boolean()).arbChange(),
-		];
+		const _shouldPassTypeCheck = [atomicWithGen(fc.boolean()).getArbApply()];
 	});
 
 	describe("boolean", () => {

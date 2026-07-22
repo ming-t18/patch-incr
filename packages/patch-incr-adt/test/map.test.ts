@@ -3,16 +3,16 @@ import fc from "fast-check";
 import * as s from "@/index";
 import { atomicWithGen, genValueWithChange } from "@/props/gen";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
-import type { AnyArbApply } from "./props";
+import type { AnyHasArbApply } from "./props";
 
-const testPropsMapValue = <A extends AnyArbApply, T>(
+const testPropsMapValue = <A extends AnyHasArbApply, T>(
 	apply: s.AMapValue<A, T>,
 ) => {
 	const { inner, map, unmap } = apply;
 
 	it("map is invertible with unmap", () => {
 		fc.assert(
-			fc.property(apply.arbValue(), (xMap) => {
+			fc.property(apply.getArbApply().arbValue(), (xMap) => {
 				expect(map(unmap(xMap))).toEqual(xMap);
 			}),
 		);
