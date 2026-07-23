@@ -1,4 +1,5 @@
-import type { Apply } from "@/types/algebra";
+import type { RecBrand } from "@/props";
+import type { AnyApply, Apply } from "@/types/algebra";
 
 export const recApply = <T, DT, A extends Apply<T, DT>>(
 	func: (recursed: A) => A,
@@ -14,3 +15,6 @@ export const recApply = <T, DT, A extends Apply<T, DT>>(
 	recursed.$isRecursive = true;
 	return recursed;
 };
+
+/** Add a brand for a type being recursive. */
+export const recBrand = <A extends AnyApply>(x: A): A & RecBrand => x;

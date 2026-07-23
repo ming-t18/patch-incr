@@ -1,12 +1,15 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import fc from "fast-check";
 import * as s from "@/index";
+import type { ArbApply } from "@/props";
 import {
 	atomicWithGen,
 	genChangeFromApply,
 	genValueFromApply,
 } from "@/props/gen";
 import { propCanApplyApplies } from "./testPropsApply.test";
+
+const recordEmpty = s.record({});
 
 const item = s.record({
 	done: atomicWithGen(fc.boolean()),
@@ -30,10 +33,64 @@ const either = s.Either.either(
 	s.record({ b: atomicWithGen(fc.string()) }),
 );
 
-// const listItem = s.list(item);
+const optional = s.optional(item);
 
-describe("record", () => {
-	it("should generate record", () => {
+describe("empty record", () => {
+	test("correct type of getArbApply", () => {
+		const _ = recordEmpty.getArbApply satisfies () => ArbApply<
+			typeof recordEmpty
+		>;
+	});
+
+	test("generate record", () => {
+		fc.assert(
+			fc.property(genValueFromApply(recordEmpty), (item) => {
+				expect(typeof item).toBe("object");
+				expect(Object.keys(item)).toHaveLength(0);
+			}),
+		);
+	});
+
+	test("generate record change", () => {
+		fc.assert(
+			fc.property(
+				genValueFromApply(recordEmpty),
+				genChangeFromApply(recordEmpty),
+				(v, d) => {
+					return propCanApplyApplies(recordEmpty, v, d);
+				},
+			),
+		);
+	});
+});
+
+describe("record with no arb", () => {
+	const itemNoArb = s.record({
+		done: s.atomic<boolean>(),
+		text: atomicWithGen(fc.string()),
+	});
+	const itemNoArb1 = s.record({
+		done: s.atomic<boolean>(),
+	});
+	const itemHasArbRec = s.record({
+		done: s.recBrand(s.atomic<boolean>()),
+	});
+
+	test("correct type of getArbApply", () => {
+		const _ = itemNoArb.getArbApply satisfies undefined;
+		const _1 = itemNoArb1.getArbApply satisfies undefined;
+		const _2 = itemHasArbRec.getArbApply satisfies () => ArbApply<
+			typeof itemHasArbRec
+		>;
+	});
+});
+
+describe("record with 2 fields", () => {
+	test("correct type of getArbApply", () => {
+		const _ = item.getArbApply satisfies () => ArbApply<typeof item>;
+	});
+
+	test("should generate record", () => {
 		fc.assert(
 			fc.property(genValueFromApply(item), (item) => {
 				expect(typeof item).toBe("object");
@@ -43,7 +100,7 @@ describe("record", () => {
 		);
 	});
 
-	it("should generate record change", () => {
+	test("should generate record change", () => {
 		fc.assert(
 			fc.property(genValueFromApply(item), genChangeFromApply(item), (v, d) => {
 				return propCanApplyApplies(item, v, d);
@@ -53,7 +110,11 @@ describe("record", () => {
 });
 
 describe("union", () => {
-	it("should generate union", () => {
+	test("correct type of getArbApply", () => {
+		const _ = union.getArbApply satisfies () => ArbApply<typeof union>;
+	});
+
+	test("should generate union", () => {
 		fc.assert(
 			fc.property(genValueFromApply(union), (u) => {
 				return typeof u === "boolean" || typeof u === "string";
@@ -61,7 +122,7 @@ describe("union", () => {
 		);
 	});
 
-	it("should generate union change", () => {
+	test("should generate union change", () => {
 		fc.assert(
 			fc.property(
 				genValueFromApply(union),
@@ -75,13 +136,27 @@ describe("union", () => {
 });
 
 describe("either", () => {
-	it("should generate either change", () => {
+	test("should generate either change", () => {
 		fc.assert(
 			fc.property(
 				genValueFromApply(either),
 				genChangeFromApply(either),
 				(v, d) => {
 					return propCanApplyApplies(either, v, d);
+				},
+			),
+		);
+	});
+});
+
+describe("optional", () => {
+	test("should generate optional change", () => {
+		fc.assert(
+			fc.property(
+				genValueFromApply(optional),
+				genChangeFromApply(optional),
+				(v, d) => {
+					return propCanApplyApplies(optional, v, d);
 				},
 			),
 		);

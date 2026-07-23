@@ -34,6 +34,9 @@ export const RECURSIVE = Symbol("RECURSIVE");
 /** An `Apply` can extent `{ [RECURSIVE]?: true}` to avoid infinite recursion. */
 export type RECURSIVE = typeof RECURSIVE;
 
+/** Brand indicating an `Apply` is recursive and infinite recursion must be avoided for typeclass derivation. */
+export type RecBrand = { [RECURSIVE]?: true };
+
 // biome-ignore lint/suspicious/noExplicitAny: intentional
 export type AnyHasArbApply = HasArbApply<any, any>;
 
@@ -52,7 +55,7 @@ export type ArbProdChangeFromRecordArb<
 };
 
 export type OmitRecursive<T extends {}> = {
-	[k in keyof T]: T[k] extends { [RECURSIVE]?: infer _T } ? never : T[k];
+	[k in keyof T]: T[k] extends RecBrand ? never : T[k];
 };
 
 declare module "@/types/algebra" {

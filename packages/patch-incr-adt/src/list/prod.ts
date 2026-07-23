@@ -1,7 +1,7 @@
 import { type AConstant, nullType } from "@/constant";
 import type { BaseProductShaped } from "@/product";
 import { product } from "@/product";
-import type { RECURSIVE } from "@/props";
+import type { RecBrand } from "@/props";
 import type { DeriveRecordValue } from "@/record/types";
 import type { AnyApply, InferApplyValue } from "@/types/algebra";
 import { type AUnion, union } from "@/union";
@@ -62,13 +62,11 @@ export interface ListShape<A extends AnyApply, Rec extends AnyApply> {
 }
 
 export interface AList<A extends AnyApply>
-	extends AUnion<ListShape<A, AList<A>>> {
-	[RECURSIVE]?: true;
-}
+	extends AUnion<ListShape<A, AList<A>>>,
+		RecBrand {}
 
 export const list = <TA extends AnyApply>(apply: TA): AList<TA> => {
 	type T = InferApplyValue<TA>;
-	// TODO fix
 	const rec: AList<TA> = union(
 		{
 			nil: nullType(),
