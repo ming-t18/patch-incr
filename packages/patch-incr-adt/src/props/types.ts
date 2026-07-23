@@ -30,6 +30,10 @@ export interface HasArbApply<T, DT> extends Apply<T, DT> {
 	getArbApply: () => ArbApply<this>;
 }
 
+export const RECURSIVE = Symbol("RECURSIVE");
+/** An `Apply` can extent `{ [RECURSIVE]?: true}` to avoid infinite recursion. */
+export type RECURSIVE = typeof RECURSIVE;
+
 // biome-ignore lint/suspicious/noExplicitAny: intentional
 export type AnyHasArbApply = HasArbApply<any, any>;
 
@@ -45,6 +49,10 @@ export type ArbProdChangeFromRecordArb<
 	Key extends keyof Shape = keyof Shape,
 > = {
 	readonly [k in Key]: Arb<InferApplyChange<Shape[k]>>;
+};
+
+export type OmitRecursive<T extends {}> = {
+	[k in keyof T]: T[k] extends { [RECURSIVE]?: infer _T } ? never : T[k];
 };
 
 declare module "@/types/algebra" {
@@ -94,7 +102,7 @@ declare module "@/product/object" {
 		 */
 		arbProductRecord?: (() => Arb<DeriveRecordValue<Shape, Key>>) | undefined;
 
-		getArbApply: Shape extends Record<Key, AnyHasArbApply>
+		getArbApply: OmitRecursive<Shape> extends Record<Key, AnyHasArbApply>
 			? () => ArbApply<this>
 			: undefined;
 	}
@@ -115,7 +123,7 @@ declare module "@/product/tuple" {
 		 */
 		arbProductTuple?: (() => Arb<DeriveTupleValue<Shape>>) | undefined;
 
-		getArbApply: Shape extends AnyTuple<AnyHasArbApply>
+		getArbApply: OmitRecursive<Shape> extends AnyTuple<AnyHasArbApply>
 			? () => ArbApply<this>
 			: undefined;
 	}
@@ -126,7 +134,7 @@ declare module "@/record" {
 		Map extends Record<Key, AnyApply>,
 		Key extends keyof Map = keyof Map,
 	> {
-		arbProductRecord: Map extends Record<Key, AnyHasArbApply>
+		arbProductRecord: OmitRecursive<Map> extends Record<Key, AnyHasArbApply>
 			? () => Arb<DeriveRecordValue<Map, Key>>
 			: undefined;
 	}
@@ -145,7 +153,7 @@ declare module "@/union" {
 		Map extends Record<Key, AnyApply>,
 		Key extends keyof Map = keyof Map,
 	> {
-		getArbApply: Map extends Record<Key, AnyHasArbApply>
+		getArbApply: OmitRecursive<Map> extends Record<Key, AnyHasArbApply>
 			? () => ArbApply<this>
 			: undefined;
 	}

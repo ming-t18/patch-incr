@@ -144,6 +144,7 @@ export class ArbProductShaped<
 	arbChange(opts?: ArbChangeConfig<Prod>): Arb<$D<A>> {
 		const repPart = arbEmptyOrReplace(this.apply, this.arbValue());
 		const isDefined = opts && "value" in opts && opts.value;
+		// TODO apply depth check
 		return fc.oneof(
 			{ weight: opts?.droWeight ?? DRO_WEIGHT, arbitrary: repPart },
 			{
@@ -263,6 +264,7 @@ BaseProductShapedTuple.prototype.arbProductTuple = function <
 	) as Arb<never>;
 };
 
+// @ts-expect-error Can't match type constraint due to OmitRecursive
 BaseProductShapedTuple.prototype.getArbApply = function <
 	Shape extends AnyTuple<AnyHasArbApply>,
 >(this: ATuple<Shape>) {
@@ -343,6 +345,7 @@ export class ArbOptional<
 	constructor(readonly apply: A) {}
 
 	arbValue() {
+		// TODO apply depth check
 		return fc.oneof(
 			{ weight: 1, arbitrary: fc.constant(undefined) },
 			{ weight: 4, arbitrary: this.apply.inner.getArbApply().arbValue() },
@@ -357,6 +360,7 @@ export class ArbOptional<
 		const arbChangeInner = this.apply.inner
 			.getArbApply()
 			.arbChange(diveArbChangeConfig((x) => x, opts));
+		// TODO apply depth check
 		return fc.oneof(undefinedPart, {
 			weight: 4,
 			arbitrary: valueIsProvided

@@ -23,10 +23,10 @@ interface TreeShape<Name extends s.AnyApply, Rec extends s.AnyApply> {
 	children: s.AOptional<s.AList<Rec>>;
 }
 
-interface TreeApply<Name extends s.AnyApply>
-	extends s.ARecord<TreeShape<Name, TreeApply<Name>>> {}
+interface ATree<Name extends s.AnyApply>
+	extends s.ARecord<TreeShape<Name, ATree<Name>>> {}
 
-const tree: TreeApply<s.Apply<string>> = s.record({
+const tree: ATree<s.Apply<string>> = s.record({
 	name: s.string(),
 	get children() {
 		return s.optional(s.list(tree));
