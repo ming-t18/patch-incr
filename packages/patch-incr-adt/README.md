@@ -15,6 +15,81 @@ type TodoItem = s.infer<typeof todoItem>
 type DTodoItem = s.inferChange<typeof todoItem>
 ```
 
+## Outline of concepts
+
+ - Incremental data types
+   - Representing incremental changes (or patches)
+   - Representing changes as functions
+   - The `Apply` interface: `apply`, `combine`, `replace`
+   - Patch properties: monoid, replace
+ - Atomic type: `AAtomic`
+   - Empty type
+   - Unit type
+ - Product type
+   - `APair`
+   - `ARecord`
+   - `ATuple`
+   - `BaseProductShaped`
+   - `BaseProductShapedTuple`
+   - Infinite product
+     - Stream
+     - Non-incremental function
+ - Union type
+   - `AEither`
+   - `AOption`
+   - `AOptional`
+   - `AUnion`
+   - Infinite sum and existential type
+ - Newtype patterns
+   - `AMapValue`: Mapping the value-type
+   - `ASingleKey`: Singleton object
+ - Recursive type
+   - Using the getter for recursive shapes
+   - Cons list and trees
+   - The self-similar change-type
+ - Collections
+   - `Map` and `Set`
+   - Cons list
+   - Array stack
+   - Array with splice table
+ - Typeclass and derivation
+   - `ArbApply`: `fast-check` generators
+   - `RecBrand`: avoid infinit recursion during derivation
+ - Incremental function
+   - Basic subtypes of `IF`
+      - `IFA`
+      - `IF1`
+      - `IFR`
+   - Patch coherence property
+ - Incremental programming
+   - Point-free programming
+   - Function composition
+      - `IFA` composition
+      - Composition with residuals
+      - Directed acyclic graph of variable assignments
+   - Product functions
+      - Intro.
+      - Elim. (access, pattern matching)
+      - Modify
+   - Union functions and conditionals
+      - Intro. (case, conditional)
+      - Elim. (pattern matching)
+   - Incremental loops
+      - The trace operator
+      - Loops and control flow history
+  - `IIso`, `IIsoA`: Incremental isomorphisms
+  - Incremental optics
+     - Simple vs. family
+     - Incremental setters
+     - Lens
+     - Prism
+     - Affine
+     - Traversal
+  - Incremental monads and arrows
+     - Residual
+     - Reader
+     - List
+
 ## Introduction
 
 Consider `y = f(x)`. If an incremental change is made to `x`, we want to determine the incremental change made to `y`
