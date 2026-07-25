@@ -2,8 +2,8 @@ import fc, { type Arbitrary as Arb } from "fast-check";
 import { AAtomic } from "@/atomic";
 import { AConstant } from "@/constant";
 import { AOptional } from "@/optional";
-import type { AnyTuple, ATuple, KeyOfTuple } from "@/tuple";
-import type { $A, $D, $T } from "@/types/abbr";
+import type { AnyTuple, ATuple } from "@/tuple";
+import type { $D, $T } from "@/types/abbr";
 import { AUnion } from "@/union";
 
 export type { Arbitrary as Arb } from "fast-check";
@@ -18,7 +18,8 @@ import {
 } from "@/product";
 import { ARecord } from "@/record";
 import { makeReplaceOnly } from "@/replaceOnly";
-import type { Apply, DRO, InferApplyChange } from "@/types/algebra";
+import type { Apply, InferApplyChange } from "@/types/algebra";
+import { arbEmptyOrReplace, DRO_WEIGHT, mapShape } from "./genUtils";
 import { diveArbChangeConfig } from "./opts";
 import type {
 	AnyHasArbApply,
@@ -29,56 +30,6 @@ import type {
 	HasArbApply,
 	HasArbProductRecord,
 } from "./types";
-
-export const arbEmptyOrReplace = <A extends $A, T extends $T<A> = $T<A>>(
-	apply: A,
-	gen: Arb<T>,
-): Arb<DRO<T>> => {
-	return fc.oneof(
-		{ weight: 1, arbitrary: fc.constant(apply.empty) },
-		{
-			weight: 5,
-			arbitrary: gen.map(apply.fromReplace, apply.isReplace as never),
-		},
-	);
-};
-
-export const mapShape = <
-	Shape,
-	Reshaped extends Record<Key, unknown>,
-	Key extends keyof Shape = keyof Shape,
->(
-	fn: <K1 extends Key>(key: K1, value: Shape[K1]) => Reshaped[K1],
-	shape: Shape,
-	keys = Object.keys(shape as never) as Key[],
-): Reshaped => {
-	const res = {} as Partial<Reshaped>;
-	for (const k of keys) {
-		res[k] = fn(k, shape[k]);
-	}
-	return res as Reshaped;
-};
-
-export const mapShapeTuple = <
-	Shape extends AnyTuple,
-	Reshaped extends AnyTuple,
->(
-	fn: <Idx extends KeyOfTuple<Shape>>(
-		i: Idx,
-		value: Shape[Idx],
-	) => Idx extends KeyOfTuple<Reshaped> ? Reshaped[Idx] : never,
-	shape: Shape,
-): Reshaped => {
-	const n = shape.length;
-	const res: Reshaped = Array(n).fill(null) as never;
-	for (let i = 0; i < n; i++) {
-		// @ts-expect-error Can't be checked
-		res[i] = fn(i, shape[i]);
-	}
-	return res;
-};
-
-const DRO_WEIGHT = 3;
 
 export class ArbConstant<A extends AConstant<T, D>, T = $T<A>, D = $D<A>>
 	implements ArbApply<A, T, D>
@@ -109,7 +60,7 @@ export class ArbAtomic<A extends AAtomic<T>, T = $T<A>> implements ArbApply<A> {
 	}
 
 	arbChange(_?: ArbChangeConfig<T>): Arb<$D<A>> {
-		return fc.constant(this.apply.empty);
+		return arbEmptyOrReplace(this.apply, this.arbValue());
 	}
 }
 
@@ -483,3 +434,5 @@ export const genValueWith2Changes = <A extends AnyHasArbApply>(
 		)
 		.filter(({ x, dx1, dx2 }) => apply.canApply(apply.apply(x, dx1), dx2));
 };
+
+export * from "./genArray";
