@@ -1,11 +1,15 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: for testing */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, test } from "bun:test";
+import fc from "fast-check";
 import * as s from "@/index";
 import { FList } from "@/list/func";
 import * as lp from "@/list/prod";
+import { atomicWithGen } from "@/props";
+import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 
 const listProdString = lp.list(s.string());
+const listProdStringGen = lp.list(atomicWithGen(fc.string()));
 const cons1: s.infer<typeof listProdString> = lp.cons(
 	"abc",
 	lp.cons("def", lp.cons("ghi", lp.cons("mno"))),
@@ -32,6 +36,15 @@ describe("list", () => {
 			"def",
 			"aaa",
 		]);
+	});
+
+	test.skip("type inference for getArbApply", () => {
+		const _1 = listProdString.getArbApply satisfies undefined;
+		const _2 = listProdStringGen.getArbApply satisfies () => unknown;
+	});
+
+	describe("apply props", () => {
+		testCasesPropsApply(listProdStringGen);
 	});
 });
 

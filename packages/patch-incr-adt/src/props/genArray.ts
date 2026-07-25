@@ -4,7 +4,7 @@ import type { $D, $T } from "@/types";
 import "./types";
 import fc from "fast-check";
 import { arbEmptyOrReplace, DRO_WEIGHT, MAX_ARRAY_LEN } from "./genUtils";
-import { diveArbChangeConfig } from "./opts";
+import { DEFAULT_DEPTH, diveArbChangeConfig } from "./opts";
 import type { Arb, ArbApply, ArbChangeConfig, HasArbApply } from "./types";
 export class ArbArrayStack<
 	A extends AArrayStack<AInner, T, DT>,
@@ -14,8 +14,11 @@ export class ArbArrayStack<
 > implements ArbApply<A, readonly T[], DeriveArrayStackChange<T, DT>>
 {
 	constructor(readonly apply: A) {}
-	arbValue(): Arb<readonly T[]> {
-		return fc.array(this.apply.inner.getArbApply().arbValue(), {
+	arbValue(depth: number): Arb<readonly T[]> {
+		if (depth <= 0) {
+			return fc.constant([]);
+		}
+		return fc.array(this.apply.inner.getArbApply().arbValue(depth - 1), {
 			minLength: 0,
 			maxLength: MAX_ARRAY_LEN,
 		});
@@ -24,7 +27,10 @@ export class ArbArrayStack<
 	arbChange(
 		opts?: ArbChangeConfig<readonly T[]> | undefined,
 	): Arb<DeriveArrayStackChange<T, DT>> {
-		const repPart = arbEmptyOrReplace(this.apply, this.arbValue());
+		const repPart = arbEmptyOrReplace(
+			this.apply,
+			this.arbValue(opts?.depth ?? DEFAULT_DEPTH),
+		);
 		const arrLen = opts?.value?.length;
 		const minLen = arrLen ?? 0;
 		const arbInner = this.apply.inner.getArbApply();
@@ -87,7 +93,7 @@ export class ArbArrayStack<
 								: fc.integer({ min: 0, max: MAX_ARRAY_LEN }),
 						toApplyArr,
 						toPop: arbToPop,
-						toPush: this.arbValue(),
+						toPush: this.arbValue(opts?.depth ?? DEFAULT_DEPTH),
 					})
 					.chain((res) => {
 						const { toPop } = res;

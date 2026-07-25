@@ -7,6 +7,7 @@ import {
 	genValueWith2Changes,
 	genValueWithChange,
 } from "@/props/gen";
+import { DEFAULT_DEPTH } from "@/props/opts";
 import { testCasesPropsApply } from "../fastCheck/testPropsApply.test";
 
 const testCasesArrayStack = <A extends HasArbApply<T, DT>, T, DT>(
@@ -81,7 +82,7 @@ const testCasesArrayStack = <A extends HasArbApply<T, DT>, T, DT>(
 									i: fc.constant(i),
 									dxi: arrayStack.inner
 										.getArbApply()
-										.arbChange({ value: x1[i] }),
+										.arbChange({ value: x1[i], depth: DEFAULT_DEPTH }),
 								}),
 							),
 						}),
@@ -103,7 +104,7 @@ const testCasesArrayStack = <A extends HasArbApply<T, DT>, T, DT>(
 		fc.assert(
 			fc.property(
 				fc.record({
-					addl: arrayStack.getArbApply().arbValue(),
+					addl: arrayStack.getArbApply().arbValue(8),
 					val: genValueWithChange(arrayStack),
 				}),
 				({ addl, val: { x, dx } }) => {

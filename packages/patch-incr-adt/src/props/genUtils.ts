@@ -58,3 +58,7 @@ export const mapShapeTuple = <
 export const DRO_WEIGHT = 3;
 
 export const MAX_ARRAY_LEN = 8;
+
+export const ARB_VALUE_DEPTH = 10;
+
+export const DEFAULT_DEPTH = 8;

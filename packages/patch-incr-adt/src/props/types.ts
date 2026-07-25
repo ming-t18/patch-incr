@@ -11,18 +11,15 @@ import type {
 
 export type { Arbitrary as Arb } from "fast-check";
 
-export const NO_VALUE = Symbol.for("patch-incr-adt:NO_VALUE");
-export type NO_VALUE = typeof NO_VALUE;
-
 export interface ArbChangeConfig<T> {
 	readonly value?: T;
 	readonly droWeight?: number;
 	readonly nullWeight?: number;
-	readonly depth?: number;
+	readonly depth: number;
 }
 
 export interface ArbApply<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>> {
-	readonly arbValue: () => Arb<T>;
+	readonly arbValue: (depth: number) => Arb<T>;
 	readonly arbChange: (opts?: ArbChangeConfig<T>) => Arb<DT>;
 }
 
@@ -36,6 +33,9 @@ export type RECURSIVE = typeof RECURSIVE;
 
 /** Brand indicating an `Apply` is recursive and infinite recursion must be avoided for typeclass derivation. */
 export type RecBrand = { [RECURSIVE]?: true };
+
+// biome-ignore lint/complexity/noBannedTypes: {} is used for no fields
+export type RecBrandCond<T> = T extends RecBrand ? {} : { [RECURSIVE]?: true };
 
 // biome-ignore lint/suspicious/noExplicitAny: intentional
 export type AnyHasArbApply = HasArbApply<any, any>;
@@ -103,7 +103,9 @@ declare module "@/product/object" {
 		 * Generator for the record's parts.
 		 * Used by `arbValue`/`arbChange`. Must be defined or else they throw.
 		 */
-		arbProductRecord?: (() => Arb<DeriveRecordValue<Shape, Key>>) | undefined;
+		arbProductRecord?:
+			| ((depth: number) => Arb<DeriveRecordValue<Shape, Key>>)
+			| undefined;
 
 		getArbApply: OmitRecursive<Shape> extends Record<Key, AnyHasArbApply>
 			? () => ArbApply<this>
@@ -124,7 +126,9 @@ declare module "@/product/tuple" {
 		 * Generator for the tuple's parts.
 		 * Used by `arbValue`/`arbChange`. Must be defined or else they throw.
 		 */
-		arbProductTuple?: (() => Arb<DeriveTupleValue<Shape>>) | undefined;
+		arbProductTuple?:
+			| ((depth: number) => Arb<DeriveTupleValue<Shape>>)
+			| undefined;
 
 		getArbApply: OmitRecursive<Shape> extends AnyTuple<AnyHasArbApply>
 			? () => ArbApply<this>
@@ -138,7 +142,7 @@ declare module "@/record" {
 		Key extends keyof Map = keyof Map,
 	> {
 		arbProductRecord: OmitRecursive<Map> extends Record<Key, AnyHasArbApply>
-			? () => Arb<DeriveRecordValue<Map, Key>>
+			? (depth: number) => Arb<DeriveRecordValue<Map, Key>>
 			: undefined;
 	}
 }
@@ -168,7 +172,7 @@ declare module "@/optional" {
 		T = InferApplyValue<A>,
 		DT = InferApplyChange<A>,
 	> {
-		getArbApply: A extends HasArbApply<T, DT>
+		getArbApply: A extends HasArbApply<T, DT> | RecBrand
 			? () => ArbApply<this>
 			: undefined;
 	}
@@ -181,7 +185,7 @@ declare module "@/map" {
 		T0 = $T<A>,
 		DT0 = $D<A>,
 	> {
-		getArbApply: A extends HasArbApply<T0, DT0>
+		getArbApply: A extends HasArbApply<T0, DT0> | RecBrand
 			? () => ArbApply<this>
 			: undefined;
 	}

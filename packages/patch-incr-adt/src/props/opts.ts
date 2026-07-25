@@ -1,4 +1,12 @@
+import { DEFAULT_DEPTH } from "./genUtils";
 import type { ArbChangeConfig } from "./types";
+
+export const isLeaf = <T>(opts?: ArbChangeConfig<T> | undefined) => {
+	if (typeof opts?.depth === "number" && opts.depth <= 0) {
+		return true;
+	}
+	return;
+};
 
 /** Given an `ArbChangeConfig` of a parent, returns an `ArbChangeConfig` for its child. */
 export const diveArbChangeConfig = <A, B>(
@@ -6,18 +14,18 @@ export const diveArbChangeConfig = <A, B>(
 	opts?: ArbChangeConfig<A> | undefined,
 ): ArbChangeConfig<B> => {
 	if (!opts) {
-		return { depth: DEFAULT_DEPTH };
+		return { depth: DEFAULT_DEPTH - 1 };
 	}
-	const { value: _, ...rest } = opts;
+	const { value: _, depth, ...rest } = opts;
 	return opts
 		? {
 				...rest,
 				...(opts && Object.hasOwn(opts, "value")
 					? { value: func(opts.value as A) }
 					: {}),
-				depth: rest.depth ?? DEFAULT_DEPTH ?? -1,
+				depth: depth - 1,
 			}
-		: {};
+		: { depth: DEFAULT_DEPTH - 1 };
 };
 
-export const DEFAULT_DEPTH = 8;
+export { DEFAULT_DEPTH } from "./genUtils";

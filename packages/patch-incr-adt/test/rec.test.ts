@@ -1,5 +1,8 @@
-import { describe, it } from "bun:test";
+import { describe, test } from "bun:test";
+import fc from "fast-check";
 import * as s from "@/index";
+import { type ArbApply, atomicWithGen, type RecBrand } from "@/props";
+import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 
 // does not work due to self-referential "typeof"
 // const linkedList = s.record({
@@ -17,7 +20,25 @@ import * as s from "@/index";
 // 	},
 // });
 
-// Works
+interface ALinkedListWithOpt<A extends s.$A>
+	extends s.ARecord<{
+			head: A;
+			tail: s.AOptional<ALinkedListWithOpt<A>>;
+		}>,
+		RecBrand {}
+
+const linkedListWithOpt = <A extends s.$A>(a: A) => {
+	// Infinite recursion is avoided due to `AOptional` having a `RecBrand` check
+	// The type annotation is required or else its type is `any`
+	const recursion: ALinkedListWithOpt<A> = s.record({
+		head: a,
+		get tail(): s.AOptional<typeof recursion> {
+			return s.optional(recursion);
+		},
+	});
+	return recursion;
+};
+
 interface TreeShape<Name extends s.AnyApply, Rec extends s.AnyApply> {
 	name: Name;
 	children: s.AOptional<s.AList<Rec>>;
@@ -31,6 +52,28 @@ const tree: ATree<s.Apply<string>> = s.record({
 	get children() {
 		return s.optional(s.list(tree));
 	},
+});
+
+describe("linked list in terms of optional", () => {
+	const str = atomicWithGen(fc.string());
+	const llStr = linkedListWithOpt(str);
+	test.skip("type checking for deriving arb", () => {
+		// Should not derive getArbApply
+		const _1 = linkedListWithOpt(s.atomic<string>())
+			.getArbApply satisfies undefined;
+		// Should derive getArbApply
+		const _2 = llStr.getArbApply satisfies () => ArbApply<
+			ALinkedListWithOpt<typeof str>
+		>;
+		// Should derive getArbApply
+		const _3 = linkedListWithOpt(llStr).getArbApply satisfies () => ArbApply<
+			ALinkedListWithOpt<typeof llStr>
+		>;
+	});
+
+	describe("of string", () => {
+		testCasesPropsApply(llStr);
+	});
 });
 
 describe("tree", () => {
@@ -51,7 +94,7 @@ describe("tree", () => {
 	const dTree1: s.inferChange<typeof tree> = {
 		children: tree.shape.children.fromReplace(s.List.empty()),
 	};
-	it("inspect", () => {
+	test.skip("inspect", () => {
 		console.log(tree1);
 		console.log(tree.apply(tree1, dTree1));
 	});

@@ -12,7 +12,7 @@ const testPropsMapValue = <A extends AnyHasArbApply, T>(
 
 	it("map is invertible with unmap", () => {
 		fc.assert(
-			fc.property(apply.getArbApply().arbValue(), (xMap) => {
+			fc.property(apply.getArbApply().arbValue(0), (xMap) => {
 				expect(map(unmap(xMap))).toEqual(xMap);
 			}),
 		);

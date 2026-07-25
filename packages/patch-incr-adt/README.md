@@ -43,7 +43,7 @@ type DTodoItem = s.inferChange<typeof todoItem>
  - Newtype patterns
    - `AMapValue`: Mapping the value-type
    - `ASingleKey`: Singleton object
- - Recursive type
+ - [Recursive type](./docs/Recursive Type.md)
    - Using the getter for recursive shapes
    - Cons list and trees
    - The self-similar change-type
