@@ -51,14 +51,7 @@ export class ArbArrayStack<
 				});
 
 		const arbToPop = fc.oneof(
-			{ weight: 2, arbitrary: fc.constant(0) },
-			{
-				weight: 4,
-				arbitrary: fc.integer({
-					min: 0,
-					max: minLen > 3 ? Math.floor(minLen / 3) : 1,
-				}),
-			},
+			// [0..n]
 			{
 				weight: 1,
 				arbitrary: fc.integer({
@@ -66,6 +59,18 @@ export class ArbArrayStack<
 					max: minLen === 0 ? MAX_ARRAY_LEN : minLen,
 				}),
 			},
+			// [0..n/3]
+			{
+				weight: 4,
+				arbitrary: fc.integer({
+					min: 0,
+					max: minLen > 3 ? Math.floor(minLen / 3) : 1,
+				}),
+			},
+			// [0]
+			{ weight: 2, arbitrary: fc.constant(0) },
+			// Pop-all part
+			...(minLen > 0 ? [{ weight: 3, arbitrary: fc.constant(minLen) }] : []),
 		);
 		return fc.oneof(
 			{
@@ -84,9 +89,19 @@ export class ArbArrayStack<
 						toPop: arbToPop,
 						toPush: this.arbValue(),
 					})
-					.filter(({ toPop }) =>
-						typeof arrLen === "number" ? arrLen - toPop >= 0 : true,
-					)
+					.chain((res) => {
+						const { toPop } = res;
+						if (typeof arrLen === "number" && arrLen - toPop <= 0) {
+							if (arrLen === 0) {
+								return fc.constant({ ...res, toPop: 0 });
+							}
+							return fc.integer({ min: 0, max: arrLen }).map((x) => ({
+								...res,
+								toPop: x,
+							}));
+						}
+						return fc.constant(res);
+					})
 					.map(
 						({
 							expectedLength,

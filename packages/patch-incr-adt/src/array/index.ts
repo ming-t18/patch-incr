@@ -66,3 +66,5 @@ export class AArray<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>>
 		return true;
 	}
 }
+
+export * from "./stack";

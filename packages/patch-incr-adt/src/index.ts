@@ -1,3 +1,4 @@
+export * from "./array";
 export * from "./atomic";
 export { constant, nullType } from "./constant";
 export * from "./either";
