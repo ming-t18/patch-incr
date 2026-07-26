@@ -1,7 +1,7 @@
-import { describe, test } from "bun:test";
-import fc from "fast-check";
+import { describe, expect, test } from "bun:test";
 import * as s from "@/index";
-import { type ArbApply, atomicWithGen, type RecBrand } from "@/props";
+import type { ArbApply, RecBrand } from "@/props";
+import * as p from "@/props";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 
 // does not work due to self-referential "typeof"
@@ -39,23 +39,22 @@ const linkedListWithOpt = <A extends s.$A>(a: A) => {
 	return recursion;
 };
 
-interface TreeShape<Name extends s.AnyApply, Rec extends s.AnyApply> {
+interface TreeShape<Name extends s.$A> {
 	name: Name;
-	children: s.AOptional<s.AList<Rec>>;
+	children: s.AOptional<s.AList<ATree<Name>>>;
 }
 
-interface ATree<Name extends s.AnyApply>
-	extends s.ARecord<TreeShape<Name, ATree<Name>>> {}
+interface ATree<Name extends s.$A> extends s.ARecord<TreeShape<Name>> {}
 
-const tree: ATree<s.Apply<string>> = s.record({
-	name: s.string(),
+const tree: ATree<p.AAtomicWithGen<string>> = s.record({
+	name: p.string(),
 	get children() {
 		return s.optional(s.list(tree));
 	},
 });
 
 describe("linked list in terms of optional", () => {
-	const str = atomicWithGen(fc.string());
+	const str = p.string();
 	const llStr = linkedListWithOpt(str);
 	test.skip("type checking for deriving arb", () => {
 		// Should not derive getArbApply
@@ -74,28 +73,42 @@ describe("linked list in terms of optional", () => {
 	describe("of string", () => {
 		testCasesPropsApply(llStr);
 	});
+
+	describe("of union", () => {
+		testCasesPropsApply(s.either(p.string(), p.integer()));
+	});
+
+	describe("of record", () => {
+		testCasesPropsApply(s.record({ str: p.string(), int: p.integer() }));
+	});
 });
 
 describe("tree", () => {
-	const tree1: s.infer<typeof tree> = {
-		name: "root",
-		children: s.List.fromArray([
-			{ name: "test1", children: undefined },
-			{ name: "test2", children: undefined },
-			{
-				name: "test3",
-				children: s.List.fromArray([
-					{ name: "x", children: undefined },
-					{ name: "y", children: undefined },
-				]),
-			},
-		]),
-	};
-	const dTree1: s.inferChange<typeof tree> = {
-		children: tree.shape.children.fromReplace(s.List.empty()),
-	};
-	test.skip("inspect", () => {
-		console.log(tree1);
-		console.log(tree.apply(tree1, dTree1));
+	testCasesPropsApply(tree);
+
+	describe("example", () => {
+		const tree1: s.infer<typeof tree> = {
+			name: "root",
+			children: s.List.fromArray([
+				{ name: "test1", children: undefined },
+				{ name: "test2", children: undefined },
+				{
+					name: "test3",
+					children: s.List.fromArray([
+						{ name: "x", children: undefined },
+						{ name: "y", children: undefined },
+					]),
+				},
+			]),
+		};
+		const dTree1: s.inferChange<typeof tree> = {
+			children: tree.shape.children.fromReplace(s.List.empty()),
+		};
+		test("apply example", () => {
+			expect(tree.apply(tree1, dTree1)).toEqual({
+				name: "root",
+				children: null,
+			});
+		});
 	});
 });
