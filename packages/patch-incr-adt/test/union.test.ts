@@ -2,17 +2,14 @@ import { describe, expect, it } from "bun:test";
 import fc from "fast-check";
 import { FUnion } from "@/funcs";
 import * as s from "@/index";
-import {
-	atomicWithGen,
-	genChangeFromApply,
-	genValueFromApply,
-} from "@/props/gen";
+import * as p from "@/props";
+import { genChangeFromApply, genValueFromApply } from "@/props/gen";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 import { testCasesIdentity, testCasesIFA } from "./fastCheck/testPropsIF.test";
 
 export const singleton = s.union(
 	{
-		single: atomicWithGen(fc.string()),
+		single: p.string(),
 	},
 	(_) => "single",
 );
@@ -26,8 +23,8 @@ export const nestedSingleton = s.union(
 
 export const union1 = s.union(
 	{
-		left: atomicWithGen(fc.string()),
-		right: atomicWithGen(fc.integer()),
+		left: p.string(),
+		right: p.integer(),
 	},
 	(x) => (typeof x === "string" ? "left" : "right"),
 );
@@ -42,7 +39,7 @@ export const union1NoGen = s.union(
 
 export const union1NoGenFailOnRight = s.union(
 	{
-		left: atomicWithGen(fc.string()),
+		left: p.string(),
 		right: s.number(),
 	},
 	(x) => (typeof x === "string" ? "left" : "right"),
@@ -105,8 +102,8 @@ describe("union funcs", () => {
 	const f1 = new FUnion(union1);
 	const union2 = s.union(
 		{
-			rec: s.record({ a: atomicWithGen(fc.string()) }),
-			int: atomicWithGen(fc.integer()),
+			rec: s.record({ a: p.string() }),
+			int: p.integer(),
 		},
 		(x) => (typeof x === "number" ? "int" : "rec"),
 	);

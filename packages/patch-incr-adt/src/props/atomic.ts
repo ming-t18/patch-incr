@@ -1,11 +1,16 @@
 import fc from "fast-check";
-import { type AtomicWithGen, atomicWithGen } from "./gen";
+import * as C from "@/constant";
+import { type AAtomicWithGen, atomicWithGen } from "./gen";
 
-export const boolean = (): AtomicWithGen<boolean> =>
+export const constant = <T>(value: T): C.AConstant<T, null> =>
+	C.constant(value, null);
+export const boolean = (): AAtomicWithGen<boolean> =>
 	atomicWithGen(fc.boolean());
-export const string = (opts?: fc.StringConstraints): AtomicWithGen<string> =>
+export const string = (opts?: fc.StringConstraints): AAtomicWithGen<string> =>
 	atomicWithGen(fc.string(opts));
-export const integer = (opts?: fc.IntegerConstraints): AtomicWithGen<number> =>
+export const integer = (opts?: fc.IntegerConstraints): AAtomicWithGen<number> =>
 	atomicWithGen(fc.integer(opts));
-export const bigInt = (opts: fc.BigIntConstraints): AtomicWithGen<bigint> =>
-	atomicWithGen(fc.bigInt(opts));
+export const bigInt = (
+	opts?: fc.BigIntConstraints | undefined,
+): AAtomicWithGen<bigint> =>
+	atomicWithGen(opts ? fc.bigInt(opts) : fc.bigInt());

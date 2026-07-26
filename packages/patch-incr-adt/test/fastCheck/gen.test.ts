@@ -2,36 +2,30 @@ import { describe, expect, test } from "bun:test";
 import fc from "fast-check";
 import * as s from "@/index";
 import type { ArbApply } from "@/props";
-import {
-	atomicWithGen,
-	genChangeFromApply,
-	genValueFromApply,
-} from "@/props/gen";
+import * as p from "@/props";
+import { genChangeFromApply, genValueFromApply } from "@/props/gen";
 import { propCanApplyApplies } from "./testPropsApply.test";
 
 const recordEmpty = s.record({});
 
 const item = s.record({
-	done: atomicWithGen(fc.boolean()),
-	text: atomicWithGen(fc.string()),
+	done: p.boolean(),
+	text: p.string(),
 	nested: s.record({
-		a: atomicWithGen(fc.string()),
-		b: atomicWithGen(fc.integer()),
+		a: p.string(),
+		b: p.integer(),
 	}),
 });
 
 const union = s.union(
 	{
-		boolean: atomicWithGen(fc.boolean()),
-		string: atomicWithGen(fc.string()),
+		boolean: p.boolean(),
+		string: p.string(),
 	},
 	(x) => typeof x as "string" | "boolean",
 );
 
-const either = s.Either.either(
-	item,
-	s.record({ b: atomicWithGen(fc.string()) }),
-);
+const either = s.Either.either(item, s.record({ b: p.string() }));
 
 const optional = s.optional(item);
 
@@ -67,7 +61,7 @@ describe("empty record", () => {
 describe("record with no arb", () => {
 	const itemNoArb = s.record({
 		done: s.atomic<boolean>(),
-		text: atomicWithGen(fc.string()),
+		text: p.string(),
 	});
 	const itemNoArb1 = s.record({
 		done: s.atomic<boolean>(),

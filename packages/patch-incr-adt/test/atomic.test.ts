@@ -1,7 +1,6 @@
 import { describe, it } from "bun:test";
-import fc from "fast-check";
 import * as s from "@/index";
-import { atomicWithGen } from "@/props/gen";
+import * as p from "@/props";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 
 describe("atomic", () => {
@@ -10,18 +9,18 @@ describe("atomic", () => {
 			// @ts-expect-error arbValue must fail type constraint
 			s.boolean().getArbApply(),
 		];
-		const _shouldPassTypeCheck = [atomicWithGen(fc.boolean()).getArbApply()];
+		const _shouldPassTypeCheck = [p.boolean().getArbApply()];
 	});
 
 	describe("boolean", () => {
-		testCasesPropsApply(atomicWithGen(fc.boolean()));
+		testCasesPropsApply(p.boolean());
 	});
 
 	describe("bigint", () => {
-		testCasesPropsApply(atomicWithGen(fc.bigInt()));
+		testCasesPropsApply(p.bigInt());
 	});
 
 	describe("string", () => {
-		testCasesPropsApply(atomicWithGen(fc.string()));
+		testCasesPropsApply(p.string());
 	});
 });

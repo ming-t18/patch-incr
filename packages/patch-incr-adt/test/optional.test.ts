@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import fc from "fast-check";
 import * as s from "@/index";
-import { atomicWithGen } from "@/props";
+import * as p from "@/props";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 export const recordOpt = s.optional(
 	s.record({
@@ -11,8 +10,8 @@ export const recordOpt = s.optional(
 );
 export const recordOptWithArb = s.optional(
 	s.record({
-		a: atomicWithGen(fc.boolean()),
-		b: atomicWithGen(fc.string()),
+		a: p.boolean(),
+		b: p.string(),
 	}),
 );
 

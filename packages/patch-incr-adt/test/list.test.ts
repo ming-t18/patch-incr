@@ -1,15 +1,14 @@
 /** biome-ignore-all lint/style/noNonNullAssertion: for testing */
 
 import { describe, expect, it, test } from "bun:test";
-import fc from "fast-check";
 import * as s from "@/index";
 import { FList } from "@/list/func";
 import * as lp from "@/list/prod";
-import { atomicWithGen } from "@/props";
+import * as p from "@/props";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 
 const listProdString = lp.list(s.string());
-const listProdStringGen = lp.list(atomicWithGen(fc.string()));
+const listProdStringGen = lp.list(p.string());
 const cons1: s.infer<typeof listProdString> = lp.cons(
 	"abc",
 	lp.cons("def", lp.cons("ghi", lp.cons("mno"))),

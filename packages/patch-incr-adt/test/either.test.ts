@@ -1,25 +1,19 @@
 import { describe } from "bun:test";
-import fc from "fast-check";
 import { FEither } from "@/either/func";
 import * as f from "@/funcs";
 import * as s from "@/index";
-import { atomicWithGen } from "@/props/gen";
+import * as p from "@/props";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 import { testCasesIdentity, testCasesIFA } from "./fastCheck/testPropsIF.test";
 
-const eitherIntegerString = s.either(
-	atomicWithGen(fc.integer()),
-	atomicWithGen(fc.string()),
-);
+const eitherIntegerString = s.either(p.integer(), p.string());
 
 describe("either apply", () => {
 	describe("const/const", () => {
 		testCasesPropsApply(s.either(s.constant(0, null), s.constant(1, null)));
 	});
 	describe("integer/integer", () => {
-		testCasesPropsApply(
-			s.either(atomicWithGen(fc.integer()), atomicWithGen(fc.integer())),
-		);
+		testCasesPropsApply(s.either(p.integer(), p.integer()));
 	});
 	describe("integer/string", () => {
 		testCasesPropsApply(eitherIntegerString);
@@ -27,33 +21,20 @@ describe("either apply", () => {
 	describe("nested", () => {
 		testCasesPropsApply(
 			s.either(
-				s.either(atomicWithGen(fc.integer()), atomicWithGen(fc.string())),
-				s.either(atomicWithGen(fc.boolean()), atomicWithGen(fc.integer())),
+				s.either(p.integer(), p.string()),
+				s.either(p.boolean(), p.integer()),
 			),
 		);
 	});
 	describe("string/record", () => {
-		testCasesPropsApply(
-			s.either(
-				atomicWithGen(fc.string()),
-				s.record({ int: atomicWithGen(fc.integer()) }),
-			),
-		);
+		testCasesPropsApply(s.either(p.string(), s.record({ int: p.integer() })));
 	});
 	describe("record/string", () => {
-		testCasesPropsApply(
-			s.either(
-				s.record({ int: atomicWithGen(fc.integer()) }),
-				atomicWithGen(fc.string()),
-			),
-		);
+		testCasesPropsApply(s.either(s.record({ int: p.integer() }), p.string()));
 	});
 	describe("record/record", () => {
 		testCasesPropsApply(
-			s.either(
-				s.record({ int: atomicWithGen(fc.integer()) }),
-				s.record({ str: atomicWithGen(fc.string()) }),
-			),
+			s.either(s.record({ int: p.integer() }), s.record({ str: p.string() })),
 		);
 	});
 });
@@ -75,9 +56,9 @@ describe("either", () => {
 		});
 	});
 	describe("assoc", () => {
-		const a = atomicWithGen(fc.integer());
-		const b = atomicWithGen(fc.string());
-		const c = atomicWithGen(fc.boolean());
+		const a = p.integer();
+		const b = p.string();
+		const c = p.boolean();
 		const _u1 = s.either(a, s.either(b, c));
 		const _u2 = s.either(s.either(a, b), c);
 		const f1 = f.assocRL(a, b, c);

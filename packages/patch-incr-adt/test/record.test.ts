@@ -1,11 +1,10 @@
 import { describe, expect, it, test } from "bun:test";
-import fc from "fast-check";
 import * as s from "@/index";
-import { atomicWithGen } from "@/props/gen";
+import * as p from "@/props";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 
 export const singleton = s.object({
-	id: atomicWithGen(fc.integer()),
+	id: p.integer(),
 });
 
 export const nestedSingleton = s.object({
@@ -13,9 +12,9 @@ export const nestedSingleton = s.object({
 });
 
 export const item = s.object({
-	id: atomicWithGen(fc.integer()),
-	done: atomicWithGen(fc.boolean()),
-	description: atomicWithGen(fc.string()),
+	id: p.integer(),
+	done: p.boolean(),
+	description: p.string(),
 });
 
 export const itemNoGen = s.object({
@@ -29,7 +28,7 @@ export const omitted = s.omit(item, {
 });
 
 export const merged = s.merge(item, {
-	isChanged: atomicWithGen(fc.boolean()),
+	isChanged: p.boolean(),
 });
 
 type _Merged = s.infer<typeof merged>;

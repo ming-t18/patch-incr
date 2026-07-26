@@ -1,27 +1,23 @@
 import { describe } from "bun:test";
-import fc from "fast-check";
 import * as f from "@/funcs";
 import * as s from "@/index";
 import { Either, Pair } from "@/index";
 import { FPair } from "@/pair/func";
-import { atomicWithGen } from "@/props/gen";
+import * as p from "@/props";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 import { testCasesIdentity, testCasesIFA } from "./fastCheck/testPropsIF.test";
 
-const pair1 = Pair.pair(
-	atomicWithGen(fc.boolean()),
-	atomicWithGen(fc.integer()),
-);
-const pairNested1 = Pair.pair(pair1, atomicWithGen(fc.string()));
+const pair1 = Pair.pair(p.boolean(), p.integer());
+const pairNested1 = Pair.pair(pair1, p.string());
 const pairNested2 = Pair.pair(
 	pair1.shape[0],
 	Pair.pair(pair1.shape[1], pairNested1.shape[1]),
 );
 const pairComplex = Pair.pair(
-	Either.either(atomicWithGen(fc.boolean()), atomicWithGen(fc.integer())),
+	Either.either(p.boolean(), p.integer()),
 	s.record({
-		single: s.record({ bool: atomicWithGen(fc.boolean()) }),
-		int: atomicWithGen(fc.integer()),
+		single: s.record({ bool: p.boolean() }),
+		int: p.integer(),
 	}),
 );
 
@@ -50,22 +46,22 @@ describe("FPair", () => {
 	});
 
 	describe("distrFst", () => {
-		const c = atomicWithGen(fc.boolean());
+		const c = p.boolean();
 		testCasesIFA(new FPair(pair1).distrFst<typeof c>(c));
 	});
 
 	describe("undistrFst", () => {
-		const c = atomicWithGen(fc.boolean());
+		const c = p.boolean();
 		testCasesIFA(new FPair(pair1).undistrFst<typeof c>(c));
 	});
 
 	describe("distrSnd", () => {
-		const c = atomicWithGen(fc.boolean());
+		const c = p.boolean();
 		testCasesIFA(new FPair(pair1).distrSnd<typeof c>(c));
 	});
 
 	describe("undistrSnd", () => {
-		const c = atomicWithGen(fc.boolean());
+		const c = p.boolean();
 		testCasesIFA(new FPair(pair1).undistrSnd<typeof c>(c));
 	});
 });

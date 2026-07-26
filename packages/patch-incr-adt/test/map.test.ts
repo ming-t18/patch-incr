@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import fc from "fast-check";
 import * as s from "@/index";
-import { atomicWithGen, genValueWithChange } from "@/props/gen";
+import * as p from "@/props";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 import type { AnyHasArbApply } from "./props";
 
@@ -19,7 +19,7 @@ const testPropsMapValue = <A extends AnyHasArbApply, T>(
 	});
 	it("same as inner apply", () => {
 		fc.assert(
-			fc.property(genValueWithChange(apply), ({ x: xMap, dx }) => {
+			fc.property(p.genValueWithChange(apply), ({ x: xMap, dx }) => {
 				expect(apply.apply(xMap, dx)).toEqual(
 					map(inner.apply(unmap(xMap), dx)),
 				);
@@ -36,14 +36,14 @@ describe("singleKey", () => {
 	});
 
 	describe("integer", () => {
-		const integer = atomicWithGen(fc.integer());
+		const integer = p.integer();
 		testPropsMapValue(s.singleKey("value", integer));
 	});
 
 	describe("record", () => {
 		const integer = s.record({
-			int: atomicWithGen(fc.integer()),
-			bool: atomicWithGen(fc.boolean()),
+			int: p.integer(),
+			bool: p.boolean(),
 		});
 		testPropsMapValue(s.singleKey("value", integer));
 	});
@@ -51,8 +51,8 @@ describe("singleKey", () => {
 	describe("union", () => {
 		const integer = s.union(
 			{
-				int: atomicWithGen(fc.integer()),
-				bool: atomicWithGen(fc.boolean()),
+				int: p.integer(),
+				bool: p.boolean(),
 			},
 			(x) => (typeof x === "number" ? "int" : "bool"),
 		);

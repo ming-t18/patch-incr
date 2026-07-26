@@ -437,13 +437,13 @@ AMapValue.prototype.getArbApply = function <
 	return new ArbMapValue<typeof this, AInner, T, T0, DT0>(this);
 };
 
-export class AtomicWithGen<T> extends AAtomic<T> {
+export class AAtomicWithGen<T> extends AAtomic<T> {
 	constructor(override readonly gen: Arb<T>) {
 		super();
 	}
 }
 
-export const atomicWithGen = <T>(gen: Arb<T>) => new AtomicWithGen<T>(gen);
+export const atomicWithGen = <T>(gen: Arb<T>) => new AAtomicWithGen<T>(gen);
 
 export const genValueFromApply = <A extends AnyHasArbApply>(
 	apply: A,

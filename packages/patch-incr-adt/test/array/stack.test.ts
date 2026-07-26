@@ -2,11 +2,7 @@ import { describe, expect, test } from "bun:test";
 import fc from "fast-check";
 import * as s from "@/index";
 import type { HasArbApply } from "@/props";
-import {
-	atomicWithGen,
-	genValueWith2Changes,
-	genValueWithChange,
-} from "@/props/gen";
+import * as p from "@/props";
 import { DEFAULT_DEPTH } from "@/props/opts";
 import { testCasesPropsApply } from "../fastCheck/testPropsApply.test";
 
@@ -17,7 +13,7 @@ const testCasesArrayStack = <A extends HasArbApply<T, DT>, T, DT>(
 
 	test("given an ArrayStackOp, the toApply part commutes with the array manip part (pop-push)", () => {
 		fc.assert(
-			fc.property(genValueWithChange(arrayStack), ({ x, dx }) => {
+			fc.property(p.genValueWithChange(arrayStack), ({ x, dx }) => {
 				fc.pre(!s.isDRO(dx));
 				const dxApply = {
 					...arrayStack.noop(dx.expectedLength),
@@ -37,7 +33,7 @@ const testCasesArrayStack = <A extends HasArbApply<T, DT>, T, DT>(
 
 	test("combining has net change in array length", () => {
 		fc.assert(
-			fc.property(genValueWith2Changes(arrayStack), ({ x, dx1, dx2 }) => {
+			fc.property(p.genValueWith2Changes(arrayStack), ({ x, dx1, dx2 }) => {
 				fc.pre(!s.isDRO(dx1) && !s.isDRO(dx2));
 				const dx = arrayStack.combine(dx1, dx2);
 				return (
@@ -51,7 +47,7 @@ const testCasesArrayStack = <A extends HasArbApply<T, DT>, T, DT>(
 
 	test("combining with a pop-all clears toApply", () => {
 		fc.assert(
-			fc.property(genValueWithChange(arrayStack), ({ dx }) => {
+			fc.property(p.genValueWithChange(arrayStack), ({ dx }) => {
 				fc.pre(!s.isDRO(dx));
 				const dx1 = arrayStack.combine(
 					dx,
@@ -65,7 +61,8 @@ const testCasesArrayStack = <A extends HasArbApply<T, DT>, T, DT>(
 	test("combining with an internal change", () => {
 		fc.assert(
 			fc.property(
-				genValueWithChange(arrayStack)
+				p
+					.genValueWithChange(arrayStack)
 					.map(({ x, dx }) => ({
 						x: x,
 						dx: dx,
@@ -105,7 +102,7 @@ const testCasesArrayStack = <A extends HasArbApply<T, DT>, T, DT>(
 			fc.property(
 				fc.record({
 					addl: arrayStack.getArbApply().arbValue(8),
-					val: genValueWithChange(arrayStack),
+					val: p.genValueWithChange(arrayStack),
 				}),
 				({ addl, val: { x, dx } }) => {
 					fc.pre(!s.isDRO(dx));
@@ -125,7 +122,7 @@ const testCasesArrayStack = <A extends HasArbApply<T, DT>, T, DT>(
 			fc.property(
 				fc.record({
 					n: fc.integer({ min: 0, max: 32 }),
-					val: genValueWithChange(arrayStack),
+					val: p.genValueWithChange(arrayStack),
 				}),
 				({ n, val: { x, dx } }) => {
 					fc.pre(!s.isDRO(dx) && arrayStack.canDoShiftTransform(n, dx));
@@ -142,21 +139,21 @@ const testCasesArrayStack = <A extends HasArbApply<T, DT>, T, DT>(
 
 describe("array stack", () => {
 	describe("of boolean", () => {
-		testCasesArrayStack(s.arrayStack(atomicWithGen(fc.boolean())));
+		testCasesArrayStack(s.arrayStack(p.boolean()));
 	});
 	describe("of bigint", () => {
 		test.skip("examples", () => {
-			const gen = s.arrayStack(atomicWithGen(fc.bigInt()));
-			console.log(fc.sample(genValueWithChange(gen), 100));
+			const gen = s.arrayStack(p.bigInt({ min: -10n, max: 10n }));
+			console.log(fc.sample(p.genValueWithChange(gen), 100));
 		});
-		testCasesArrayStack(s.arrayStack(atomicWithGen(fc.bigInt())));
+		testCasesArrayStack(s.arrayStack(p.bigInt({ min: -10n, max: 10n })));
 	});
 	describe("of record", () => {
 		testCasesPropsApply(
 			s.arrayStack(
 				s.record({
-					a: atomicWithGen(fc.boolean()),
-					b: atomicWithGen(fc.string()),
+					a: p.boolean(),
+					b: p.string(),
 				}),
 			),
 		);
@@ -166,8 +163,8 @@ describe("array stack", () => {
 			s.arrayStack(
 				s.union(
 					{
-						bool: atomicWithGen(fc.boolean()),
-						str: atomicWithGen(fc.string()),
+						bool: p.boolean(),
+						str: p.string(),
 					},
 					(x) => (typeof x === "boolean" ? "bool" : "str"),
 				),
@@ -175,17 +172,15 @@ describe("array stack", () => {
 		);
 	});
 	describe("two-dimensional of boolean", () => {
-		testCasesArrayStack(
-			s.arrayStack(s.arrayStack(atomicWithGen(fc.boolean()))),
-		);
+		testCasesArrayStack(s.arrayStack(s.arrayStack(p.boolean())));
 	});
 	describe("two-dimensional of record", () => {
 		testCasesArrayStack(
 			s.arrayStack(
 				s.arrayStack(
 					s.record({
-						a: atomicWithGen(fc.boolean()),
-						b: atomicWithGen(fc.string()),
+						a: p.boolean(),
+						b: p.string(),
 					}),
 				),
 			),

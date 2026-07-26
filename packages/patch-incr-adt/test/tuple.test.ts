@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import fc from "fast-check";
 import * as s from "@/index";
-import { atomicWithGen } from "@/props/gen";
+import * as p from "@/props";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 import type { DeriveProductShapedChangeTuple } from "./product";
 
@@ -12,11 +11,7 @@ type _TupleKey3 = s.KeyOfTuple<["a", "b", "c"]>;
 type _TupleKey4 = s.KeyOfTuple<["a", "b", "c", "d"]>;
 
 const tupNoArb = s.tuple([s.string(), s.number(), s.nullType()]);
-const tup = s.tuple([
-	atomicWithGen(fc.string()),
-	atomicWithGen(fc.integer()),
-	atomicWithGen(fc.constant(null)),
-]);
+const tup = s.tuple([p.string(), p.integer(), p.constant(null)]);
 
 export type Tup = s.infer<typeof tupNoArb>;
 export type DTup = s.inferChange<typeof tupNoArb>;
