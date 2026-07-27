@@ -20,6 +20,31 @@ import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 // 	},
 // });
 
+interface NatShape {
+	zero: s.AConstant<0n, null>;
+	succ: s.AMapValue<ANat, bigint>;
+}
+
+interface ANat extends s.AUnion<NatShape>, RecBrand {}
+
+const nat: ANat = s.union<NatShape>(
+	{
+		zero: s.constant(0n, null),
+		get succ() {
+			return new (class extends s.AMapValue<ANat, bigint> {
+				constructor() {
+					super(
+						nat,
+						(x: bigint) => x - 1n,
+						(x: bigint) => x + 1n,
+					);
+				}
+			})();
+		},
+	},
+	(x) => (x <= 0n ? "zero" : "succ"),
+);
+
 interface ALinkedListWithOpt<A extends s.$A>
 	extends s.ARecord<{
 			head: A;
@@ -52,6 +77,11 @@ const tree: ATree<p.AAtomicWithGen<string>> = s.record({
 		return s.optional(s.list(tree));
 	},
 });
+
+// TODO generator doesn't work property due to infinite recursion
+// describe("nat", () => {
+// 	testCasesPropsApply(nat);
+// });
 
 describe("linked list in terms of optional", () => {
 	const str = p.string();
