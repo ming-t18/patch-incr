@@ -1,3 +1,4 @@
+import { type APair, pair } from "@/pair";
 import { getReplaceOnly } from "@/replaceOnly";
 import type { $A, $D, $T } from "../types/abbr";
 import {
@@ -5,6 +6,7 @@ import {
 	type IF1,
 	type IFA,
 	IFKind,
+	type IFR,
 } from "../types/func/incrFunc";
 
 export const REEVAL = Symbol.for("patch-incr-adt:REEVAL");
@@ -66,6 +68,28 @@ export const makeForwardA =
 		return res;
 	};
 
+export const makeIFA = <
+	A extends $A,
+	B extends $A,
+	DASub = A["~apply"]["internal"],
+>(
+	input: A,
+	output: B,
+	{
+		evaluate,
+		forward,
+	}: {
+		evaluate: Evaluate<A, B>;
+		forward: (x: $T<A>, dx: DASub) => $D<B> | REEVAL;
+	},
+): IFA<A, B> => ({
+	kind: IFKind.IFA,
+	evaluate,
+	forward: makeForwardA(input, output, { evaluate, forward }),
+	input,
+	output,
+});
+
 export const makeIF1 = <
 	A extends $A,
 	B extends $A,
@@ -88,27 +112,36 @@ export const makeIF1 = <
 	output,
 });
 
-export const makeIFA = <
+export const makeIFR = <
 	A extends $A,
 	B extends $A,
+	R extends $A,
 	DASub = A["~apply"]["internal"],
 >(
 	input: A,
 	output: B,
+	residual: R,
 	{
 		evaluate,
 		forward,
 	}: {
-		evaluate: Evaluate<A, B>;
-		forward: (x: $T<A>, dx: DASub) => $D<B> | REEVAL;
+		evaluate: Evaluate<A, APair<B, R>>;
+		forward: (
+			x: $T<A>,
+			dx: DASub,
+			y: $T<APair<B, R>>,
+		) => $D<APair<B, R>> | REEVAL;
 	},
-): IFA<A, B> => ({
-	kind: IFKind.IFA,
-	evaluate,
-	forward: makeForwardA(input, output, { evaluate, forward }),
-	input,
-	output,
-});
+): IFR<A, B, R> => {
+	const outputPair = pair(output, residual);
+	return {
+		kind: IFKind.IFR,
+		evaluate,
+		forward: makeForward(input, outputPair, { evaluate, forward }),
+		input,
+		output: outputPair,
+	};
+};
 
 /** Class for partitioning a record/union shape into picked and omitted keys. */
 export class ShapePartition<
