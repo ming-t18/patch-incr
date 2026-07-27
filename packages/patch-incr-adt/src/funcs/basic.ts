@@ -2,7 +2,7 @@ import type { InferApplyValue } from "@/types";
 import type { $A, $T } from "@/types/abbr";
 import { type IF1, type IFA, IFKind } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
-import { makeIF, makeIFA, REEVAL } from "./helpers";
+import { makeIF1, makeIFA, REEVAL } from "./helpers";
 
 /** Given an `IF`, convert to an `IFA` by re-evaluating in the `forward` implementation. */
 export const fromIFA = <A extends $A, B extends $A>({
@@ -186,7 +186,7 @@ export const cond1 = <A extends $A, B extends $A>(
 	input = fLeft.input,
 	output = fLeft.output,
 ): IF1<A, B> =>
-	makeIF(input, output, {
+	makeIF1(input, output, {
 		evaluate: (x) => (pred(x) ? fLeft.evaluate(x) : fRight.evaluate(x)),
 		forward: (x, dx, y) => {
 			const x1 = fLeft.input.apply(x, dx);

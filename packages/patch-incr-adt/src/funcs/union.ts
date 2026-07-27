@@ -18,7 +18,7 @@ import {
 	type UnionChangeEntry,
 } from "@/union";
 import { type AUnionOmit, type AUnionPick, omit } from "@/union/utils";
-import { makeIF, makeIFA, ShapePartition } from "./helpers";
+import { makeIF1, makeIFA, ShapePartition } from "./helpers";
 
 export class FUnion<
 	Shape extends Record<Key, $A>,
@@ -37,7 +37,7 @@ export class FUnion<
 			const disc = getCase(x);
 			return funcs[disc].evaluate(x);
 		};
-		return makeIF<A, AUnion<Shape, Key>>(input, this.union, {
+		return makeIF1<A, AUnion<Shape, Key>>(input, this.union, {
 			evaluate,
 			forward: (x, dx, y): $D<AUnion<Shape, Key>> => {
 				const x1 = input.apply(x, dx);
@@ -125,7 +125,7 @@ export class FUnion<
 			return funcs[disc].evaluate(input);
 		};
 
-		return makeIF(this.union, output, {
+		return makeIF1(this.union, output, {
 			evaluate,
 			forward: (x, dx, y): $D<B> => {
 				const disc = this.union.getDiscrimant(x);

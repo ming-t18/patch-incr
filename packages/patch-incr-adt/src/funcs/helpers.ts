@@ -66,8 +66,7 @@ export const makeForwardA =
 		return res;
 	};
 
-// TODO rename to makeIF1
-export const makeIF = <
+export const makeIF1 = <
 	A extends $A,
 	B extends $A,
 	DASub = A["~apply"]["internal"],

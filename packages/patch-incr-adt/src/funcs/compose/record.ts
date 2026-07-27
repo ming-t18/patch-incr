@@ -2,7 +2,7 @@ import { type ARecord, record } from "@/record";
 import { type ARecordMerge, type MergeShapes, merge } from "@/record/utils";
 import type { $A, $D, $T, IF1, IFA, IFR } from "@/types";
 import { compose1A, identity } from "../basic";
-import { makeIF } from "../helpers";
+import { makeIF1 } from "../helpers";
 import { FRecord } from "../product";
 
 export const assignSingleton = <
@@ -14,7 +14,7 @@ export const assignSingleton = <
 	getValue: IF1<Input, Value> | IFA<Input, Value>,
 ): IF1<Input, ARecord<Record<K, Value>, K>> => {
 	const output = record({ [key]: getValue.output } as Record<K, Value>);
-	return makeIF(getValue.input, output, {
+	return makeIF1(getValue.input, output, {
 		evaluate: (x) =>
 			({ [key as K]: getValue.evaluate(x) }) as Record<K, $T<Value>>,
 		forward: (x, dx, y) => {
@@ -46,7 +46,7 @@ export const composeAssign = <
 		K,
 		Value
 	>) as Rec1;
-	return makeIF(func.input, output, {
+	return makeIF1(func.input, output, {
 		evaluate: (x) => {
 			const r = func.evaluate(x);
 			return { ...r, [key]: getValue.evaluate(r) } as $T<Rec1>;
