@@ -44,7 +44,7 @@ export class ArbConstant<A extends AConstant<T, D>, T = $T<A>, D = $D<A>>
 	arbValue(_depth: number): Arb<T> {
 		return fc.constant(this.apply.value);
 	}
-	arbChange(_?: ArbChangeConfig<T>): Arb<D> {
+	arbChange(_: ArbChangeConfig<T>): Arb<D> {
 		return fc.constant(this.apply.empty);
 	}
 }
@@ -64,7 +64,7 @@ export class ArbAtomic<A extends AAtomic<T>, T = $T<A>> implements ArbApply<A> {
 		return gen;
 	}
 
-	arbChange(_?: ArbChangeConfig<T>): Arb<$D<A>> {
+	arbChange(_: ArbChangeConfig<T>): Arb<$D<A>> {
 		return arbEmptyOrReplace(this.apply, this.arbValue(0));
 	}
 }
@@ -97,7 +97,7 @@ export class ArbProductShaped<
 			);
 	}
 
-	arbChange(opts?: ArbChangeConfig<Prod>): Arb<$D<A>> {
+	arbChange(opts: ArbChangeConfig<Prod>): Arb<$D<A>> {
 		if (isLeaf(opts)) {
 			return fc.constant(null);
 		}
@@ -201,7 +201,7 @@ export class ArbTupleShaped<
 		);
 	}
 
-	arbChange(opts?: ArbChangeConfig<Prod>): Arb<$D<A>> {
+	arbChange(opts: ArbChangeConfig<Prod>): Arb<$D<A>> {
 		if (isLeaf(opts)) {
 			return fc.constant(null);
 		}
@@ -279,7 +279,7 @@ export class ArbUnion<
 		);
 	}
 
-	arbChange(opts?: ArbChangeConfig<$T<A>> | undefined): Arb<$D<A>> {
+	arbChange(opts: ArbChangeConfig<$T<A>>): Arb<$D<A>> {
 		if (isLeaf(opts)) {
 			return fc.constant(null);
 		}
@@ -362,7 +362,7 @@ export class ArbOptional<
 			},
 		);
 	}
-	arbChange(opts?: ArbChangeConfig<$T<A>>) {
+	arbChange(opts: ArbChangeConfig<$T<A>>) {
 		const valueIsProvided = opts && "value" in opts;
 		const undefinedPart = {
 			weight: 1,
@@ -417,14 +417,11 @@ export class ArbMapValue<
 			);
 	}
 
-	arbChange(opts?: ArbChangeConfig<T>): Arb<DT0> {
+	arbChange(opts: ArbChangeConfig<T>): Arb<DT0> {
 		const arbA = this.apply.inner.getArbApply();
-		if (opts && "value" in opts) {
-			return arbA.arbChange(
-				diveArbChangeConfig((x) => this.apply.unmap(x), opts),
-			);
-		}
-		return arbA.arbChange();
+		return arbA.arbChange(
+			diveArbChangeConfig((x) => this.apply.unmap(x), opts),
+		);
 	}
 }
 

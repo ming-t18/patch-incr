@@ -25,13 +25,13 @@ export class ArbArrayStack<
 	}
 
 	arbChange(
-		opts?: ArbChangeConfig<readonly T[]> | undefined,
+		opts: ArbChangeConfig<readonly T[]>,
 	): Arb<DeriveArrayStackChange<T, DT>> {
 		const repPart = arbEmptyOrReplace(
 			this.apply,
-			this.arbValue(opts?.depth ?? DEFAULT_DEPTH),
+			this.arbValue(opts.depth ?? DEFAULT_DEPTH),
 		);
-		const arrLen = opts?.value?.length;
+		const arrLen = opts.value?.length;
 		const minLen = arrLen ?? 0;
 		const arbInner = this.apply.inner.getArbApply();
 		const toApplyArr: Arb<DT[]> = opts
@@ -51,10 +51,17 @@ export class ArbArrayStack<
 								),
 						),
 				)
-			: fc.array(arbInner.arbChange(), {
-					minLength: 0,
-					maxLength: MAX_ARRAY_LEN,
-				});
+			: fc.array(
+					arbInner.arbChange(
+						diveArbChangeConfig(() => {
+							throw new Error();
+						}, opts),
+					),
+					{
+						minLength: 0,
+						maxLength: MAX_ARRAY_LEN,
+					},
+				);
 
 		const arbToPop = fc.oneof(
 			// [0..n]

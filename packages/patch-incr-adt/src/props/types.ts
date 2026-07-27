@@ -20,7 +20,7 @@ export interface ArbChangeConfig<T> {
 
 export interface ArbApply<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>> {
 	readonly arbValue: (depth: number) => Arb<T>;
-	readonly arbChange: (opts?: ArbChangeConfig<T>) => Arb<DT>;
+	readonly arbChange: (opts: ArbChangeConfig<T>) => Arb<DT>;
 }
 
 export interface HasArbApply<T, DT> extends Apply<T, DT> {

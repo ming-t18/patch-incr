@@ -1,4 +1,6 @@
 import { composeA, condA, constant, FProduct, FUnion, trimA } from "@/funcs";
+import { type APair, pair } from "@/pair";
+import { FPair } from "@/pair/func";
 import type { $A, $D, $T } from "@/types/abbr";
 import { type IFA, IFKind } from "@/types/func";
 import { type AList, type Cons, list } from "./prod";
@@ -6,7 +8,9 @@ import { type AList, type Cons, list } from "./prod";
 export class FList<A extends $A> {
 	constructor(
 		readonly list: AList<A>,
-		readonly union = new FUnion(list),
+		readonly fUnion = new FUnion(list),
+		readonly fCons = new FProduct(list.shape.cons),
+		readonly inner: A = list.shape.cons.shape.head,
 	) {}
 
 	memoedRec<B extends $A>(
@@ -47,15 +51,27 @@ export class FList<A extends $A> {
 		return new MemoedRec();
 	}
 
+	cons(): IFA<APair<A, AList<A>>, AList<A>> {
+		const input: APair<A, AList<A>> = pair(this.inner, this.list);
+		const fInput = new FPair(input);
+		return composeA(
+			this.fCons.introA(input, {
+				head: fInput.fst(),
+				tail: fInput.snd(),
+			}),
+			this.fUnion.introCase("cons"),
+		);
+	}
+
 	filter(pred: (x: $T<A>) => boolean): IFA<AList<A>, AList<A>> {
 		const { nil, cons } = this.list.shape;
-		const fCons = new FProduct(cons);
+		const fCons = this.fCons;
 		const fromRec = (rec: IFA<AList<A>, AList<A>>): IFA<AList<A>, AList<A>> => {
 			const consCase = fCons.introA(cons, {
 				head: fCons.get("head"),
 				tail: composeA(fCons.get("tail"), rec),
 			});
-			return this.union.elimA(this.list, {
+			return this.fUnion.elimA(this.list, {
 				nil: constant(nil, this.list, null),
 				cons: condA(
 					(x) => pred(x.head),
@@ -66,7 +82,7 @@ export class FList<A extends $A> {
 							(c1, c2) =>
 								Object.is(c1.head, c2.head) && Object.is(c1.tail, c2.tail),
 						),
-						this.union.introCase("cons"),
+						this.fUnion.introCase("cons"),
 					),
 					composeA(fCons.get("tail"), rec),
 				),
@@ -78,11 +94,11 @@ export class FList<A extends $A> {
 	map<B extends $A>(func: IFA<A, B>): IFA<AList<A>, AList<B>> {
 		const listOut = list(func.output);
 		const { nil, cons } = this.list.shape;
-		const fConsIn = new FProduct(cons);
+		const fConsIn = this.fCons;
 		const fConsOut = new FProduct(listOut.shape.cons);
 		const fUnionOut = new FUnion(listOut);
 		const fromRec = (rec: IFA<AList<A>, AList<B>>): IFA<AList<A>, AList<B>> => {
-			return this.union.elimA(listOut, {
+			return this.fUnion.elimA(listOut, {
 				nil: constant(nil, listOut, null),
 				cons: composeA(
 					fConsOut.introA(cons, {

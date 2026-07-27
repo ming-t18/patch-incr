@@ -11,11 +11,8 @@ export const isLeaf = <T>(opts?: ArbChangeConfig<T> | undefined) => {
 /** Given an `ArbChangeConfig` of a parent, returns an `ArbChangeConfig` for its child. */
 export const diveArbChangeConfig = <A, B>(
 	func: (input: A) => B,
-	opts?: ArbChangeConfig<A> | undefined,
+	opts: ArbChangeConfig<A>,
 ): ArbChangeConfig<B> => {
-	if (!opts) {
-		return { depth: DEFAULT_DEPTH - 1 };
-	}
 	const { value: _, depth, ...rest } = opts;
 	return opts
 		? {
