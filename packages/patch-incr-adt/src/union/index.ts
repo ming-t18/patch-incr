@@ -1,4 +1,5 @@
 import { getReplaceOnly, isReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
+import type { $D } from "@/types";
 import {
 	type AnyApply,
 	ApplyError,
@@ -194,6 +195,22 @@ export class AUnion<
 			type,
 			change: this.shape[type].fromReplace(replace),
 		};
+	}
+
+	override trim(
+		change: DeriveUnionChange<Map, Key>,
+	): DeriveUnionChange<Map, Key> {
+		if (change === null || isReplaceOnly(change)) {
+			return change;
+		}
+		const sub = this.shape[change.type];
+		const trimmed: $D<Map[Key]> = sub.trim(change.change);
+		return sub.isEmpty(trimmed)
+			? null
+			: ({
+					type: change.type,
+					change: trimmed,
+				} as typeof change);
 	}
 }
 

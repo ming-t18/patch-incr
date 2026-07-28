@@ -70,6 +70,10 @@ export class AMapValue<A extends Apply<T0, DT0>, T, T0 = $T<A>, DT0 = $D<A>>
 	override canCombine(a: InferApplyChange<A>, b: InferApplyChange<A>): boolean {
 		return this.inner.canCombine(a, b);
 	}
+
+	override trim(change: DT0): DT0 {
+		return this.inner.trim(change);
+	}
 }
 
 /**

@@ -81,7 +81,13 @@ export interface Apply<in out T, in out DT = DRO<T>> extends Change<T, DT> {
 	/** If this method is defined, determines if the patch is applicable given a value. */
 	readonly canApply: (value: T, change: DT) => boolean;
 
-	/** If the change is effectively empty, return empty, otherwise return the change itself. */
+	/**
+	 * Determines if the change is effectively empty.
+	 * If true, return `empty`, otherwise return the change itself.
+	 *
+	 * A typical implementation calls `trim` on the inner changes to
+	 * determine if the entire change is effectively empty.
+	 */
 	readonly trim: (change: DT) => DT;
 }
 

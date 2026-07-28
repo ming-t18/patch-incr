@@ -4,6 +4,7 @@ import type {
 } from "@/record/types";
 import { getReplaceOnly, isReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
 import {
+	type $D,
 	type AnyApply,
 	type Apply,
 	BaseApplyClass,
@@ -195,5 +196,28 @@ export abstract class BaseProductShaped<
 			res[k] = fn(k, this.shape[k]);
 		}
 		return res as Reshaped;
+	}
+
+	override trim(
+		change: DeriveProductChange<Prod, Shape, Key>,
+	): DeriveProductChange<Prod, Shape, Key> {
+		if (change === null || isReplaceOnly(change)) {
+			return change;
+		}
+
+		let allEmpty = true;
+		const out: { [key in Key]?: $D<Shape[Key]> } = {};
+		for (const key of this.keys) {
+			if (!Object.hasOwn(change, key)) {
+				continue;
+			}
+			const d1 = this.shape[key].trim(change[key]);
+			if (this.shape[key].isEmpty(d1)) {
+				continue;
+			}
+			allEmpty = false;
+			out[key] = d1;
+		}
+		return allEmpty ? null : out;
 	}
 }

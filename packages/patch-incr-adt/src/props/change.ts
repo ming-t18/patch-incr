@@ -37,6 +37,8 @@ export interface PropsApply<T, D> extends PropsMonoid<D> {
 	isReplaceOnlyIsNullOnEmpty: () => boolean;
 	/** getReplaceOnly(R(a)) = a */
 	isReplaceOnlyOnReplace: (rep: T) => boolean;
+	/** x @ trim(d) = x @ d */
+	trimPreservesApply: (val: T, change: D) => boolean;
 }
 
 export type Eq<T> = (a: T, b: T) => boolean;
@@ -127,5 +129,14 @@ export const makePropsApply = <T, D>(
 			return rep1 === null;
 		}
 		return rep1 !== null && eqValue(rep, getReplaceOnly(rep1));
+	},
+	trimPreservesApply: (val: T, change: D) => {
+		if (!apply.canApply(val, change)) {
+			return true;
+		}
+		return eqValue(
+			apply.apply(val, apply.trim(change)),
+			apply.apply(val, change),
+		);
 	},
 });

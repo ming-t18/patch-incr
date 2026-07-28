@@ -157,4 +157,32 @@ export abstract class BaseProductShapedTuple<
 		}
 		return change1;
 	}
+
+	override trim(
+		change: DeriveProductChangeTuple<Prod, Shape>,
+	): DeriveProductChangeTuple<Prod, Shape> {
+		if (change === null || isReplaceOnly(change)) {
+			return change;
+		}
+
+		let allEmpty = true;
+		// @ts-expect-error Can't be checked
+		const out: DeriveProductShapedChangeTuple<Shape> = this.shape.map(
+			(s) => s.empty,
+		);
+		for (const key of this.keys) {
+			if (!Object.hasOwn(change, key)) {
+				continue;
+			}
+			const inner = this.shape[key] as AnyApply;
+			const d1 = inner.trim(change[key]);
+			if (inner.isEmpty(d1)) {
+				continue;
+			}
+			allEmpty = false;
+			// @ts-expect-error Bypassing `readonly`
+			out[key] = d1;
+		}
+		return allEmpty ? null : out;
+	}
 }

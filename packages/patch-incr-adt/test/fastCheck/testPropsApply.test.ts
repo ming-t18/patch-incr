@@ -103,4 +103,10 @@ export const testCasesPropsApply = <A extends AnyHasArbApply>(apply: A) => {
 			fc.property(arbValue, arbChange, props.canApplyIffApplyNoError),
 		);
 	});
+
+	describe("trim", () => {
+		testProp("trim preserves the result of apply", () =>
+			fc.property(arbValue, arbChange, props.trimPreservesApply),
+		);
+	});
 };

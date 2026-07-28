@@ -117,6 +117,42 @@ describe("filter", () => {
 			});
 		});
 
+		const getIndexFirstChange = <T extends s.$A>(
+			dx: s.$D<s.AList<T>>,
+		): number => {
+			if (s.isDRO(dx)) {
+				return dx === null ? Infinity : 0;
+			}
+			if (dx.type === "nil") {
+				return 0;
+			}
+			const dCons = dx.change;
+			if (s.isDRO(dCons)) {
+				return 0;
+			}
+			if (dCons.head) {
+				return 0;
+			}
+			if (!dCons.tail) {
+				return Infinity;
+			}
+			return 1 + getIndexFirstChange(dCons.tail);
+		};
+
+		const getDepth = <T extends s.$A>(dx: s.$D<s.AList<T>>): number => {
+			if (s.isDRO(dx)) {
+				return dx === null ? Infinity : 0;
+			}
+			if (dx.type === "nil") {
+				return 0;
+			}
+			const dCons = dx.change;
+			if (s.isDRO(dCons)) {
+				return 0;
+			}
+			return dCons.tail ? 1 + getDepth(dCons.tail) : 1;
+		};
+
 		const noTailReplaces = <T extends s.$A>(dx: s.$D<s.AList<T>>): boolean => {
 			if (s.isDRO(dx)) {
 				return dx === null;
@@ -149,18 +185,32 @@ describe("filter", () => {
 			const f = new FList(listProdStringGen).filter(() => true);
 			testCasesIFA(f);
 
-			test.skip("should return input change", () => {
+			test("should match change depth", () => {
 				fc.assert(
 					fc.property(p.genValueWithChange(f.input), ({ x, dx }) => {
 						fc.pre(noTailReplaces(dx));
-						expect(f.output.trim(f.forward(x, dx))).toEqual(dx);
+						const actual = f.output.trim(f.forward(x, dx));
+						const expected = f.input.trim(dx);
+						return getDepth(actual) === getDepth(expected);
 					}),
 				);
 			});
 		});
 
 		describe("filter by length", () => {
-			testCasesIFA(new FList(listProdStringGen).filter((x) => x.length < 5));
+			const f = new FList(listProdStringGen).filter((x) => x.length < 5);
+			testCasesIFA(f);
+
+			test("index of first change", () => {
+				fc.assert(
+					fc.property(p.genValueWithChange(f.input), ({ x, dx }) => {
+						fc.pre(noTailReplaces(dx));
+						const actual = f.output.trim(f.forward(x, dx));
+						const expected = f.input.trim(dx);
+						return getIndexFirstChange(actual) >= getIndexFirstChange(expected);
+					}),
+				);
+			});
 		});
 	});
 
