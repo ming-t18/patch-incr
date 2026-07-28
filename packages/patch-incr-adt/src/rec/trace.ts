@@ -1,5 +1,5 @@
 import type { AEither, Either, Right } from "@/either";
-import { makeIFR, REEVAL } from "@/funcs/helpers";
+import { makeIFA, makeIFR, REEVAL } from "@/funcs/helpers";
 import type { APair } from "@/pair";
 import type { $A, $T, Evaluate, IFA, IFR } from "@/types";
 import { type AAtomic, atomic } from "..";
@@ -48,4 +48,27 @@ export const trace = <A extends $A, B extends $A, C extends $A>(
 			}
 		},
 	});
+};
+
+export const trace1 = <A extends $A, B extends $A, C extends $A>(
+	func: IFA<AEither<A, C>, AEither<B, C>>,
+): IFA<AEither<A, C>, B> => {
+	let _cached: IFA<AEither<A, C>, B>;
+	const rec = {
+		get func() {
+			if (!_cached) {
+				_cached = makeIFA(func.input, func.output.shape.left.inner, {
+					evaluate: (x: $T<AEither<A, C>>): $T<B> => {
+						const y = func.evaluate(x);
+						return "left" in y ? y.left : rec.func.evaluate(y);
+					},
+					forward: (_, _1) => {
+						throw new Error();
+					},
+				});
+			}
+			return _cached;
+		},
+	};
+	return rec.func;
 };

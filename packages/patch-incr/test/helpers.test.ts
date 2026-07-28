@@ -265,7 +265,8 @@ describe("projectPatches", () => {
 			[[2, 3]],
 			[[0, 3]],
 		])("project property: %o", (prefix: Path) =>
-			propProjectPatches(genArray2D, prefix));
+			propProjectPatches(genArray2D, prefix),
+		);
 	});
 
 	describe("multi", () => {
@@ -290,7 +291,8 @@ describe("projectPatches", () => {
 				[["tup", 0]],
 				[["tup", 1]],
 			] as [Path][])("project property: %o", (prefix: Path) =>
-				propProjectPatches(genNested, prefix));
+				propProjectPatches(genNested, prefix),
+			);
 		});
 
 		const genNestedArray = gp.record({
@@ -309,7 +311,8 @@ describe("projectPatches", () => {
 				[["arr1", 0, "str1"]],
 				[["arr1", 1, "str1"]],
 			] as [Path][])("project property: %o", (prefix: Path) =>
-				propProjectPatches(genNestedArray, prefix));
+				propProjectPatches(genNestedArray, prefix),
+			);
 		});
 
 		describe("nested object with 2 layers of array", () => {
@@ -324,7 +327,8 @@ describe("projectPatches", () => {
 				[["arr1", 1, "arr2", 2, "str"]],
 				[["arr1", 2, "arr2", 1, "str"]],
 			] as [Path][])("project property: %o", (prefix: Path) =>
-				propProjectPatches(genNestedArray, prefix));
+				propProjectPatches(genNestedArray, prefix),
+			);
 		});
 	});
 });
