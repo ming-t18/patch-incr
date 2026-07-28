@@ -104,13 +104,11 @@ export class ArbProductShaped<
 
 		const repPart = arbEmptyOrReplace(
 			this.apply,
-			// this.arbValue(opts?.depth ?? DEFAULT_DEPTH),
 			this.arbValue(
 				(opts?.depth ?? DEFAULT_DEPTH < 2) ? (opts?.depth ?? DEFAULT_DEPTH) : 2,
 			),
 		);
 		const _isDefined = opts && "value" in opts && opts.value;
-		// TODO apply depth check
 		return fc.oneof(
 			{ weight: opts?.droWeight ?? DRO_WEIGHT, arbitrary: repPart },
 			{
@@ -257,19 +255,18 @@ export class ArbUnion<
 	constructor(readonly apply: A) {}
 	arbValue(depth: number): Arb<$T<A>> {
 		if (depth <= 1) {
+			const filtered = (Object.values(this.apply.shape) as Shape[Key][])
+				.filter(
+					(inner) =>
+						inner instanceof AAtomic ||
+						((inner instanceof AConstant) as boolean),
+				)
+				.map((inner) => ({
+					weight: 1,
+					arbitrary: inner.getArbApply().arbValue(depth - 1),
+				}));
 			// TODO find a better way to identify base cases
-			return fc.oneof(
-				...(Object.values(this.apply.shape) as Shape[Key][])
-					.filter(
-						(inner) =>
-							inner instanceof AAtomic ||
-							((inner instanceof AConstant) as boolean),
-					)
-					.map((inner) => ({
-						weight: 1,
-						arbitrary: inner.getArbApply().arbValue(depth - 1),
-					})),
-			);
+			if (filtered.length > 0) return fc.oneof(...filtered);
 		}
 		return fc.oneof(
 			...Object.values(this.apply.shape).map((inner) => ({

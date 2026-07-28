@@ -25,6 +25,11 @@ export enum IFKind {
  * with an `evaluate` implementation that can be cheaply re-evalauted.
  * The `forward` implementation typically re-evaluates the `evaluate`
  * rather than receiving it from the caller through the 3rd argument.
+ *
+ * Classes implementing this interface need to do .bind(this) for `evaluate` and `forward`.
+ *
+ * @param A The `Apply` for the input type
+ * @param B The `Apply` for the output type
  */
 export interface IFA<A extends $A, B extends $A> extends IFBase<A, B> {
 	readonly kind: IFKind.IFA;
@@ -36,6 +41,8 @@ export interface IFA<A extends $A, B extends $A> extends IFBase<A, B> {
  * An incremental function from `A` to `B` with a non-trival `evaluate`
  * implementation. The `forward` method receives the result of `evaluate`
  * through the 3rd argument.
+ *
+ * Classes implementing this interface need to do .bind(this) for `evaluate` and `forward`.
  *
  * @param A The `Apply` for the input type
  * @param B The `Apply` for the output type
@@ -52,6 +59,8 @@ export interface IF1<A extends $A, B extends $A> extends IFBase<A, B> {
  * where `B` is the return value and `R` is the residual.
  *
  * All fields except `kind` follow the signature of `IF1<A, APair<B, R>>`.
+ *
+ * Classes implementing this interface need to do .bind(this) for `evaluate` and `forward`.
  */
 export interface IFR<A extends $A, B extends $A, R extends $A>
 	extends IFBase<A, APair<B, R>> {

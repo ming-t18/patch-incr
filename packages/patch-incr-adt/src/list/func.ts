@@ -5,6 +5,46 @@ import type { $A, $D, $T } from "@/types/abbr";
 import { type IFA, IFKind } from "@/types/func";
 import { type AList, type Cons, list } from "./prod";
 
+class MemoedRec<A extends $A, B extends $A> implements IFA<AList<A>, B> {
+	private _func: IFA<AList<A>, B> | null = null;
+	public readonly kind = IFKind.IFA as const;
+	constructor(
+		readonly input: AList<A>,
+		readonly output: B,
+		readonly getFunc: (func: IFA<AList<A>, B>) => IFA<AList<A>, B>,
+		readonly memo: WeakMap<$T<A>, $T<B>>,
+	) {
+		this.evaluate = this.evaluate.bind(this);
+		this.forward = this.forward.bind(this);
+	}
+
+	private get func(): IFA<AList<A>, B> {
+		if (this._func) return this._func;
+		const func = this.getFunc(this);
+		if (!func) {
+			throw new Error("get func: failed");
+		}
+		this._func = func;
+		return func;
+	}
+
+	evaluate(x: $T<AList<A>>): $T<B> {
+		if (x === null) {
+			return this.func.evaluate(x);
+		}
+		const memoed = this.memo.get(x);
+		if (memoed) {
+			return memoed;
+		}
+		const toAdd = this.func.evaluate(x);
+		this.memo.set(x, toAdd);
+		return toAdd;
+	}
+	forward(x: $T<AList<A>>, dx: $D<AList<A>>) {
+		return this.func.forward(x, dx);
+	}
+}
+
 export class FList<A extends $A> {
 	constructor(
 		readonly list: AList<A>,
@@ -19,36 +59,7 @@ export class FList<A extends $A> {
 		getFunc: (rec: IFA<AList<A>, B>) => IFA<AList<A>, B>,
 		memo = new WeakMap<Cons<$T<A>>, $T<B>>(),
 	): IFA<AList<A>, B> {
-		class MemoedRec implements IFA<AList<A>, B> {
-			readonly input = input;
-			readonly output = output;
-			readonly kind = IFKind.IFA;
-			private _func: ReturnType<typeof getFunc> | null = null;
-			private get func(): ReturnType<typeof getFunc> {
-				if (this._func) return this._func;
-				const func = getFunc(this);
-				this._func = func;
-				return func;
-			}
-
-			evaluate(x: $T<AList<A>>): $T<B> {
-				const func = this.func;
-				if (x === null) {
-					return func.evaluate(x);
-				}
-				const memoed = memo.get(x);
-				if (memoed) {
-					return memoed;
-				}
-				const toAdd = func.evaluate(x);
-				memo.set(x, toAdd);
-				return toAdd;
-			}
-			forward(x: $T<AList<A>>, dx: $D<AList<A>>) {
-				return this.func.forward(x, dx);
-			}
-		}
-		return new MemoedRec();
+		return new MemoedRec(input, output, getFunc, memo);
 	}
 
 	cons(): IFA<APair<A, AList<A>>, AList<A>> {

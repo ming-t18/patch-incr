@@ -80,6 +80,9 @@ export interface Apply<in out T, in out DT = DRO<T>> extends Change<T, DT> {
 	readonly apply: (value: T, change: DT) => T;
 	/** If this method is defined, determines if the patch is applicable given a value. */
 	readonly canApply: (value: T, change: DT) => boolean;
+
+	/** If the change is effectively empty, return empty, otherwise return the change itself. */
+	readonly trim: (change: DT) => DT;
 }
 
 /** An enum describing the structure of an `Apply` */
@@ -117,6 +120,10 @@ export abstract class BaseApplyClass<T, DT, DTEmpty extends DT = DT> {
 		} catch {
 			return false;
 		}
+	}
+
+	trim(x: DT): DT {
+		return x;
 	}
 }
 

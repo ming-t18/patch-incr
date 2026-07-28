@@ -13,7 +13,7 @@ export class Cons<T> {
 		readonly tail: Cons<T> | null = null,
 	) {}
 
-	toArray(): T[] {
+	toArray(): readonly T[] {
 		if (this.tail === null) {
 			return [this.head];
 		}
@@ -28,6 +28,20 @@ export class Cons<T> {
 
 	[Symbol.for("nodejs.util.inspect.custom")]() {
 		return { List: this.toArray() };
+	}
+}
+
+export class Nil<T> {
+	INSTANCE = new Nil<never>();
+
+	toArray(): readonly T[] {
+		return [];
+	}
+
+	*[Symbol.iterator](): Iterator<T> {}
+
+	[Symbol.for("nodejs.util.inspect.custom")]() {
+		return { List: [] };
 	}
 }
 

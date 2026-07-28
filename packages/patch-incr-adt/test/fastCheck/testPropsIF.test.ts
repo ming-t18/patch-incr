@@ -47,6 +47,7 @@ const propTestCase = <A extends AnyHasArbApply, B extends AnyHasArbApply>(
 							yActual,
 							yReapply,
 						});
+						console.error(e);
 						throw e;
 					}
 				}),
