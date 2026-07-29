@@ -3,6 +3,7 @@ export * from "./atomic";
 export * from "./constant";
 export * from "./either";
 export * as Either from "./either";
+export * as fn from "./funcs";
 export type * from "./list";
 export * as List from "./list";
 export { cons, list } from "./list";

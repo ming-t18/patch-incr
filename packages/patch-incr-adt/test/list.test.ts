@@ -7,7 +7,7 @@ import { FList } from "@/list/func";
 import * as lp from "@/list/prod";
 import * as p from "@/props";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
-import { testCasesIFA } from "./fastCheck/testPropsIF.test";
+import { testCasesIdentity, testCasesIFA } from "./fastCheck/testPropsIF.test";
 
 const listProdString = lp.list(s.string());
 const listProdStringGen = lp.list(p.string());
@@ -117,56 +117,6 @@ describe("filter", () => {
 			});
 		});
 
-		const getIndexFirstChange = <T extends s.$A>(
-			dx: s.$D<s.AList<T>>,
-		): number => {
-			if (s.isDRO(dx)) {
-				return dx === null ? Infinity : 0;
-			}
-			if (dx.type === "nil") {
-				return 0;
-			}
-			const dCons = dx.change;
-			if (s.isDRO(dCons)) {
-				return 0;
-			}
-			if (dCons.head) {
-				return 0;
-			}
-			if (!dCons.tail) {
-				return Infinity;
-			}
-			return 1 + getIndexFirstChange(dCons.tail);
-		};
-
-		const getDepth = <T extends s.$A>(dx: s.$D<s.AList<T>>): number => {
-			if (s.isDRO(dx)) {
-				return dx === null ? Infinity : 0;
-			}
-			if (dx.type === "nil") {
-				return 0;
-			}
-			const dCons = dx.change;
-			if (s.isDRO(dCons)) {
-				return 0;
-			}
-			return dCons.tail ? 1 + getDepth(dCons.tail) : 1;
-		};
-
-		const noTailReplaces = <T extends s.$A>(dx: s.$D<s.AList<T>>): boolean => {
-			if (s.isDRO(dx)) {
-				return dx === null;
-			}
-			if (dx.type === "nil") {
-				return true;
-			}
-			const dCons = dx.change;
-			if (s.isDRO(dCons)) {
-				return dCons === null;
-			}
-			return dCons.tail == null || noTailReplaces(dCons.tail);
-		};
-
 		describe("filter false", () => {
 			const f = new FList(listProdStringGen).filter(() => false);
 			testCasesIFA(f);
@@ -201,16 +151,7 @@ describe("filter", () => {
 			const f = new FList(listProdStringGen).filter((x) => x.length < 5);
 			testCasesIFA(f);
 
-			test("index of first change", () => {
-				fc.assert(
-					fc.property(p.genValueWithChange(f.input), ({ x, dx }) => {
-						fc.pre(noTailReplaces(dx));
-						const actual = f.output.trim(f.forward(x, dx));
-						const expected = f.input.trim(dx);
-						return getIndexFirstChange(actual) >= getIndexFirstChange(expected);
-					}),
-				);
-			});
+			testPropIndexFirstChange(f);
 		});
 	});
 
@@ -230,3 +171,112 @@ describe("filter", () => {
 		testCasesIFA(new FList(listOfPair).filter((x) => "left" in x));
 	});
 });
+
+describe("map", () => {
+	describe("of boolean", () => {
+		const bool = p.boolean();
+
+		describe("map id", () => {
+			const mapId = makeMapId(bool);
+			testCasesIFA(mapId);
+			testCasesIdentity(mapId);
+		});
+
+		describe("map not", () => {
+			testCasesIFA(
+				new FList(s.list(bool)).map(s.fn.atomicFuncA(bool, bool, (b) => !b)),
+			);
+		});
+
+		describe("map const", () => {
+			testCasesIFA(
+				new FList(s.list(bool)).map(s.fn.constant(bool, p.integer(), 2)),
+			);
+		});
+	});
+
+	describe("of pair", () => {
+		const pair = s.Pair.pair(p.boolean(), p.string());
+		const fList = new FList(s.list(pair));
+		describe("fst", () => {
+			const f = fList.map(new s.fn.FPair(pair).fst());
+			testCasesIFA(f);
+			testPropIndexFirstChange(f);
+		});
+		describe("snd", () => {
+			const f = fList.map(new s.fn.FPair(pair).snd());
+			testCasesIFA(f);
+			testPropIndexFirstChange(f);
+		});
+	});
+});
+
+function testPropIndexFirstChange<
+	A extends p.AnyHasArbApply,
+	B extends p.AnyHasArbApply,
+>(f: s.IFA<s.AList<A> & p.AnyHasArbApply, s.AList<B> & p.AnyHasArbApply>) {
+	test("index of first change", () => {
+		fc.assert(
+			fc.property(p.genValueWithChange(f.input), ({ x, dx }) => {
+				fc.pre(noTailReplaces(dx));
+				const actual = f.output.trim(f.forward(x, dx));
+				const expected = f.input.trim(dx);
+				return getIndexFirstChange(actual) >= getIndexFirstChange(expected);
+			}),
+		);
+	});
+}
+
+function makeMapId<A extends p.AnyHasArbApply>(inner: A) {
+	const listBool = s.list(inner);
+	return new FList(listBool).map(s.fn.identity(inner));
+}
+
+function getIndexFirstChange<T extends s.$A>(dx: s.$D<s.AList<T>>): number {
+	if (s.isDRO(dx)) {
+		return dx === null ? Infinity : 0;
+	}
+	if (dx.type === "nil") {
+		return 0;
+	}
+	const dCons = dx.change;
+	if (s.isDRO(dCons)) {
+		return 0;
+	}
+	if (dCons.head) {
+		return 0;
+	}
+	if (!dCons.tail) {
+		return Infinity;
+	}
+	return 1 + getIndexFirstChange(dCons.tail);
+}
+
+/** Returns the index to the first element being affected by a list change. */
+function getDepth<T extends s.$A>(dx: s.$D<s.AList<T>>): number {
+	if (s.isDRO(dx)) {
+		return dx === null ? Infinity : 0;
+	}
+	if (dx.type === "nil") {
+		return 0;
+	}
+	const dCons = dx.change;
+	if (s.isDRO(dCons)) {
+		return 0;
+	}
+	return dCons.tail ? 1 + getDepth(dCons.tail) : 1;
+}
+
+function noTailReplaces<T extends s.$A>(dx: s.$D<s.AList<T>>): boolean {
+	if (s.isDRO(dx)) {
+		return dx === null;
+	}
+	if (dx.type === "nil") {
+		return true;
+	}
+	const dCons = dx.change;
+	if (s.isDRO(dCons)) {
+		return dCons === null;
+	}
+	return dCons.tail == null || noTailReplaces(dCons.tail);
+}
