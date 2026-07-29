@@ -40,6 +40,7 @@ class MemoedRec<A extends $A, B extends $A> implements IFA<AList<A>, B> {
 		this.memo.set(x, toAdd);
 		return toAdd;
 	}
+
 	forward(x: $T<AList<A>>, dx: $D<AList<A>>) {
 		return this.func.forward(x, dx);
 	}
@@ -87,7 +88,6 @@ export class FList<A extends $A> {
 				cons: condA(
 					(x) => pred(x.head),
 					composeA(
-						// TODO decompose -> func -> compose needs to detect no-op changes
 						trimA(
 							consCase,
 							(c1, c2) =>

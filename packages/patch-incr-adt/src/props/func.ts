@@ -1,7 +1,8 @@
 import { deepEquals } from "bun";
 import { fromIFA } from "@/funcs";
+import { evaluateAndForward, evaluateIF } from "@/funcs/eval";
 import type { $A, $D, $T } from "@/types/abbr";
-import type { IF1, IFA } from "@/types/func";
+import { type IF, type IFA, IFKind, type IFR } from "@/types/func";
 import type { Eq } from "./change";
 
 /**
@@ -44,14 +45,15 @@ export interface PropsIF<A extends $A, _B extends $A> {
 	forwardCompose: (x: $T<A>, dx1: $D<A>, dx2: $D<A>) => boolean;
 }
 
-export const makePropsIF = <A extends $A, B extends $A>(
-	func: IF1<A, B>,
+export const makePropsIF = <A extends $A, B extends $A, R extends $A = $A>(
+	func: IF<A, B> | IFR<A, B, R>,
 	outputEq = deepEquals as Eq<$T<B>>,
 ): PropsIF<A, B> => {
 	const { input, output } = func;
 	return {
 		forwardEmptyIsEmpty: (x) => {
-			const dy = func.forward(x, input.empty, func.evaluate(x));
+			const { dy } = evaluateAndForward(func, x, input.empty);
+			// const dy = func.forward(x, input.empty, func.evaluate(x));
 			return output.isEmpty(dy);
 		},
 		forwardSingle: (x, dx) => {
@@ -61,9 +63,11 @@ export const makePropsIF = <A extends $A, B extends $A>(
 			// v      v
 			// y ---> y1
 			//    dy
-			const y = func.evaluate(x);
-			const y1 = func.evaluate(input.apply(x, dx));
-			const dy = func.forward(x, dx, y);
+			// const y = func.evaluate(x);
+			// const dy = func.forward(x, dx, y);
+			const { y, dy } = evaluateAndForward(func, x, dx);
+			const { y: y1 } = evaluateIF(func, input.apply(x, dx));
+			// const y1 = func.evaluate(input.apply(x, dx));
 			return outputEq(y1, output.apply(y, dy));
 		},
 		forwardCompose: (x, dx1, dx2) => {
@@ -71,6 +75,15 @@ export const makePropsIF = <A extends $A, B extends $A>(
 			// |     |      |
 			// v     v      v
 			// y --> y1 --> y2
+			if (func.kind === IFKind.IFR) {
+				const y = func.evaluate(x);
+				const x1 = input.apply(x, dx1);
+				const dy1 = func.forward(x, dx1, y);
+				const y1 = func.evaluate(x1);
+				const y2 = func.evaluate(input.apply(x1, dx2));
+				const dy2 = func.forward(x1, dx2, y1);
+				return outputEq(y2[0], output.apply(y, output.combine(dy1, dy2))[0]);
+			}
 			const y = func.evaluate(x);
 			const x1 = input.apply(x, dx1);
 			const dy1 = func.forward(x, dx1, y);

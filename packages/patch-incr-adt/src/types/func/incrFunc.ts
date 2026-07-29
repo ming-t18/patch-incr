@@ -83,6 +83,7 @@ export type IF<A extends $A, B extends $A, R extends AnyApply = AnyApply> =
 	| IF1<A, B>
 	| IFR<A, B, R>;
 
+/** An IF taking a context in the second parameter. Represents a reader arrow. */
 export type IFC<
 	C extends $A,
 	A extends $A,
