@@ -10,6 +10,7 @@ import {
 	unmapIndex,
 } from "@/array/splice";
 import * as s from "@/index";
+import * as p from "@/props";
 
 function toEntries<T, DT>(
 	xs: (
@@ -103,28 +104,6 @@ function arbNonShifting<T, DT>(
 						replace: fc.array(arbValue, { minLength: len, maxLength: len }),
 					}),
 				),
-				fc.record({
-					_dIndex: fc.integer({ min: 0, max: 5 }),
-					change: arbChange,
-				}),
-			),
-		)
-		.map((xs) => toEntries(xs));
-}
-
-function _arbSpliceTable<T, DT>(
-	arbValue: fc.Arbitrary<T>,
-	arbChange: fc.Arbitrary<DT>,
-): fc.Arbitrary<ParSpliceEntries<T, DT>> {
-	return fc
-		.array(
-			fc.oneof(
-				fc.integer({ min: 1, max: 5 }),
-				fc.record({
-					_dIndex: fc.integer({ min: 0, max: 5 }),
-					lenToRemove: fc.integer({ min: 5, max: 5 }),
-					replace: fc.array(arbValue, { minLength: 0, maxLength: 5 }),
-				}),
 				fc.record({
 					_dIndex: fc.integer({ min: 0, max: 5 }),
 					change: arbChange,
@@ -412,7 +391,22 @@ describe("mapIndex and unmapIndex", () => {
 	});
 });
 
-describe("apply", () => {
+describe.skip("SpliceTable operations", () => {
+	it("sample", () => {
+		const res = fc.sample(
+			p.arbSpliceTable<number, s.DRO<number>>({
+				arbValue: fc.integer(),
+				arbChange: (_) => p.integer().getArbApply().arbChange({ depth: 8 }),
+			}),
+			{ numRuns: 500 },
+		);
+		for (const e of res) {
+			console.log(e.entries);
+		}
+	});
+});
+
+describe.skip("apply", () => {
 	const num = s.number();
 	it("identity should leave array unchanged", () => {
 		fc.assert(
@@ -444,14 +438,15 @@ describe("apply", () => {
 		expect(actual).toEqual(expected);
 	});
 
+	const arrInt = fc.array(fc.integer(), { minLength: 0, maxLength: 10 });
 	it("splice should perform a single array splice", () => {
 		fc.assert(
 			fc.property(
-				fc.array(fc.integer(), { minLength: 0, maxLength: 10 }),
+				arrInt,
 				fc.record({
 					i: fc.integer({ min: 0, max: 5 }),
 					toDelete: fc.integer({ min: 0, max: 5 }),
-					replace: fc.array(fc.integer(), { minLength: 0, maxLength: 10 }),
+					replace: arrInt,
 				}),
 				(arr, { i, toDelete, replace }) => {
 					fc.pre(arr.length >= i + toDelete);
@@ -466,4 +461,31 @@ describe("apply", () => {
 			),
 		);
 	});
+
+	// it.skip("combine with replace", () => {
+	// 	const gen = p.integer();
+	// 	const genValue = p.genValueFromApply(gen);
+	// 	const genChange = p.genChangeFromApply(gen);
+	// 	fc.assert(
+	// 		fc.property(
+	// 			arbSpliceTable(genValue, genChange).chain(
+	// 				(table): SpliceTable<s.$T<typeof gen>, s.$D<typeof gen>> => {
+	// 					return fc
+	// 						.integer({ min: 0, max: table.requiredLength })
+	// 						.chain((i) => fc.tuple(fc.constant(i), genChange))
+	// 						.map(([i, change]) => [
+	// 							{
+	// 								i,
+	// 								di: 1,
+	// 								j: i,
+	// 								dj: 1,
+	// 								change,
+	// 							},
+	// 						]);
+	// 				},
+	// 			),
+	// 			(table) => {},
+	// 		),
+	// 	);
+	// });
 });

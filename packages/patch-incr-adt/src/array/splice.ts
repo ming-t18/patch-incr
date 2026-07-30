@@ -2,6 +2,7 @@
 
 import { type Apply, ApplyError } from "@/types";
 
+/** Mapping: `[i, di) -> [j, dj)` */
 export interface SpliceEntry<T> {
 	readonly i: number;
 	readonly di: number;
@@ -10,6 +11,7 @@ export interface SpliceEntry<T> {
 	readonly replace: readonly T[];
 }
 
+/** Mapping: `[i, i+1) -> [j, j+1)` */
 export interface ApplyEntry<DT> {
 	readonly i: number;
 	readonly di: 1;
@@ -20,7 +22,7 @@ export interface ApplyEntry<DT> {
 
 export type SpliceTableEntry<T, DT> = SpliceEntry<T> | ApplyEntry<DT>;
 
-export type SpliceEntries<T, DT> = SpliceTableEntry<T, DT>[];
+export type SpliceEntries<T, DT> = readonly SpliceTableEntry<T, DT>[];
 
 export interface ParSpliceEntry<T> {
 	readonly index: number;
@@ -290,6 +292,93 @@ export class SpliceTable<T, DT> {
 		}));
 	}
 
+	combine(other: SpliceTable<T, DT>, apply: Apply<T, DT>): SpliceTable<T, DT> {
+		const newEntries: SpliceTableEntry<T, DT>[] = [];
+		let shift = 0;
+		const otherEntries = splitOtherEntriesWith(this.entries, other.entries);
+		for (const entry1 of otherEntries) {
+			const jc = entry1.i - shift;
+			if ("change" in entry1) {
+				for (const entry of this.entries) {
+					if ("change" in entry) {
+						if (entry.j === jc) {
+							newEntries.push({
+								i: entry.i,
+								di: 1,
+								j: entry.j + shift,
+								dj: 1,
+								change: apply.combine(entry.change, entry1.change),
+							});
+							break;
+						}
+						continue;
+					}
+
+					if (entry.j < jc && jc < entry.j + entry.dj) {
+						const replace = [...entry.replace];
+						const off = jc - entry.j;
+						replace[off] = apply.apply(replace[off]!, entry1.change);
+						newEntries.push({
+							i: entry.i,
+							di: entry.di,
+							j: entry.j + shift,
+							dj: entry.dj,
+							replace,
+						});
+					}
+				}
+				continue;
+			}
+			for (const _entry of this.entries) {
+				throw new Error("TODO");
+			}
+			shift += entry1.dj - entry1.di;
+		}
+		// const j0 = index;
+		// const j1 = index + toDelete;
+		// for (const entry of this.entries) {
+		// 	if ("change" in entry) {
+		// 		continue;
+		// 	}
+		// 	if (entry.j < j0) {
+		// 		const rb = entry.j + entry.dj;
+		// 		if (j0 <= rb) {
+		// 			// [      ]    entry
+		// 			//   [  ]      splice
+		// 			//
+		// 			// [      ]    entry
+		// 			//   [    ]    splice
+		// 			newEntries.push({
+		// 				...entry,
+		// 				replace: entry.replace.toSpliced(j0 - entry.j, toDelete, ...toAdd),
+		// 			});
+		// 		} else {
+		// 			// [      ]    entry
+		// 			//   [    |  ] splice
+		// 			const toDelete1 = entry.dj;
+		// 			newEntries.push(
+		// 				{
+		// 					...entry,
+		// 					replace: entry.replace.toSpliced(
+		// 						j0 - entry.j,
+		// 						toDelete1,
+		// 						...toAdd.slice(0, toDelete1),
+		// 					),
+		// 				},
+		// 				{
+		// 					i: entry.i + entry.di,
+		// 					di: 0,
+		// 					j: j1,
+		// 					dj: toAdd.length - toDelete1,
+		// 					replace: toAdd.slice(toDelete1),
+		// 				},
+		// 			);
+		// 		}
+		// 	}
+		// }
+		return new SpliceTable(newEntries);
+	}
+
 	// endregion
 
 	// region Update
@@ -386,12 +475,25 @@ export class SpliceTable<T, DT> {
 		]);
 	}
 
+	/**
+	 * Creates a new `SpliceTable` from an array of parallel splice operations.
+	 * Requirements:
+	 * - `entries` is sorted by `index` asending.
+	 * - `entries` represents a list of non-overlapping intervals by `[index, index + offset)`
+	 *   where the `offset` is 1 for "change" entries
+	 */
 	static fromParallelEntries<T, DT>(
 		entries: ParSpliceEntries<T, DT>,
 	): SpliceTable<T, DT> {
 		const entries1: SpliceTableEntry<T, DT>[] = [];
 		let offset = 0;
+		let minIndex = 0;
 		for (const entry of entries) {
+			if (entry.index < minIndex) {
+				throw new Error(
+					`disallowed index (overlapping or out of bounds): ${entry.index}, must be >= ${minIndex}`,
+				);
+			}
 			if ("change" in entry) {
 				entries1.push({
 					i: entry.index,
@@ -400,9 +502,14 @@ export class SpliceTable<T, DT> {
 					dj: 1,
 					change: entry.change,
 				});
+				minIndex += 1;
 				continue;
 			}
 
+			// Eliminate empty entries
+			if (entry.lenToRemove === 0 && entry.replace.length === 0) {
+				continue;
+			}
 			entries1.push({
 				i: entry.index,
 				di: entry.lenToRemove,
@@ -411,6 +518,7 @@ export class SpliceTable<T, DT> {
 				replace: entry.replace,
 			});
 
+			minIndex += entry.lenToRemove;
 			offset += entry.replace.length - entry.lenToRemove;
 		}
 		return new SpliceTable(entries1);
@@ -431,4 +539,164 @@ export function unmapIndex<T, DT>(
 	index: number,
 ) {
 	return SpliceTable.fromParallelEntries(entries).unmapIndex(index);
+}
+
+/**
+ * Splits a single `SpliceEntry` at a particular mapped index (`j`).
+ * Requirement: `entry.i < iSplit < entry.i + entry.di`
+ */
+function splitEntryAtIndex<T>(
+	entry: SpliceEntry<T>,
+	iSplit: number,
+): readonly [SpliceEntry<T>, SpliceEntry<T>] {
+	const res: SpliceEntry<T>[] = [];
+	const len = iSplit - entry.i;
+	const { i, di, j, dj, replace } = entry;
+	if (len < entry.dj) {
+		// i i+di
+		// [ | ]
+		// [ |     ]
+		// j       j+dj
+		return [
+			{
+				i: i,
+				di: len,
+				j: j,
+				dj: len,
+				replace: replace.slice(0, len),
+			},
+			// Insert new elements
+			{
+				i: i + di,
+				di: 0,
+				j: j + len,
+				dj: dj - len,
+				replace: replace.slice(len),
+			},
+		];
+	}
+	if (len === entry.dj) {
+		res.push(
+			{
+				i,
+				di: len,
+				j,
+				dj: len,
+				replace: replace,
+			},
+			{
+				i: i + len,
+				di: di - len,
+				j: j + len,
+				dj: 0,
+				replace: [],
+			},
+		);
+	}
+	// len >= entry.dj
+	// Split at a removal
+	// i        i+di
+	// [    |   ]
+	// [  ]
+	// j     j+dj
+	// i      i+di
+	// [  |   ]
+	// [  ]
+	// j     j+dj
+	return [
+		{
+			i,
+			di: len,
+			j,
+			dj: len,
+			replace: replace,
+		},
+		{
+			i: i + len,
+			di: di - len,
+			j: j + len,
+			dj: 0,
+			replace: [],
+		},
+	];
+}
+
+/**
+ * Given entries being combined, `entries` and `otherEntries`: Split
+ * `otherEntries` based on the `[j, j+dj]` intervals of `entries` such that
+ * each interval within the result do not completely encompass intervals within `entries`.
+ *
+ * Before:
+ * ```
+ * entries  [  ]       [   ]  [   ]        [   ]
+ * other    [     ]      [           ]   [   ]
+ * ```
+ * After:
+ * ```
+ * entries  [  ]       [   ]  [   ]        [   ]
+ * other    [  |  ]      [ |  |   |  ]   [ | ]
+ * ```
+ */
+function splitOtherEntriesWith<T, DT>(
+	entries: readonly SpliceTableEntry<T, DT>[],
+	otherEntries: readonly SpliceTableEntry<T, DT>[],
+): readonly SpliceTableEntry<T, DT>[] {
+	const out: SpliceTableEntry<T, DT>[] = [];
+	for (const otherEntry of otherEntries) {
+		if ("change" in otherEntry) {
+			out.push(otherEntry);
+			continue;
+		}
+		const { i, di } = otherEntry;
+		const toSplit: number[] = [];
+		if (di <= 1) {
+			for (const e of entries) {
+				if (!withinInterval(e, i)) continue;
+				toSplit.push(i);
+			}
+		} else {
+			for (const e of entries) {
+				if (withinInterval(e, i)) toSplit.push(i);
+				if (withinInterval(e, i + di - 1)) toSplit.push(i);
+			}
+		}
+
+		if (toSplit.length === 0) {
+			out.push(otherEntry);
+		} else if (toSplit.length === 1) {
+			out.push(...splitEntryAtIndex(otherEntry, toSplit[0] as number));
+		}
+
+		let changed = true;
+		let temp: SpliceEntry<T>[] = [otherEntry];
+		while (changed) {
+			changed = false;
+			const temp1 = [] as typeof temp;
+			for (const tempEntry of temp) {
+				for (const iSplit of toSplit) {
+					if (changed) {
+						break;
+					}
+					if (withinInterval(tempEntry, iSplit)) {
+						changed = true;
+						temp1.push(...splitEntryAtIndex(tempEntry, iSplit));
+						break;
+					}
+				}
+				if (!changed) {
+					temp1.push(tempEntry);
+				}
+			}
+			temp = temp1;
+		}
+		out.push(...temp);
+	}
+	return out;
+}
+
+function withinInterval(
+	entry: { j: number; dj: number },
+	index: number,
+): boolean {
+	return entry.j < index && index < entry.j + entry.dj;
 }
