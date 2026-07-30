@@ -124,6 +124,13 @@ export class AOptional<
 	isEmpty(d: DT | ReplaceOnly<undefined>): boolean {
 		return isReplaceUndefined(d) ? false : this.inner.isEmpty(d);
 	}
+
+	override trim(d: DT | ReplaceOnly<undefined>): DT | ReplaceOnly<undefined> {
+		if (isReplaceUndefined(d)) {
+			return d;
+		}
+		return this.inner.trim(d);
+	}
 }
 
 export const optional = <

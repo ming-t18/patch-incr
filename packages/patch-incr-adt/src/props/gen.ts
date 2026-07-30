@@ -372,17 +372,26 @@ export class ArbOptional<
 			});
 		}
 
+		const arbReplaceChangeInner = this.apply.inner
+			.getArbApply()
+			.arbValue(opts.depth)
+			.map(
+				(x) => this.apply.inner.fromReplace(x),
+				(y) => this.apply.inner.isReplace(y),
+			);
+
+		if (valueIsProvided && opts.value === undefined) {
+			return fc.oneof(undefinedPart, {
+				weight: 4,
+				arbitrary: arbReplaceChangeInner,
+			});
+		}
 		const arbChangeInner = this.apply.inner
 			.getArbApply()
 			.arbChange(diveArbChangeConfig((x) => x, opts));
 		return fc.oneof(undefinedPart, {
 			weight: 4,
-			arbitrary: valueIsProvided
-				? // only replace is accepted if original value is undefined
-					opts.value === undefined
-					? arbChangeInner.filter((d) => this.apply.inner.isReplace(d) !== null)
-					: arbChangeInner
-				: arbChangeInner,
+			arbitrary: arbChangeInner,
 		});
 	}
 }

@@ -1,3 +1,4 @@
+import { pre } from "fast-check";
 import { getReplaceOnly } from "@/replaceOnly";
 import {
 	type Apply,
@@ -39,6 +40,8 @@ export interface PropsApply<T, D> extends PropsMonoid<D> {
 	isReplaceOnlyOnReplace: (rep: T) => boolean;
 	/** x @ trim(d) = x @ d */
 	trimPreservesApply: (val: T, change: D) => boolean;
+	/** trim(d1) <> trim(d2) = trim(d1 <> d2), given all 3 trims are empty */
+	trimEmptyPreservedInCompose: (change1: D, change2: D) => boolean;
 }
 
 export type Eq<T> = (a: T, b: T) => boolean;
@@ -77,12 +80,11 @@ export const makePropsApply = <T, D>(
 			: true,
 	applyCombine: (v: T, d1: D, d2: D) => {
 		try {
-			return apply.canCombine(d1, d2) && apply.canApply(v, d1)
-				? eqValue(
-						apply.apply(apply.apply(v, d1), d2),
-						apply.apply(v, apply.combine(d1, d2)),
-					)
-				: true;
+			pre(apply.canCombine(d1, d2) && apply.canApply(v, d1));
+			return eqValue(
+				apply.apply(apply.apply(v, d1), d2),
+				apply.apply(v, apply.combine(d1, d2)),
+			);
 		} catch (e) {
 			if (e instanceof ApplyError) {
 				return true;
@@ -131,12 +133,25 @@ export const makePropsApply = <T, D>(
 		return rep1 !== null && eqValue(rep, getReplaceOnly(rep1));
 	},
 	trimPreservesApply: (val: T, change: D) => {
-		if (!apply.canApply(val, change)) {
-			return true;
-		}
+		pre(apply.canApply(val, change));
 		return eqValue(
 			apply.apply(val, apply.trim(change)),
 			apply.apply(val, change),
 		);
+	},
+	trimEmptyPreservedInCompose: (d1: D, d2: D) => {
+		if (!apply.canCombine(d1, d2)) {
+			return true;
+		}
+		const t1 = apply.trim(d1);
+		const t2 = apply.trim(d2);
+		if (!(apply.isEmpty(t1) && apply.isEmpty(t2))) {
+			return true;
+		}
+		if (!apply.canCombine(t1, t2)) {
+			return false;
+		}
+		const t3 = apply.trim(apply.combine(d1, d2));
+		return apply.isEmpty(t3);
 	},
 });

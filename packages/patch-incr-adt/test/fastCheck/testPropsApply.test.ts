@@ -3,7 +3,12 @@ import { deepEquals } from "bun";
 import fc from "fast-check";
 import type { AnyHasArbApply } from "@/props";
 import { makePropsApply } from "@/props/change";
-import { genChangeFromApply, genValueFromApply } from "@/props/gen";
+import {
+	genChangeFromApply,
+	genValueFromApply,
+	genValueWith2Changes,
+	genValueWithChange,
+} from "@/props/gen";
 import type { $A, $D, $T } from "@/types/abbr";
 import { ApplyStructure } from "@/types/algebra";
 export const propCanApplyApplies = <A extends $A>(
@@ -100,13 +105,23 @@ export const testCasesPropsApply = <A extends AnyHasArbApply>(apply: A) => {
 			fc.property(arbValue, arbValue, props.canApplyReplaceAlwaysTrue),
 		);
 		testProp("canApply <=> apply suceeds", () =>
+			// must test with canApply being false
 			fc.property(arbValue, arbChange, props.canApplyIffApplyNoError),
 		);
 	});
 
 	describe("trim", () => {
 		testProp("trim preserves the result of apply", () =>
-			fc.property(arbValue, arbChange, props.trimPreservesApply),
+			fc.property(genValueWithChange(apply), ({ x, dx }) =>
+				props.trimPreservesApply(x, dx),
+			),
+		);
+		testProp(
+			"trim empty is preserved after composing two effective empties",
+			() =>
+				fc.property(genValueWith2Changes(apply), ({ dx1, dx2 }) =>
+					props.trimEmptyPreservedInCompose(dx1, dx2),
+				),
 		);
 	});
 };
