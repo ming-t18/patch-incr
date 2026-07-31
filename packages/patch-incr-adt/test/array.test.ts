@@ -1,5 +1,5 @@
 // biome-ignore-all lint/style/noNonNullAssertion: for checked array access
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, test } from "bun:test";
 import fc from "fast-check";
 import {
 	MapResult,
@@ -391,7 +391,7 @@ describe("mapIndex and unmapIndex", () => {
 	});
 });
 
-describe.skip("SpliceTable operations", () => {
+describe("SpliceTable operations", () => {
 	it("sample", () => {
 		const res = fc.sample(
 			p.arbSpliceTable<number, s.DRO<number>>({
@@ -404,9 +404,26 @@ describe.skip("SpliceTable operations", () => {
 			console.log(e.entries);
 		}
 	});
+	describe("of boolean", () => {
+		testSpliceTableInvariants(
+			p.arbSpliceTable<boolean, s.DRO<boolean>>({
+				arbValue: fc.boolean(),
+				arbChange: (_) => p.boolean().getArbApply().arbChange({ depth: 8 }),
+			}),
+		);
+	});
+
+	describe("of number", () => {
+		testSpliceTableInvariants(
+			p.arbSpliceTable<number, s.DRO<number>>({
+				arbValue: fc.integer(),
+				arbChange: (_) => p.integer().getArbApply().arbChange({ depth: 8 }),
+			}),
+		);
+	});
 });
 
-describe.skip("apply", () => {
+describe("apply", () => {
 	const num = s.number();
 	it("identity should leave array unchanged", () => {
 		fc.assert(
@@ -489,3 +506,77 @@ describe.skip("apply", () => {
 	// 	);
 	// });
 });
+
+function testSpliceTableInvariants<T, DT>(arb: p.Arb<SpliceTable<T, DT>>) {
+	describe("splice table invariants", () => {
+		test("i ascending", () => {
+			fc.assert(
+				fc.property(arb, (table) => {
+					return asc(table.entries.map((x) => x.i));
+				}),
+			);
+		});
+
+		test("j ascending", () => {
+			fc.assert(
+				fc.property(arb, (table) => {
+					return asc(table.entries.map((x) => x.j));
+				}),
+			);
+		});
+
+		test("ascending list of non-overlapping intervals for i", () => {
+			fc.assert(
+				fc.property(arb, (table) => {
+					return noOverlapAsc(table.entries.map(({ i, di }) => [i, i + di]));
+				}),
+			);
+		});
+
+		test("change and replace are consistent with dj", () => {
+			fc.assert(
+				fc.property(arb, (table) => {
+					for (const entry of table.entries) {
+						if ("change" in entry) {
+							if (entry.dj !== 1) {
+								return false;
+							}
+							continue;
+						}
+						if (entry.dj !== entry.replace.length) {
+							return false;
+						}
+					}
+					return true;
+				}),
+			);
+		});
+	});
+}
+
+/** Each interval represents `[a, b)`. Tests the list is ascending and non-overlapping. */
+function noOverlapAsc(intervals: [number, number][]) {
+	if (intervals.length <= 1) {
+		return true;
+	}
+	for (let i = 0; i < intervals.length - 1; i++) {
+		const [a1, b1] = intervals[i]!;
+		const [a2, b2] = intervals[i + 1]!;
+		if (!(a1 <= a2 && a1 <= b1 && a2 <= b2 && b1 <= a2)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+function asc<T>(xs: T[]) {
+	if (xs.length <= 1) {
+		return true;
+	}
+	for (let i = 0; i < xs.length - 1; i++) {
+		if (xs[i]! > xs[i + 1]!) {
+			return false;
+		}
+	}
+	return true;
+}

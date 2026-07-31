@@ -6,7 +6,7 @@ import {
 } from "@/replaceOnly";
 import { type Apply, BaseApplyClass, type ReplaceOnly } from "@/types";
 import type { $D, $T, DRO } from "@/types/abbr";
-import type { SpliceTable } from "./splice";
+import { SpliceTable } from "./splice";
 
 export type DeriveArrayChange<T, DT> = SpliceTable<T, DT> | DRO<readonly T[]>;
 /**
@@ -89,6 +89,15 @@ export class AArray<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>>
 		}
 
 		return a.combine(b, this.inner);
+	}
+
+	override trim(
+		x: SpliceTable<T, DT> | DRO<readonly T[]>,
+	): SpliceTable<T, DT> | DRO<readonly T[]> {
+		if (x instanceof SpliceTable && x.entries.length === 0) {
+			return null;
+		}
+		return x;
 	}
 
 	// override canCombine(
