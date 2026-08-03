@@ -58,13 +58,6 @@ export type OmitRecursive<T extends {}> = {
 	[k in keyof T]: T[k] extends RecBrand ? never : T[k];
 };
 
-declare module "@/types/algebra" {
-	export interface Apply<in out T, in out DT> {
-		arbValue?: () => Arb<T>;
-		arbChange?: (value?: T) => Arb<DT>;
-	}
-}
-
 declare module "@/constant" {
 	// The `interface` keyword augments the `class`
 	export interface AConstant<T, D> {

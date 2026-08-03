@@ -164,9 +164,26 @@ export class ArbArray<
 	}
 
 	arbChange(
-		_opts: ArbChangeConfig<readonly T[]>,
+		opts: ArbChangeConfig<readonly T[]>,
 	): Arb<DeriveArrayChange<T, DT>> {
-		throw new Error("TODO");
+		const inner = this.apply.inner;
+		const arbValue = inner.getArbApply().arbValue(opts.depth);
+		const droPart = {
+			weight: 1,
+			arbitrary: arbEmptyOrReplace(this.apply, this.arbValue(opts.depth)),
+		};
+		const spliceTablePart = {
+			weight: 4,
+			arbitrary: arbSpliceTable({
+				arbValue,
+				arbChange: (i) =>
+					inner
+						.getArbApply()
+						.arbChange(diveArbChangeConfig((x) => x[i] as T, opts)),
+			}),
+		};
+
+		return fc.oneof(droPart, spliceTablePart);
 	}
 }
 
@@ -206,8 +223,8 @@ export function arbSpliceTable<T, DT>(opts: {
 		arbChange,
 	} = opts;
 
-	return fc.integer({ min: 0, max: maxLength }).chain((arrLen) => {
-		return fc
+	return fc.integer({ min: 0, max: maxLength }).chain((arrLen) =>
+		fc
 			.set(fc.integer({ min: 0, max: maxEntries - 1 }))
 			.map(
 				(is): number[] => [...is].sort(),
@@ -263,6 +280,6 @@ export function arbSpliceTable<T, DT>(opts: {
 					),
 				),
 			)
-			.map((entries) => SpliceTable.fromParallelEntries(entries));
-	});
+			.map((entries) => SpliceTable.fromParallelEntries(entries)),
+	);
 }
