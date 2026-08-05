@@ -4,7 +4,6 @@ import fc from "fast-check";
 import {
 	applyInside,
 	combineTables1,
-	decomposeBeforeAfter,
 	MapResult,
 	mapIndex,
 	type ParSpliceEntries,
@@ -1048,7 +1047,7 @@ describe("combineTables1", () => {
 				replace: [0],
 			},
 			{
-				i: 1, // TODO should be 1 instead of 0
+				i: 1,
 				di: 1 as const,
 				j: 2,
 				dj: 1 as const,
@@ -1094,12 +1093,6 @@ describe("FAILING EXAMPLE", () => {
 			{ i: 1, di: 4, j: 1, dj: 0, replace: [] },
 			{ i: 6, di: 0, j: 2, dj: 1, replace: ["g"] },
 		]);
-		const decomposed = decomposeBeforeAfter(left.entries, right.entries);
-		expect([
-			decomposed[0].length,
-			decomposed[1].length,
-			decomposed[2].length,
-		]).toEqual([0, 1, 1]);
 		expect(right.apply(left.apply(input, a), a)).toEqual(["a", "f", "g"]);
 		const combined = left.combine(right, a);
 		expect(combined.entries).toEqual([
@@ -1204,14 +1197,14 @@ describe("FAILING EXAMPLE", () => {
 			},
 		]);
 		const combined = left.combine(right, p.integer());
-		expect(right.apply(left.apply(input, a), a)).toEqual(
-			combined.apply(input, a),
-		);
 		expect(combined.entries).toEqual([
 			{ i: 0, di: 0, j: 0, dj: 1, replace: [101] },
 			{ i: 2, di: 1, j: 3, dj: 1, change: s.makeReplaceOnly(102) },
 			{ i: 3, di: 0, j: 3, dj: 1, replace: [100] },
 		]);
+		expect(right.apply(left.apply(input, a), a)).toEqual(
+			combined.apply(input, a),
+		);
 	});
 });
 
@@ -1220,15 +1213,21 @@ function testCasesArray<A extends p.AnyHasArbApply>(apply: A) {
 	testCasesPropsApply(arr);
 
 	testSpliceTableInvariants(
-		p.genValueWith2Changes(arr).chain(({ dx1, dx2 }) =>
-			fc.record({
-				dx1: fc.constant(dx1),
-				dx2: fc.constant(dx2),
-				table: fc
-					.constant(arr.combine(dx1, dx2))
-					.filter((t) => t instanceof SpliceTable),
-			}),
-		),
+		p
+			.genValueWith2Changes(arr)
+			.filter(
+				({ dx1, dx2 }) =>
+					dx1 instanceof SpliceTable && dx2 instanceof SpliceTable,
+			)
+			.chain(({ dx1, dx2 }) =>
+				fc.record({
+					dx1: fc.constant(dx1 as SpliceTable<s.$T<A>, s.$D<A>>),
+					dx2: fc.constant(dx2 as SpliceTable<s.$T<A>, s.$D<A>>),
+					table: fc.constant(
+						arr.combine(dx1, dx2) as SpliceTable<s.$T<A>, s.$D<A>>,
+					),
+				}),
+			),
 		"after combine - splice table invariants",
 	);
 }

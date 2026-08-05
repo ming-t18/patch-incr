@@ -294,7 +294,7 @@ export class SpliceTable<T, DT> {
 	}
 
 	combine(other: SpliceTable<T, DT>, apply: Apply<T, DT>): SpliceTable<T, DT> {
-		return new SpliceTable(combineTables(this.entries, other.entries, apply));
+		return combineTables1(this, other, apply);
 	}
 
 	// endregion
@@ -677,154 +677,16 @@ export function combineTables1<T, DT>(
 	// return postprocess(res);
 }
 
-function combineTables<T, DT>(
-	left: SpliceEntries<T, DT>,
-	right: SpliceEntries<T, DT>,
-	apply: Apply<T, DT>,
-): SpliceEntries<T, DT> {
-	if (left.length === 0) {
-		return right;
-	}
-	if (right.length === 0) {
-		return left;
-	}
-
-	const unmapper = new SpliceTable(left);
-	const res: SpliceEntriesMutable<T, DT> = [...left];
-	const [beforePart, overlapPart, afterPart] = decomposeBeforeAfter(
-		left,
-		right,
-	);
-
-	while (overlapPart.length > 0) {
-		const before = overlapPart.length;
-		for (let kOverlap = overlapPart.length - 1; kOverlap >= 0; kOverlap--) {
-			const rhs = overlapPart.pop()!;
-			if ("change" in rhs) {
-				const change = rhs.change;
-				for (let k = 0; k < res.length; k++) {
-					const entry = res[k]!;
-					const off = rhs.i - entry.j;
-					if (0 <= off && off < entry.dj) {
-						if ("replace" in entry) {
-							const replace1 = [...entry.replace];
-							replace1[off] = apply.apply(replace1[off]!, change);
-							res[k] = {
-								...entry,
-								replace: replace1,
-							};
-						} else {
-							res[k] = {
-								...entry,
-								change: apply.combine(entry.change, change),
-							};
-						}
-						break;
-					}
-				}
-				continue;
-			}
-
-			const [kMin, kMax] = findOverlaps(res, rhs);
-			if (kMax < kMin) {
-				throw new Error("kMax < kMin");
-			}
-
-			const head = res[kMin]!;
-			let tail = res[kMax]!;
-			let pre: SpliceTableEntry<T, DT> | undefined | null;
-			let post: SpliceTableEntry<T, DT> | undefined | null;
-
-			if (head.j <= rhs.i && rhs.i < head.j + head.dj && "replace" in head) {
-				const [pre1, mid1] = splitEntryLeft(head, rhs.i);
-				pre = pre1;
-				if (kMax === kMin && mid1 !== null) {
-					tail = mid1;
-				}
-			}
-			const i3 = rhs.i + rhs.di;
-			if (
-				tail !== null &&
-				tail.j <= i3 &&
-				i3 < tail.j + tail.dj &&
-				"replace" in tail
-			) {
-				const [_, post1] = splitEntryLeft(tail, i3);
-				post = post1;
-			}
-
-			const i1 = unmapper.unmapIndex(rhs.i).index;
-			const i2 = unmapper.unmapIndex(rhs.i + rhs.di).index;
-			const overwrite = {
-				i: i1, // rhs.i + (newDisp - origDisp),
-				di: i2 - i1,
-				j: rhs.j,
-				dj: rhs.dj,
-				replace: rhs.replace,
-			};
-			res.splice(
-				kMin,
-				kMax + 1 - kMin,
-				...(pre ? [pre] : []),
-				overwrite,
-				...(post ? [post] : []),
-			);
-		}
-
-		const after = overlapPart.length;
-		if (after >= before) {
-			throw new Error("diverging");
-		}
-	}
-
-	// Add back before and after parts
-	res.unshift(...beforePart);
-	res.push(...afterPart);
-
-	return postprocess(res);
-}
-
-function postprocess<T, DT>(res: SpliceEntries<T, DT>): SpliceEntries<T, DT> {
-	// Recompute j/dj
-	let cdj = 0;
-	const afterReindexingJ: SpliceEntriesMutable<T, DT> = [];
-	for (let i = 0; i < res.length; i++) {
-		const entry = res[i]!;
-		const djOrig = entry.dj;
-		const j = i === 0 ? entry.i : entry.j + cdj;
-		afterReindexingJ.push(
-			"replace" in entry
-				? {
-						i: entry.i,
-						di: entry.di,
-						j,
-						dj: entry.replace.length,
-						replace: entry.replace,
-					}
-				: {
-						i: entry.i,
-						di: entry.di,
-						j,
-						dj: 1,
-						change: entry.change,
-					},
-		);
-		if ("replace" in entry) {
-			cdj += entry.replace.length - djOrig;
-		}
-	}
-
+// TODO use this
+function _postprocess<T, DT>(res: SpliceEntries<T, DT>): SpliceEntries<T, DT> {
 	// Merge adjacent entries
-	const afterMerging = [] as typeof afterReindexingJ;
-	for (let k = 0; k < afterReindexingJ.length; k++) {
-		const entry = afterReindexingJ[k]!;
-		// TODO eliminate empty entries
+	const afterMerging: SpliceEntriesMutable<T, DT> = [];
+	for (let k = 0; k < res.length; k++) {
+		const entry = res[k]!;
 		if (entry.di === 0 && entry.dj === 0) {
-			// console.error("empty found", k, afterReindexingJ);
-			// throw new Error("invariant fail: empty entry found");
 			continue;
 		}
-		if (k + 1 === afterReindexingJ.length || "change" in entry) {
+		if (k + 1 === res.length || "change" in entry) {
 			afterMerging.push(entry);
 			continue;
 		}
@@ -832,16 +694,9 @@ function postprocess<T, DT>(res: SpliceEntries<T, DT>): SpliceEntries<T, DT> {
 		let cdi = entry.di;
 		let cdj = entry.dj;
 		const cReplace = [...entry.replace];
-		for (let k1 = k + 1; k1 < afterReindexingJ.length; k1++) {
-			const next = afterReindexingJ[k + 1]!;
+		for (let k1 = k + 1; k1 < res.length; k1++) {
+			const next = res[k + 1]!;
 			const i1 = entry.i + entry.di;
-			// if (next.i < i1) {
-			// 	console.error("args", [left, right]);
-			// 	console.error("all entries", afterReindexingJ);
-			// 	console.error("overlap/order fail", k1, entry, next);
-			// 	throw new Error("invariant fail: overlap or ordering violation");
-			// }
-
 			if ("change" in next || i1 !== next.i) {
 				continue;
 			}
@@ -863,68 +718,8 @@ function postprocess<T, DT>(res: SpliceEntries<T, DT>): SpliceEntries<T, DT> {
 	return afterMerging;
 }
 
-export function decomposeBeforeAfter<T, DT>(
-	left: SpliceEntries<T, DT>,
-	right: SpliceEntries<T, DT>,
-): [SpliceEntries<T, DT>, SpliceEntriesMutable<T, DT>, SpliceEntries<T, DT>] {
-	if (left.length === 0) {
-		return [[], [], []];
-	}
-	const first = left[0]!;
-	const beforeAll: SpliceEntriesMutable<T, DT> = [];
-	const afterAll: SpliceEntriesMutable<T, DT> = [];
-	for (let k = 0; k < right.length; k++) {
-		const entry = right[k]!;
-		// is before first
-		//  first      [  )
-		//  entry   [  )
-		if (entry.i + entry.di <= first.j) {
-			// no need to remap
-			beforeAll.push(entry);
-			continue;
-		}
-		break;
-	}
-	const sliceStart = beforeAll.length;
-
-	const unmapper = new SpliceTable(left);
-	const last = left[left.length - 1]!;
-	let sliceEnd = right.length;
-	for (let k = right.length - 1; k >= 0; k--) {
-		const entry = right[k]!;
-		// is after last
-		//  last    [  )
-		//  entry      [  )
-		if (entry.i >= last.j + last.dj) {
-			const i1 = unmapper.unmapIndex(entry.i).index;
-			sliceEnd--;
-			afterAll.push(
-				"replace" in entry
-					? {
-							i: i1,
-							di: entry.di,
-							j: entry.i,
-							dj: entry.replace.length,
-							replace: entry.replace,
-						}
-					: ({
-							i: i1,
-							di: 1,
-							j: entry.i,
-							dj: 1,
-							change: entry.change,
-						} satisfies ApplyEntry<DT>),
-			);
-			continue;
-		}
-		break;
-	}
-	afterAll.reverse();
-	return [beforeAll, right.slice(sliceStart, sliceEnd), afterAll];
-}
-
 /** Requires: `entry.j <= jSplit && jSplit < entry.j + entry.dj` */
-function splitEntryLeft<T>(
+export function splitEntryLeft<T>(
 	entry: SpliceEntry<T>,
 	jSplit: number,
 ): readonly [SpliceEntry<T>, SpliceEntry<T> | null] {
@@ -1008,47 +803,6 @@ export function withinInterval(
 	jIndex: number,
 ): boolean {
 	return entry.j < jIndex && jIndex < entry.j + entry.dj;
-}
-
-function overlaps(
-	lhs: Readonly<{ j: number; dj: number }>,
-	rhs: Readonly<{ i: number; di: number }>,
-): boolean {
-	const x1 = lhs.j;
-	const y1 = rhs.i;
-	const y2 = rhs.i + rhs.di - 1;
-	if (lhs.dj === 0) {
-		if (rhs.di === 0) {
-			return lhs.j === rhs.i;
-		}
-		return y1 <= x1 && x1 <= y2;
-	}
-	const x2 = lhs.j + lhs.dj - 1;
-	return x2 >= y1 && x1 <= y2;
-}
-
-function findOverlaps(
-	lhss: readonly Readonly<{ j: number; dj: number }>[],
-	rhs: Readonly<{ i: number; di: number }>,
-): [number, number] {
-	let kMin = 0;
-	let kMax = 0;
-	for (let k = 0; k < lhss.length; k++) {
-		const lhs = lhss[k]!;
-		if (overlaps(lhs, rhs)) {
-			kMin = k;
-			break;
-		}
-	}
-
-	for (let k = lhss.length - 1; k >= 0; k--) {
-		const lhs = lhss[k]!;
-		if (overlaps(lhs, rhs)) {
-			kMax = k;
-			break;
-		}
-	}
-	return [kMin, kMax];
 }
 
 /** Combine the changes from `lhs` with `rhs` */
