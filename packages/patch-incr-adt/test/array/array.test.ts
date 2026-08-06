@@ -10,7 +10,6 @@ import {
 	type ParSpliceEntry,
 	SpliceTable,
 	unmapIndex,
-	withinInterval,
 } from "@/array/splice";
 import * as s from "@/index";
 import * as p from "@/props";
@@ -433,6 +432,15 @@ describe("SpliceTable invariants", () => {
 
 describe("SpliceTable apply", () => {
 	const num = s.number();
+
+	test("empty on empty", () => {
+		const table = new SpliceTable<number, s.DRO<number>>([
+			{ i: 0, di: 0, j: 0, dj: 0, replace: [] },
+		]);
+		expect(table.requiredLength).toBe(0);
+		expect(table.apply([], p.integer())).toEqual([]);
+	});
+
 	it("identity should leave array unchanged", () => {
 		fc.assert(
 			fc.property(fc.array(fc.integer()), (arr) => {
@@ -489,66 +497,6 @@ describe("SpliceTable apply", () => {
 });
 
 describe("helpers", () => {
-	describe("withinInterval", () => {
-		test("empty interval", () => {
-			fc.assert(
-				fc.property(
-					fc.integer(),
-					fc.integer(),
-					(j, x) => !withinInterval({ j, dj: 0 }, x),
-				),
-			);
-		});
-
-		test("point-like interval", () => {
-			fc.assert(
-				fc.property(
-					fc.integer(),
-					fc.integer(),
-					(j, x) => withinInterval({ j, dj: 1 }, x) === (j === x),
-				),
-			);
-		});
-
-		test("before-all is false (< j)", () => {
-			fc.assert(
-				fc.property(
-					fc
-						.record({
-							j: fc.integer({ max: 100 }),
-							dj: fc.integer({ min: 0, max: 5 }),
-						})
-						.chain(({ j, dj }) =>
-							fc.record({
-								r: fc.constant({ j, dj }),
-								x: fc.integer({ max: j - 1 }),
-							}),
-						),
-					({ r, x }) => !withinInterval(r, x),
-				),
-			);
-		});
-
-		test("after-all is false (>= j + dj)", () => {
-			fc.assert(
-				fc.property(
-					fc
-						.record({
-							j: fc.integer({ max: 100 }),
-							dj: fc.integer({ min: 0, max: 5 }),
-						})
-						.chain(({ j, dj }) =>
-							fc.record({
-								r: fc.constant({ j, dj }),
-								x: fc.integer({ min: j + dj, max: 120 }),
-							}),
-						),
-					({ r, x }) => !withinInterval(r, x),
-				),
-			);
-		});
-	});
-
 	describe("applyInside", () => {
 		test("performs a splice", () => {
 			const lhs = {
@@ -655,7 +603,7 @@ describe("helpers", () => {
 						dj: 1,
 						replace: [5],
 					},
-					19,
+					0,
 				]);
 			});
 			test("change-replace", () => {
@@ -687,8 +635,9 @@ describe("helpers", () => {
 		});
 	});
 });
+
 describe("SpliceTable combine", () => {
-	describe("examples", () => {
+	describe("from factories", () => {
 		test("unshift", () => {
 			// const arr = [1, 2, 3];
 			// arr.unshift(10, 20);
@@ -725,7 +674,6 @@ describe("SpliceTable combine", () => {
 			);
 		});
 
-		// TODO fix
 		test("overwrite-all", () => {
 			const left = SpliceTable.fromSplice<number, s.DRO<number>>(
 				5,
@@ -744,6 +692,12 @@ describe("SpliceTable combine", () => {
 					replace: [],
 				},
 			]);
+			testApplyCombine(
+				[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+				left,
+				right,
+				p.integer(),
+			);
 		});
 
 		test("append-before", () => {
@@ -754,10 +708,6 @@ describe("SpliceTable combine", () => {
 				0,
 				[20, 30],
 			);
-			expect(left.combine(right, p.integer()).entries).toEqual([
-				...right.entries,
-				...left.entries,
-			]);
 			testApplyCombine(input, left, right, p.integer());
 		});
 
@@ -844,6 +794,7 @@ describe("SpliceTable combine", () => {
 							);
 							const combined = left.combine(right, p.integer());
 							return {
+								apply: p.integer(),
 								arr,
 								left,
 								right,
@@ -880,6 +831,7 @@ describe("SpliceTable combine", () => {
 								rightArr,
 							);
 							return {
+								apply: p.integer(),
 								arr,
 								left,
 								right,
@@ -894,197 +846,533 @@ describe("SpliceTable combine", () => {
 	});
 });
 
-describe("combineTables1", () => {
+describe("combineTables1 helper", () => {
 	const arbTableInt = p.arbSpliceTable<number, s.DRO<number>>({
 		arbValue: fc.integer(),
 		arbChange: () => p.integer().getArbApply().arbChange({ depth: 8 }),
 	});
-	test("combine with identity, from left", () => {
-		fc.assert(
-			fc.property(arbTableInt, (table) => {
-				const res = combineTables1(
-					table,
-					SpliceTable.identity(),
-					p.integer(),
-				).entries;
-				try {
-					expect(res).toEqual(table.entries);
-				} catch (e) {
-					console.error("fail", { expected: table.entries, actual: res });
-					throw e;
-				}
-			}),
-		);
-	});
-	test("combine with identity, from right", () => {
-		fc.assert(
-			fc.property(arbTableInt, (table) => {
-				const res = combineTables1(
-					SpliceTable.identity<number, s.DRO<number>>(),
-					table,
-					p.integer(),
-				).entries;
-				try {
-					expect(res).toEqual(table.entries);
-				} catch (e) {
-					console.error("fail", { expected: table.entries, actual: res });
-					throw e;
-				}
-			}),
-		);
-	});
 
-	test("non-overlapping case 1", () => {
-		const left = new SpliceTable<number, s.DRO<number>>([
-			{
-				i: 1,
-				di: 1,
-				j: 1,
-				dj: 3,
-				replace: [10, 20, 30],
-			},
-		]);
-		const right = new SpliceTable<number, s.DRO<number>>([
-			{
-				i: 5,
-				di: 1,
-				j: 5,
-				dj: 5,
-				replace: [40, 50, 60, 70, 80],
-			},
-		]);
-		const combined = combineTables1<number, s.DRO<number>>(
-			left,
-			right,
-			p.integer(),
-		);
-		propApplyCombine({
-			arr: [1, 2, 3, 4],
-			combined,
-			left,
-			right,
-			expected: [1, 10, 20, 30, 3, 40, 50, 60, 70, 80],
+	describe("properties", () => {
+		test("combine with identity, from left", () => {
+			fc.assert(
+				fc.property(arbTableInt, (table) => {
+					const res = combineTables1(
+						table,
+						SpliceTable.identity(),
+						p.integer(),
+						false,
+					).entries;
+					try {
+						expect(res).toEqual(table.entries);
+					} catch (e) {
+						console.error("fail", { expected: table.entries, actual: res });
+						throw e;
+					}
+				}),
+			);
+		});
+
+		test("combine with identity, from right", () => {
+			fc.assert(
+				fc.property(arbTableInt, (table) => {
+					const res = combineTables1(
+						SpliceTable.identity<number, s.DRO<number>>(),
+						table,
+						p.integer(),
+						false,
+					).entries;
+					try {
+						expect(res).toEqual(table.entries);
+					} catch (e) {
+						console.error("fail", { expected: table.entries, actual: res });
+						throw e;
+					}
+				}),
+			);
+		});
+
+		test("combine with distant no-op change, from left", () => {
+			fc.assert(
+				fc.property(
+					arbTableInt.map((t) => {
+						const iLast = t.requiredLength + 10;
+						const jLast = t.mapIndex(iLast).index;
+						return {
+							arr: Array(iLast + 1)
+								.fill(null)
+								.map((_, i) => -i - 100),
+							left: t,
+							right: new SpliceTable<number, s.DRO<number>>([
+								{
+									i: jLast,
+									di: 1 as const,
+									j: jLast,
+									dj: 1 as const,
+									change: null,
+								},
+							]),
+						};
+					}),
+					({ arr, left, right }) => {
+						const combined = combineTables1(left, right, p.integer(), false);
+						expect(
+							combined.entries.slice(0, left.entries.length) as never[],
+						).toEqual(left.entries as never[]);
+						propApplyCombine({
+							apply: p.integer(),
+							arr,
+							left,
+							right,
+							combined,
+						});
+					},
+				),
+			);
+		});
+
+		test("combine with distant no-op change, from right", () => {
+			fc.assert(
+				fc.property(
+					arbTableInt.map((t) => {
+						const iLast = t.requiredLength + 10;
+						return {
+							arr: Array(iLast + 1)
+								.fill(null)
+								.map((_, i) => -i - 100),
+							left: new SpliceTable<number, s.DRO<number>>([
+								{
+									i: iLast,
+									di: 1 as const,
+									j: iLast,
+									dj: 1 as const,
+									change: null,
+								},
+							]),
+							right: t,
+						};
+					}),
+					({ arr, left, right }) => {
+						let combined1: typeof left | null = null;
+						try {
+							const combined = combineTables1(left, right, p.integer(), false);
+							combined1 = combined;
+							expect(combined.entries.slice(0, right.entries.length)).toEqual(
+								right.entries as never[],
+							);
+							propApplyCombine({
+								apply: p.integer(),
+								arr,
+								left,
+								right,
+								combined,
+							});
+						} catch (e) {
+							console.error({
+								arr,
+								left: left.entries,
+								right: right.entries,
+								combined: combined1?.entries,
+							});
+							console.error(e);
+							throw e;
+						}
+					},
+				),
+			);
+		});
+
+		test("combine create array from empty with changes within requiredLength", () => {
+			fc.assert(
+				fc.property(
+					fc.array(fc.integer(), { maxLength: 16 }),
+					arbTableInt,
+					(arr, table) => {
+						const lhs = new SpliceTable<number, s.DRO<number>>([
+							{ i: 0, di: 0, j: 0, dj: arr.length, replace: arr },
+						]);
+						fc.pre(table.requiredLength <= arr.length);
+						const combined = combineTables1(lhs, table, p.integer(), false);
+						// console.log({
+						// 	lhs: lhs.entries,
+						// 	before: table.entries,
+						// 	after: combined.entries,
+						// });
+						expect(combined.requiredLength).toBe(0);
+						const actual = combined.apply([], p.integer());
+						const expected = table.apply(arr, p.integer());
+						// console.log({ expected, actual });
+						expect(actual).toEqual(expected);
+					},
+				),
+			);
 		});
 	});
 
-	test("non-overlapping case 3, adjacent", () => {
-		const left = new SpliceTable<number, s.DRO<number>>([
-			{
-				i: 1,
-				di: 2,
-				j: 1,
-				dj: 0,
-				replace: [],
-			},
-		]);
-		const right = new SpliceTable<number, s.DRO<number>>([
-			{
-				i: 1,
-				di: 2,
-				j: 1,
-				dj: 4,
-				replace: [40, 50, 60, 70],
-			},
-		]);
-		const combined = combineTables1<number, s.DRO<number>>(
-			left,
-			right,
-			p.integer(),
-		);
-		expect(combined.entries).toEqual([
-			{ i: 1, di: 2, j: 1, dj: 0, replace: [] },
-			{ i: 3, di: 2, j: 1, dj: 4, replace: [40, 50, 60, 70] },
-		]);
-		propApplyCombine({
-			arr: [1, 2, 3, 4, 5],
-			combined,
-			left,
-			right,
+	describe("examples", () => {
+		test("non-overlapping case 1", () => {
+			const left = new SpliceTable<number, s.DRO<number>>([
+				{
+					i: 1,
+					di: 1,
+					j: 1,
+					dj: 3,
+					replace: [10, 20, 30],
+				},
+			]);
+			const right = new SpliceTable<number, s.DRO<number>>([
+				{
+					i: 5,
+					di: 1,
+					j: 5,
+					dj: 5,
+					replace: [40, 50, 60, 70, 80],
+				},
+			]);
+			const combined = combineTables1<number, s.DRO<number>>(
+				left,
+				right,
+				p.integer(),
+			);
+			propApplyCombine({
+				apply: p.integer(),
+				arr: [1, 2, 3, 4],
+				combined,
+				left,
+				right,
+				expected: [1, 10, 20, 30, 3, 40, 50, 60, 70, 80],
+			});
 		});
-	});
 
-	test("overlap-before", () => {
-		const left = new SpliceTable<number, s.DRO<number>>([
-			{
-				i: 1,
-				di: 0,
-				j: 1,
-				dj: 5,
-				replace: [100, 200, 300, 400, 500],
-			},
-		]);
-		const right = new SpliceTable<number, s.DRO<number>>([
-			{
-				i: 3,
-				di: 6,
-				j: 3,
-				dj: 0,
-				replace: [],
-			},
-		]);
-		const combined = combineTables1<number, s.DRO<number>>(
-			left,
-			right,
-			p.integer(),
-		);
-		//console.log("entries", combined.entries);
-		propApplyCombine({
-			arr: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-			combined,
-			left,
-			right,
+		test("non-overlapping case 3, adjacent", () => {
+			const left = new SpliceTable<number, s.DRO<number>>([
+				{
+					i: 1,
+					di: 2,
+					j: 1,
+					dj: 0,
+					replace: [],
+				},
+			]);
+			const right = new SpliceTable<number, s.DRO<number>>([
+				{
+					i: 1,
+					di: 2,
+					j: 1,
+					dj: 4,
+					replace: [40, 50, 60, 70],
+				},
+			]);
+			const combined = combineTables1<number, s.DRO<number>>(
+				left,
+				right,
+				p.integer(),
+			);
+			expect(combined.entries).toEqual([
+				{ i: 1, di: 4, j: 1, dj: 4, replace: [40, 50, 60, 70] },
+			]);
+			propApplyCombine({
+				apply: p.integer(),
+				arr: [1, 2, 3, 4, 5],
+				combined,
+				left,
+				right,
+			});
 		});
-	});
 
-	test("combine with identity from right test", () => {
-		const left = new SpliceTable<number, s.DRO<number>>([]);
-		const right = new SpliceTable<number, s.DRO<number>>([
-			{
-				i: 0,
-				di: 0,
-				j: 0,
-				dj: 1,
-				replace: [0],
-			},
-			{
-				i: 1,
-				di: 1 as const,
-				j: 2,
-				dj: 1 as const,
-				change: null,
-			},
-		]);
-		const combined = combineTables1<number, s.DRO<number>>(
-			left,
-			right,
-			p.integer(),
-		);
-		// console.log("entries", combined.entries);
-		expect(combined.entries).toEqual(right.entries);
-		propApplyCombine({
-			arr: [100, 101],
-			combined,
-			left,
-			right,
+		test("overlap-before", () => {
+			const left = new SpliceTable<number, s.DRO<number>>([
+				{
+					i: 1,
+					di: 0,
+					j: 1,
+					dj: 5,
+					replace: [100, 200, 300, 400, 500],
+				},
+			]);
+			const right = new SpliceTable<number, s.DRO<number>>([
+				{
+					i: 3,
+					di: 6,
+					j: 3,
+					dj: 0,
+					replace: [],
+				},
+			]);
+			const combined = combineTables1<number, s.DRO<number>>(
+				left,
+				right,
+				p.integer(),
+			);
+			propApplyCombine({
+				apply: p.integer(),
+				arr: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+				combined,
+				left,
+				right,
+			});
+		});
+
+		test("combine with identity from left test", () => {
+			const left = new SpliceTable<number, s.DRO<number>>([
+				{
+					i: 0,
+					di: 0,
+					j: 0,
+					dj: 1,
+					replace: [0],
+				},
+				{
+					i: 1,
+					di: 1 as const,
+					j: 2,
+					dj: 1 as const,
+					change: null,
+				},
+			]);
+			const right = new SpliceTable<number, s.DRO<number>>([]);
+			const combined = combineTables1<number, s.DRO<number>>(
+				left,
+				right,
+				p.integer(),
+			);
+			expect(combined.entries).toEqual(left.entries);
+			propApplyCombine({
+				apply: p.integer(),
+				arr: [100, 101],
+				combined,
+				left,
+				right,
+			});
+		});
+
+		test("combine with identity from right test", () => {
+			const left = new SpliceTable<number, s.DRO<number>>([]);
+			const right = new SpliceTable<number, s.DRO<number>>([
+				{
+					i: 0,
+					di: 0,
+					j: 0,
+					dj: 1,
+					replace: [0],
+				},
+				{
+					i: 1,
+					di: 0,
+					j: 2,
+					dj: 1,
+					replace: [0],
+				},
+			]);
+			const combined = combineTables1<number, s.DRO<number>>(
+				left,
+				right,
+				p.integer(),
+			);
+			expect(combined.entries).toEqual(right.entries);
+			propApplyCombine({
+				apply: p.integer(),
+				arr: [100, 101],
+				combined,
+				left,
+				right,
+			});
+		});
+
+		test("combine with distant no-op test", () => {
+			const left = new SpliceTable<number, s.DRO<number>>([
+				{
+					i: 10,
+					di: 1,
+					j: 10,
+					dj: 1,
+					change: null,
+				},
+			]);
+			const right = new SpliceTable<number, s.DRO<number>>([
+				{
+					i: 0,
+					di: 0,
+					j: 0,
+					dj: 1,
+					replace: [0],
+				},
+				{
+					i: 1,
+					di: 1 as const,
+					j: 2,
+					dj: 1 as const,
+					change: s.makeReplaceOnly(-1),
+				},
+			]);
+			const combined = combineTables1<number, s.DRO<number>>(
+				left,
+				right,
+				p.integer(),
+			);
+			expect(combined.entries.slice(0, right.entries.length)).toEqual(
+				right.entries as never[],
+			);
+			propApplyCombine({
+				apply: p.integer(),
+				arr: [100, 101, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112],
+				combined,
+				left,
+				right,
+			});
+		});
+
+		test("combine with distant no-op test 1", () => {
+			const left = new SpliceTable<number, s.DRO<number>>([
+				{ i: 15, di: 1, j: 15, dj: 1, change: null },
+			]);
+			const right = new SpliceTable<number, s.DRO<number>>([
+				{ i: 1, di: 1, j: 1, dj: 1, change: s.makeReplaceOnly(0) },
+				{ i: 3, di: 0, j: 3, dj: 1, replace: [0] },
+				{ i: 4, di: 0, j: 5, dj: 10, replace: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+				{ i: 5, di: 0, j: 16, dj: 1, replace: [0] },
+			]);
+			const combined = combineTables1<number, s.DRO<number>>(
+				left,
+				right,
+				p.integer(),
+			);
+			expect(combined.entries.slice(0, right.entries.length)).toEqual(
+				right.entries as never[],
+			);
+			propApplyCombine({
+				apply: p.integer(),
+				arr: [
+					100, 101, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114,
+					115, 116,
+				],
+				combined,
+				left,
+				right,
+			});
+		});
+
+		test("combine effective replace with changes", () => {
+			const arr: number[] = [0, 0];
+			const table = new SpliceTable<number, s.DRO<number>>([
+				{ i: 1, di: 0, j: 1, dj: 1, replace: [0] },
+			]);
+
+			const lhs = new SpliceTable<number, s.DRO<number>>([
+				{ i: 0, di: 0, j: 0, dj: arr.length, replace: arr },
+			]);
+			const combined = combineTables1(lhs, table, p.integer(), false);
+			const actual = combined.apply([], p.integer());
+			const expected = table.apply(arr, p.integer());
+			expect(actual).toEqual(expected);
+		});
+
+		test("combine effective replace with changes, 3 non-offseting replaces only", () => {
+			const arr: number[] = [0, 0, 0];
+			const table = new SpliceTable<number, s.DRO<number>>([
+				{ i: 0, di: 1, j: 0, dj: 1, replace: [1] },
+				{ i: 1, di: 1, j: 1, dj: 1, replace: [2] },
+				{ i: 2, di: 1, j: 2, dj: 1, replace: [3] },
+			]);
+
+			const lhs = SpliceTable.fromSplice<number, s.DRO<number>>(0, 0, arr);
+			const combined = combineTables1(lhs, table, p.integer(), false);
+			const actual = combined.apply([], p.integer());
+			const expected = table.apply(arr, p.integer());
+			expect(actual).toEqual(expected);
+		});
+
+		test("combine effective replace with changes, 2 entries", () => {
+			const arr: number[] = [0, 0, 0];
+			const table = new SpliceTable<number, s.DRO<number>>([
+				{ i: 1, di: 1, j: 1, dj: 0, replace: [] },
+				{ i: 3, di: 0, j: 2, dj: 1, replace: [1] },
+			]);
+
+			const lhs = SpliceTable.fromSplice<number, s.DRO<number>>(0, 0, arr);
+			const combined = combineTables1(lhs, table, p.integer(), false);
+			const actual = combined.apply([], p.integer());
+			const expected = table.apply(arr, p.integer());
+			expect(actual).toEqual(expected);
+		});
+
+		test("combine effective replace with changes, containing delete", () => {
+			const arr: number[] = [0];
+			const table = new SpliceTable<number, s.DRO<number>>([
+				{ i: 0, di: 1, j: 0, dj: 1, change: s.makeReplaceOnly(0) },
+				{ i: 1, di: 0, j: 1, dj: 1, replace: [1] },
+			]);
+
+			const lhs = SpliceTable.fromSplice<number, s.DRO<number>>(0, 0, arr);
+			const combined = combineTables1(lhs, table, p.integer(), false);
+			const actual = combined.apply([], p.integer());
+			const expected = table.apply(arr, p.integer());
+			expect(actual).toEqual(expected);
+		});
+
+		test("no negative i, j fail 1", () => {
+			const lhs = new SpliceTable<null, null>([
+				{
+					i: 0,
+					di: 1,
+					j: 0,
+					dj: 5,
+					replace: [null, null, null, null, null],
+				},
+				{ i: 1, di: 1, j: 5, dj: 1, replace: [null] },
+			]);
+			const rhs = new SpliceTable<null, null>([
+				{ i: 0, di: 100, j: 0, dj: 0, replace: [] },
+			]);
+			const combined = lhs.combine(rhs, p.constant(null));
+			console.log(combined.entries);
+		});
+
+		test("no negative i, j fail 2", () => {
+			const lhs = new SpliceTable<null, null>([
+				{
+					i: 1,
+					di: 0,
+					j: 1,
+					dj: 2,
+					replace: [null, null],
+				},
+			]);
+			const rhs = new SpliceTable<null, null>([
+				{ i: 0, di: 0, j: 0, dj: 2, replace: [null, null] },
+				{ i: 1, di: 1, j: 3, dj: 1, change: null },
+			]);
+			const combined = lhs.combine(rhs, p.constant(null));
+			console.log(combined.entries);
+		});
+
+		test("assoc fail, actually merge fail", () => {
+			const a = new SpliceTable<null, null>([
+				{ i: 2, di: 1, j: 2, dj: 1, change: null },
+			]);
+			const b = new SpliceTable<null, null>([
+				{
+					i: 0,
+					di: 1,
+					j: 0,
+					dj: 1,
+					change: null,
+				},
+			]);
+			const c = new SpliceTable<null, null>([
+				{ i: 0, di: 3, j: 0, dj: 0, replace: [] },
+			]);
+			const apply = p.constant(null);
+			const ab = a.combine(b, apply);
+			const bc = b.combine(c, apply);
+			console.log(ab.entries, bc.entries);
+			console.log(ab.combine(c, apply).entries, a.combine(bc, apply).entries);
 		});
 	});
 });
 
-describe("array apply", () => {
-	describe("of boolean", () => {
-		testCasesArray(p.boolean());
-	});
-	describe("of integer", () => {
-		testCasesArray(p.integer({ min: 100, max: 120 }));
-	});
-	describe("of string", () => {
-		testCasesArray(p.string());
-	});
-});
-
-describe("FAILING EXAMPLE", () => {
-	test("failing 1", () => {
-		const a = p.string();
+describe("combine examples", () => {
+	test("overlap and merging", () => {
+		const apply = p.string();
 		const input = ["a", "b", "c"];
 		const left = new SpliceTable<string, s.DRO<string>>([
 			{ i: 3, di: 0, j: 3, dj: 3, replace: ["d", "e", "f"] },
@@ -1093,14 +1381,11 @@ describe("FAILING EXAMPLE", () => {
 			{ i: 1, di: 4, j: 1, dj: 0, replace: [] },
 			{ i: 6, di: 0, j: 2, dj: 1, replace: ["g"] },
 		]);
-		expect(right.apply(left.apply(input, a), a)).toEqual(["a", "f", "g"]);
-		const combined = left.combine(right, a);
-		expect(combined.entries).toEqual([
-			{ i: 1, di: 2, j: 1, dj: 2, replace: ["f", "g"] },
-		]);
+		const combined = left.combine(right, apply);
+		propApplyCombine({ apply, arr: input, left, right, combined });
 	});
 
-	test("failing 2, replace only handling", () => {
+	test("replace only handling", () => {
 		const a = p.integer();
 		const input = [100, 100, 100];
 		const left = new SpliceTable<number, s.DRO<number>>([
@@ -1129,7 +1414,7 @@ describe("FAILING EXAMPLE", () => {
 		expect(combined.apply(input, a)).toEqual([100, 100, 100, 101]);
 	});
 
-	test("failing 3", () => {
+	test("mixed with replace 1", () => {
 		const a = p.integer();
 		const input = [100];
 		const left = new SpliceTable<number, s.DRO<number>>([
@@ -1180,9 +1465,8 @@ describe("FAILING EXAMPLE", () => {
 		);
 	});
 
-	test("failing 4", () => {
-		const a = p.integer();
-		const input = [1, 2, 3, 4, 5];
+	test("mixed with replace 2", () => {
+		const arr = [1, 2, 3, 4, 5];
 		const left = new SpliceTable<number, s.DRO<number>>([
 			{ i: 3, di: 0, j: 3, dj: 1, replace: [100] },
 		]);
@@ -1200,11 +1484,52 @@ describe("FAILING EXAMPLE", () => {
 		expect(combined.entries).toEqual([
 			{ i: 0, di: 0, j: 0, dj: 1, replace: [101] },
 			{ i: 2, di: 1, j: 3, dj: 1, change: s.makeReplaceOnly(102) },
-			{ i: 3, di: 0, j: 3, dj: 1, replace: [100] },
+			{ i: 3, di: 0, j: 4, dj: 1, replace: [100] },
 		]);
-		expect(right.apply(left.apply(input, a), a)).toEqual(
-			combined.apply(input, a),
-		);
+		propApplyCombine({ apply: p.integer(), left, right, combined, arr });
+	});
+
+	test("failing combine test case with overlap, simplified", () => {
+		const apply = s.constant(null, null);
+		const arr: null[] = Array(2).fill(null);
+		const left = new SpliceTable<null, null>([
+			{ i: 0, di: 2, j: 0, dj: 4, replace: [null, null, null, null] },
+		]);
+		const right = new SpliceTable<null, null>([
+			{ i: 0, di: 1, j: 0, dj: 1, replace: [] },
+			{ i: 3, di: 1, j: 2, dj: 1, replace: [] },
+		]);
+		const combined = left.combine(right, apply);
+		propApplyCombine({ apply, left, right, combined, arr });
+	});
+
+	test("failing combine test case with overlap", () => {
+		const apply = s.constant(null, null);
+		const arr: null[] = Array(6).fill(null);
+		const left = new SpliceTable<null, null>([
+			{ i: 4, di: 2, j: 4, dj: 3, replace: [null, null, null] },
+		]);
+		const right = new SpliceTable<null, null>([
+			{ i: 4, di: 1, j: 4, dj: 0, replace: [] },
+			{ i: 6, di: 1, j: 5, dj: 1, change: null }, // TODO should be left-inside
+		]);
+		const combined = left.combine(right, apply);
+		propApplyCombine({ apply, left, right, combined, arr });
+	});
+});
+
+describe("array apply", () => {
+	describe("of constant", () => {
+		testCasesArray(p.constant(null));
+	});
+	describe("of boolean", () => {
+		testCasesArray(p.boolean());
+	});
+	describe("of integer", () => {
+		testCasesArray(p.integer({ min: 100, max: 120 }));
+	});
+	describe("of string", () => {
+		testCasesArray(p.string());
 	});
 });
 
@@ -1243,6 +1568,22 @@ function testSpliceTableInvariants<
 				fc.property(arb, ({ table }) => {
 					fc.pre(table.entries.length > 0);
 					return table.entries[0]!.i === table.entries[0]!.j;
+				}),
+			);
+		});
+
+		test("no negative i", () => {
+			fc.assert(
+				fc.property(arb, ({ table }) => {
+					return table.entries.every((x) => x.i >= 0);
+				}),
+			);
+		});
+
+		test("no negative j", () => {
+			fc.assert(
+				fc.property(arb, ({ table }) => {
+					return table.entries.every((x) => x.j >= 0);
 				}),
 			);
 		});
@@ -1292,20 +1633,21 @@ function testSpliceTableInvariants<
 	});
 }
 
-function propApplyCombine({
+function propApplyCombine<A extends s.$A, T = s.$T<A>, DT = s.$D<A>>({
+	apply: a,
 	arr,
 	expected,
 	left,
 	right,
 	combined,
 }: {
-	arr: number[];
-	left: SpliceTable<number, s.DRO<number>>;
-	right: SpliceTable<number, s.DRO<number>>;
-	combined: SpliceTable<number, s.DRO<number>>;
-	expected?: number[];
+	apply: s.Apply<T, DT>;
+	arr: T[];
+	left: SpliceTable<T, DT>;
+	right: SpliceTable<T, DT>;
+	combined: SpliceTable<T, DT>;
+	expected?: T[];
 }) {
-	const a = p.integer();
 	const actual = combined.apply(arr, a);
 	if (expected) {
 		expect(actual).toEqual(expected);

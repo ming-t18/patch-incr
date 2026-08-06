@@ -6,6 +6,7 @@ import "./types";
 import fc from "fast-check";
 import { AArray, type DeriveArrayChange } from "@/array";
 import {
+	mergeAdjacents,
 	type ParApplyEntry,
 	type ParSpliceEntry,
 	SpliceTable,
@@ -280,6 +281,9 @@ export function arbSpliceTable<T, DT>(opts: {
 					),
 				),
 			)
-			.map((entries) => SpliceTable.fromParallelEntries(entries)),
+			.map((es) => {
+				const { entries } = SpliceTable.fromParallelEntries(es);
+				return new SpliceTable(mergeAdjacents(entries));
+			}),
 	);
 }

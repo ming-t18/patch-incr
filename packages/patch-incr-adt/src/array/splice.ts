@@ -21,6 +21,9 @@ export interface ApplyEntry<DT> {
 }
 
 export type SpliceTableEntry<T, DT> = SpliceEntry<T> | ApplyEntry<DT>;
+export type SpliceTableEntryNoJ<T, DT> =
+	| Omit<SpliceEntry<T>, "j">
+	| Omit<ApplyEntry<DT>, "j">;
 
 export type SpliceEntries<T, DT> = readonly SpliceTableEntry<T, DT>[];
 export type SpliceEntriesMutable<T, DT> = SpliceTableEntry<T, DT>[];
@@ -495,11 +498,12 @@ export function unmapIndex<T, DT>(
 }
 
 export function combineTables1<T, DT>(
-	unmapper: SpliceTable<T, DT>,
+	leftTable: SpliceTable<T, DT>,
 	rightTable: SpliceTable<T, DT>,
 	apply: Apply<T, DT>,
+	shouldMergeAdjacents = true,
 ): SpliceTable<T, DT> {
-	function getDjiAdjustment(e: Pick<SpliceTableEntry<T, DT>, "di" | "dj">) {
+	function getDjiAdjustment(e: { di: number; dj: number; change?: DT }) {
 		return "change" in e ? 0 : e.dj - e.di;
 	}
 
@@ -525,37 +529,49 @@ export function combineTables1<T, DT>(
 				} satisfies ApplyEntry<DT>);
 	}
 
-	function makeDirAdjustment(rhs: SpliceTableEntry<T, DT>, dir: number) {
+	/** Flattens and makes dir adjustment `[i, j] = [i + dir, i + dir + dji]` */
+	function reoffsetRight(
+		rhs: SpliceTableEntry<T, DT> | SpliceTableEntryNoJ<T, DT>,
+		dir: number,
+	): SpliceTableEntryNoJ<T, DT> {
 		const e1 = { ...rhs };
 		e1.i += dir;
+		// @ts-expect-error Intentional
+		e1.j = Number.NaN;
 		return e1;
 	}
 
-	function reoffsetRight(
-		entry: SpliceTableEntry<T, DT>,
+	function reoffsetRightToLeft(
+		entry: SpliceTableEntryNoJ<T, DT>,
 		dji: number,
+		_dir: number,
 	): SpliceTableEntry<T, DT> {
 		const i0 = entry.i - dji;
+		const { i, di, dj } = entry;
 		return "replace" in entry
 			? ({
 					i: i0,
-					di: entry.di,
-					j: i0 + dji,
-					dj: entry.dj,
-					replace: entry.replace,
+					di,
+					j: i,
+					dj,
+					replace: (entry as SpliceEntry<T>).replace,
 				} satisfies SpliceEntry<T>)
 			: ({
 					i: i0,
-					di: entry.di,
-					j: i0 + dji,
-					dj: entry.dj,
-					change: entry.change,
+					di: di as 1,
+					j: i,
+					dj: dj as 1,
+					change: (entry as ApplyEntry<DT>).change,
 				} satisfies ApplyEntry<DT>);
 	}
 
 	// mutated due to splitting
-	const right: SpliceEntriesMutable<T, DT> = [...rightTable.entries];
-	const left: SpliceEntriesMutable<T, DT> = [...unmapper.entries];
+	const right: SpliceTableEntryNoJ<T, DT>[] = rightTable.entries.map((e) => {
+		const e1 = { ...e };
+		e1.j = Number.NaN;
+		return e1;
+	});
+	const left: SpliceEntriesMutable<T, DT> = [...leftTable.entries];
 	const res: SpliceEntriesMutable<T, DT> = [];
 	let l = 0;
 	let r = 0;
@@ -563,9 +579,11 @@ export function combineTables1<T, DT>(
 	let dji = 0;
 	// rhs.i displacement due to lhs mutating
 	let dir = 0;
+	// console.log("-----");
 	while (l < left.length && r < right.length) {
-		const lhs = left[l]!;
-		const rhs = makeDirAdjustment(right[r]!, dir);
+		// console.log("start", [l, left.length], [r, right.length], [res.length]);
+		const lhs = reoffsetLeft(left[l]!, dji);
+		const rhs = reoffsetRight(right[r]!, dir);
 		const { j: xs } = lhs;
 		const xe = xs + lhs.dj;
 		const { i: ys } = rhs;
@@ -575,10 +593,10 @@ export function combineTables1<T, DT>(
 		//      [rhs )
 		// after
 		if (xe <= ys) {
-			//console.log("after", l, r, "dji =", dji, "dir = ", dir);
-			res.push(reoffsetLeft(lhs!, dji));
-			dji += getDjiAdjustment(res[res.length - 1]!);
-			//console.log(" dji -->", dji);
+			// console.log("after-lhs", l, r, "dji =", dji, "dir = ", dir);
+			res.push(lhs);
+			dji += getDjiAdjustment(lhs);
+			// console.log(" dji --> ", dji, " dir --> ", dir);
 			l++;
 			continue;
 		}
@@ -587,11 +605,13 @@ export function combineTables1<T, DT>(
 		// [rhs )
 		// before
 		if (ye <= xs) {
-			//console.log("before", l, r, "dji =", dji, "dir = ", dir);
+			// console.log("before-rhs", l, r, "dji =", dji, "dir = ", dir);
 			// before-all case
-			res.push(reoffsetRight(rhs, dji));
-			dji += getDjiAdjustment(res[res.length - 1]!);
-			//console.log(" dji --> ", dji);
+			res.push(reoffsetRightToLeft(rhs, dji, dir));
+			dji += getDjiAdjustment(rhs);
+			// must be done
+			dir += getDjiAdjustment(rhs);
+			// console.log(" dji --> ", dji, " dir --> ", dir);
 			r++;
 			continue;
 		}
@@ -600,28 +620,22 @@ export function combineTables1<T, DT>(
 		//    [rhs    ...
 		if (xs <= ys) {
 			if (ye <= xe) {
-				//console.log("left-inside", l, r, "dji =", dji, "dir = ", dir);
+				// console.log("left-inside", l, r, "dji =", dji, "dir = ", dir);
 				// [lhs       )
 				//    [rhs )
 				// left-inside
 				const off = rhs.i - lhs.j;
+				// console.log({ lhs, rhs });
 				const [lhsNew, ddir] = applyInside(lhs, rhs, apply, off);
+				// console.log({ lhsNew, ddir });
 				left[l] = lhsNew;
-				// console.log("after applying inside", {
-				// 	before: lhs,
-				// 	rhs: rhs,
-				// 	off,
-				// 	after: lhsNew,
-				// });
-				res.push(lhsNew);
 				// Due to left entry being mutated, there's an extra adjustment
-				dji += getDjiAdjustment(lhsNew);
 				dir += ddir;
-				// console.log("  dji --> ", dji, ", dir --> ", dir);
-				l++;
+				// console.log("  dji --> ", dji, " dir --> ", dir);
 				r++;
 				continue;
 			}
+
 			// console.log("left-overlap", l, r, "dji =", dji, "dir = ", dir);
 			// [lhs      )
 			//    [rhs        )
@@ -638,54 +652,52 @@ export function combineTables1<T, DT>(
 			if (r2 === null) {
 				throw new Error("can't split");
 			}
-			// console.log({ iSplit, rhs, split: [r1, r2] });
-			right.splice(r, 1, r1, r2);
-			continue;
 
-			// continue;
+			right.splice(r, 1, reoffsetRight(r1, -dir), reoffsetRight(r2, -dir));
+			continue;
 		}
 
-		// xs > ys
+		//       [lhs    )
+		//  [rhs |     )
+		// console.log("right-overlap", l, r, "dji =", dji, "dir = ", dir);
+		if ("change" in rhs) {
+			throw new Error("right-overlap: not possible");
+		}
+		const [r1, r2] = splitEntryRight(rhs, lhs.j);
+		if (r2 === null) {
+			throw new Error("right-overlap: can't split");
+		}
 
-		//     [lhs    )
-		//  [rhs   ...
-		//  [rhs   ...
-		throw new Error("TODO");
+		right.splice(r, 1, reoffsetRight(r1, -dir), reoffsetRight(r2, -dir));
 	}
 
+	// console.log("after", [l, left.length], [r, right.length]);
 	for (; l < left.length; l++) {
 		// console.log("add-left", l, "dji =", dji);
-		const e = left[l]!;
-		res.push(reoffsetLeft(e, dji));
-		dji += getDjiAdjustment(res[res.length - 1]!);
+		const lhs = reoffsetLeft(left[l]!, dji);
+		res.push(lhs);
+		dji += getDjiAdjustment(lhs);
 		// console.log("  dji --> ", dji);
 	}
 	for (; r < right.length; r++) {
 		// console.log("add-right", r, "dji =", dji, ", dir = ", dir);
-		const e = makeDirAdjustment(right[r]!, dir);
-		// console.log("got:", {
-		// 	before: right[r], afterAdj: e, afterReoffset: reoffsetRight(e, dji),
-		// });
-		res.push(reoffsetRight(e, dji));
-		dji += getDjiAdjustment(res[res.length - 1]!);
-		dir += getDjiAdjustment(right[r]!);
-		// console.log("right", e, res[res.length - 1]!);
-		// console.log("  dji --> ", dji, ", dir --> ", dir);
+		const rhs = reoffsetRight(right[r]!, dir);
+		res.push(reoffsetRightToLeft(rhs, dji, dir));
+		dji += getDjiAdjustment(rhs);
+		dir += getDjiAdjustment(rhs);
+		// console.log(" dji --> ", dji, ", dir --> ", dir);
 	}
 
-	return new SpliceTable(res);
-	// return postprocess(res);
+	return new SpliceTable(shouldMergeAdjacents ? mergeAdjacents(res) : res);
 }
 
-// TODO use this
-function _postprocess<T, DT>(res: SpliceEntries<T, DT>): SpliceEntries<T, DT> {
+export function mergeAdjacents<T, DT>(
+	res: SpliceEntries<T, DT>,
+): SpliceEntries<T, DT> {
 	// Merge adjacent entries
 	const afterMerging: SpliceEntriesMutable<T, DT> = [];
 	for (let k = 0; k < res.length; k++) {
 		const entry = res[k]!;
-		if (entry.di === 0 && entry.dj === 0) {
-			continue;
-		}
 		if (k + 1 === res.length || "change" in entry) {
 			afterMerging.push(entry);
 			continue;
@@ -696,8 +708,9 @@ function _postprocess<T, DT>(res: SpliceEntries<T, DT>): SpliceEntries<T, DT> {
 		const cReplace = [...entry.replace];
 		for (let k1 = k + 1; k1 < res.length; k1++) {
 			const next = res[k + 1]!;
-			const i1 = entry.i + entry.di;
-			if ("change" in next || i1 !== next.i) {
+			const i1 = entry.i + cdi;
+			const j1 = entry.j + cdj;
+			if ("change" in next || i1 !== next.i || j1 !== next.j) {
 				continue;
 			}
 			cdi += next.di;
@@ -707,6 +720,9 @@ function _postprocess<T, DT>(res: SpliceEntries<T, DT>): SpliceEntries<T, DT> {
 			k++;
 		}
 
+		if (cdi === 0 && cdj === 0) {
+			continue;
+		}
 		afterMerging.push({
 			i: entry.i,
 			di: cdi,
@@ -760,14 +776,14 @@ export function splitEntryLeft<T>(
 
 /** Requires: `entry.i <= iSplit && iSplit < entry.i + entry.di` */
 function splitEntryRight<T>(
-	entry: SpliceEntry<T>,
+	entry: Omit<SpliceEntry<T>, "j">,
 	iSplit: number,
-): readonly [SpliceEntry<T>, SpliceEntry<T> | null] {
+): readonly [Omit<SpliceEntry<T>, "j">, Omit<SpliceEntry<T>, "j"> | null] {
 	const len = iSplit - entry.i;
 	if (len >= entry.di || len < 0) {
 		throw new Error("can't split");
 	}
-	const { i, di, j, dj, replace } = entry;
+	const { i, di, dj, replace } = entry;
 	// i   i+di
 	// [ | ]
 	// [ |     ]
@@ -777,10 +793,9 @@ function splitEntryRight<T>(
 	// [   |  ]
 	// [ ]
 	// j        j+dj
-	const first: SpliceEntry<T> = {
+	const first: Omit<SpliceEntry<T>, "j"> = {
 		i,
 		di: len,
-		j,
 		dj: dj < len ? dj : len,
 		replace: len > replace.length ? replace : replace.slice(0, len),
 	};
@@ -791,18 +806,10 @@ function splitEntryRight<T>(
 	const second = {
 		i: i + first.di,
 		di: di - first.di,
-		j: dj < len ? j + dj : j + len,
 		dj: dj < len ? 0 : dj - len,
 		replace: len > replace.length ? [] : replace.slice(len),
 	};
 	return [first, second];
-}
-
-export function withinInterval(
-	entry: Readonly<{ j: number; dj: number }>,
-	jIndex: number,
-): boolean {
-	return entry.j < jIndex && jIndex < entry.j + entry.dj;
 }
 
 /** Combine the changes from `lhs` with `rhs` */
@@ -843,7 +850,7 @@ export function applyInside<T, DT>(
 	const replace1 = [...lhs.replace];
 	if ("change" in rhs) {
 		replace1[off] = apply.apply(replace1[off]!, rhs.change);
-		return [{ ...lhs, replace: replace1 }, lhs.di - lhs.dj];
+		return [{ ...lhs, replace: replace1 }, 0];
 	}
 	replace1.splice(off, rhs.di, ...rhs.replace);
 	return [
