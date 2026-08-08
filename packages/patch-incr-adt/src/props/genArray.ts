@@ -215,6 +215,7 @@ export function arbSpliceTable<T, DT>(opts: {
 	maxReplaceLength?: number;
 	arbValue: Arb<T>;
 	arbChange?: (index: number) => Arb<DT>;
+	merge?: boolean;
 }): Arb<SpliceTable<T, DT>> {
 	const {
 		maxLength = MAX_ARRAY_LEN,
@@ -222,6 +223,7 @@ export function arbSpliceTable<T, DT>(opts: {
 		maxReplaceLength = MAX_ARRAY_LEN / 2,
 		arbValue,
 		arbChange,
+		merge = true,
 	} = opts;
 
 	return fc.integer({ min: 0, max: maxLength }).chain((arrLen) =>
@@ -283,7 +285,7 @@ export function arbSpliceTable<T, DT>(opts: {
 			)
 			.map((es) => {
 				const { entries } = SpliceTable.fromParallelEntries(es);
-				return new SpliceTable(mergeAdjacents(entries));
+				return new SpliceTable(merge ? mergeAdjacents(entries) : entries);
 			}),
 	);
 }

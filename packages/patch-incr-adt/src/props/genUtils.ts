@@ -6,6 +6,15 @@ export type { Arbitrary as Arb } from "fast-check";
 
 import "./types";
 import type { DRO } from "@/types/algebra";
+import { atomicWithGen } from "./gen";
+
+export const arbDRO = <A extends $A, T extends $T<A> = $T<A>>(
+	gen: Arb<T>,
+	depth = DEFAULT_DEPTH,
+): Arb<DRO<T>> => {
+	const a = atomicWithGen(gen);
+	return arbEmptyOrReplace(a, a.getArbApply().arbValue(depth));
+};
 
 export const arbEmptyOrReplace = <A extends $A, T extends $T<A> = $T<A>>(
 	apply: A,

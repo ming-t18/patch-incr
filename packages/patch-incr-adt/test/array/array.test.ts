@@ -3,11 +3,14 @@ import { describe, expect, it, test } from "bun:test";
 import fc from "fast-check";
 import {
 	applyInside,
-	combineTables1,
+	combineTables,
+	cutSpliceEntry,
 	MapResult,
 	mapIndex,
+	mergeAdjacents,
 	type ParSpliceEntries,
 	type ParSpliceEntry,
+	type SpliceEntry,
 	SpliceTable,
 	unmapIndex,
 } from "@/array/splice";
@@ -163,14 +166,15 @@ describe("mapIndex", () => {
 				replace: [],
 			};
 			expect([0, 1, 2, 3, 4].map((i) => mapIndex([entry0], i))).toEqual([
-				{ index: 0, entry: null, result: MapResult.Unchanged },
-				{ index: 1, entry: entry0m, result: MapResult.Removed },
-				{ index: 1, entry: entry0m, result: MapResult.Removed },
-				{ index: 1, entry: null, result: MapResult.Unchanged },
-				{ index: 2, entry: null, result: MapResult.Unchanged },
+				{ index: 0, entry: null, result: MapResult.Unchanged, entryIndex: 0 },
+				{ index: 1, entry: entry0m, result: MapResult.Removed, entryIndex: 0 },
+				{ index: 1, entry: entry0m, result: MapResult.Removed, entryIndex: 0 },
+				{ index: 1, entry: null, result: MapResult.Unchanged, entryIndex: 1 },
+				{ index: 2, entry: null, result: MapResult.Unchanged, entryIndex: 1 },
 			]);
 		});
-		it("should return lower indexes, specific examples", () => {
+
+		test("should return lower indexes, specific examples", () => {
 			const entries2: ParSpliceEntries<never, never> = [
 				{
 					index: 1,
@@ -203,34 +207,44 @@ describe("mapIndex", () => {
 			expect(
 				[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => mapIndex(entries2, i)),
 			).toEqual([
-				{ index: 0, entry: null, result: MapResult.Unchanged },
-				{ index: 1, entry: entry0m, result: MapResult.Removed },
-				{ index: 1, entry: entry0m, result: MapResult.Removed },
+				{ index: 0, entry: null, result: MapResult.Unchanged, entryIndex: 0 },
+				{ index: 1, entry: entry0m, result: MapResult.Removed, entryIndex: 0 },
+				{ index: 1, entry: entry0m, result: MapResult.Removed, entryIndex: 0 },
 				{
 					index: 1,
 					entry: null,
 					result: MapResult.Unchanged,
+					entryIndex: 1,
 				},
 				{
 					index: 2,
 					entry: null,
 					result: MapResult.Unchanged,
+					entryIndex: 1,
 				},
-				{ index: 3, entry: entry1m, result: MapResult.Removed },
+				{
+					index: 3,
+					entry: entry1m,
+					result: MapResult.Removed,
+					entryIndex: 1,
+				},
 				{
 					index: 3,
 					entry: null,
 					result: MapResult.Unchanged,
+					entryIndex: 2,
 				},
 				{
 					index: 4,
 					entry: null,
 					result: MapResult.Unchanged,
+					entryIndex: 2,
 				},
 				{
 					index: 5,
 					entry: null,
 					result: MapResult.Unchanged,
+					entryIndex: 2,
 				},
 			]);
 		});
@@ -262,9 +276,9 @@ describe("mapIndex", () => {
 				replace: ["a"],
 			};
 			expect([0, 1, 2].map((i) => mapIndex([entry], i))).toEqual([
-				{ index: 0, entry: entry0m, result: MapResult.Replaced },
-				{ index: 1, entry: null, result: MapResult.Unchanged },
-				{ index: 2, entry: null, result: MapResult.Unchanged },
+				{ index: 0, entry: entry0m, result: MapResult.Replaced, entryIndex: 0 },
+				{ index: 1, entry: null, result: MapResult.Unchanged, entryIndex: 1 },
+				{ index: 2, entry: null, result: MapResult.Unchanged, entryIndex: 1 },
 			]);
 		});
 
@@ -290,9 +304,9 @@ describe("mapIndex", () => {
 			expect(mapIndex([entry], 1).index).toBe(2);
 			expect(mapIndex([entry], 2).index).toBe(3);
 			expect([0, 1, 2].map((i) => mapIndex([entry], i))).toEqual([
-				{ index: 0, entry: null, result: MapResult.Unchanged },
-				{ index: 2, entry: null, result: MapResult.Unchanged },
-				{ index: 3, entry: null, result: MapResult.Unchanged },
+				{ index: 0, entry: null, result: MapResult.Unchanged, entryIndex: 0 },
+				{ index: 2, entry: null, result: MapResult.Unchanged, entryIndex: 1 },
+				{ index: 3, entry: null, result: MapResult.Unchanged, entryIndex: 1 },
 			]);
 		});
 
@@ -354,9 +368,9 @@ describe("unmapIndex", () => {
 				replace: ["a"],
 			};
 			expect([0, 1, 2].map((i) => unmapIndex([entry], i))).toEqual([
-				{ index: 0, entry: entry0m, result: MapResult.Replaced },
-				{ index: 1, entry: null, result: MapResult.Unchanged },
-				{ index: 2, entry: null, result: MapResult.Unchanged },
+				{ index: 0, entry: entry0m, result: MapResult.Replaced, entryIndex: 0 },
+				{ index: 1, entry: null, result: MapResult.Unchanged, entryIndex: 0 },
+				{ index: 2, entry: null, result: MapResult.Unchanged, entryIndex: 0 },
 			]);
 		});
 
@@ -634,6 +648,69 @@ describe("helpers", () => {
 			});
 		});
 	});
+
+	describe("mergeAdjacents", () => {
+		test("should not increase length", () => {
+			fc.assert(
+				fc.property(
+					p.arbSpliceTable<number, s.DRO<number>>({
+						arbValue: fc.integer(),
+						arbChange: () => p.arbDRO(fc.integer()),
+					}),
+					({ entries }) => {
+						mergeAdjacents(entries).length <= entries.length;
+					},
+				),
+			);
+		});
+		test("preserve apply results", () => {
+			const a = p.integer();
+			fc.assert(
+				fc.property(
+					fc.array(fc.integer()),
+					p.arbSpliceTable<number, s.DRO<number>>({
+						arbValue: fc.integer(),
+						arbChange: () => p.arbDRO(fc.integer()),
+					}),
+					(arr, table) => {
+						fc.pre(arr.length >= table.requiredLength);
+						const table1 = new SpliceTable(mergeAdjacents(table.entries));
+						expect(table1.apply(arr, a)).toEqual(table.apply(arr, a));
+					},
+				),
+			);
+		});
+		test("remove empty entries", () => {
+			expect(
+				mergeAdjacents([{ i: 1, di: 0, j: 1, dj: 0, replace: [] }]),
+			).toEqual([]);
+			expect(
+				mergeAdjacents([
+					{ i: 1, di: 0, j: 1, dj: 0, replace: [] },
+					{ i: 1, di: 0, j: 1, dj: 0, replace: [] },
+				]),
+			).toEqual([]);
+		});
+
+		test("merge 2 adjacent entries", () => {
+			expect(
+				mergeAdjacents([
+					{ i: 1, di: 1, j: 1, dj: 1, replace: [false] },
+					{ i: 2, di: 0, j: 2, dj: 2, replace: [true, true] },
+				]),
+			).toEqual([{ i: 1, di: 1, j: 1, dj: 3, replace: [false, true, true] }]);
+
+			expect(
+				mergeAdjacents([
+					{ i: 1, di: 1, j: 1, dj: 1, replace: [false] },
+					{ i: 2, di: 0, j: 2, dj: 2, replace: [true, true] },
+					{ i: 2, di: 3, j: 4, dj: 1, replace: [false] },
+				]),
+			).toEqual([
+				{ i: 1, di: 4, j: 1, dj: 4, replace: [false, true, true, false] },
+			]);
+		});
+	});
 });
 
 describe("SpliceTable combine", () => {
@@ -846,7 +923,7 @@ describe("SpliceTable combine", () => {
 	});
 });
 
-describe("combineTables1 helper", () => {
+describe("combineTables", () => {
 	const arbTableInt = p.arbSpliceTable<number, s.DRO<number>>({
 		arbValue: fc.integer(),
 		arbChange: () => p.integer().getArbApply().arbChange({ depth: 8 }),
@@ -856,7 +933,7 @@ describe("combineTables1 helper", () => {
 		test("combine with identity, from left", () => {
 			fc.assert(
 				fc.property(arbTableInt, (table) => {
-					const res = combineTables1(
+					const res = combineTables(
 						table,
 						SpliceTable.identity(),
 						p.integer(),
@@ -875,7 +952,7 @@ describe("combineTables1 helper", () => {
 		test("combine with identity, from right", () => {
 			fc.assert(
 				fc.property(arbTableInt, (table) => {
-					const res = combineTables1(
+					const res = combineTables(
 						SpliceTable.identity<number, s.DRO<number>>(),
 						table,
 						p.integer(),
@@ -914,7 +991,7 @@ describe("combineTables1 helper", () => {
 						};
 					}),
 					({ arr, left, right }) => {
-						const combined = combineTables1(left, right, p.integer(), false);
+						const combined = combineTables(left, right, p.integer(), false);
 						expect(
 							combined.entries.slice(0, left.entries.length) as never[],
 						).toEqual(left.entries as never[]);
@@ -954,7 +1031,7 @@ describe("combineTables1 helper", () => {
 					({ arr, left, right }) => {
 						let combined1: typeof left | null = null;
 						try {
-							const combined = combineTables1(left, right, p.integer(), false);
+							const combined = combineTables(left, right, p.integer(), false);
 							combined1 = combined;
 							expect(combined.entries.slice(0, right.entries.length)).toEqual(
 								right.entries as never[],
@@ -991,7 +1068,7 @@ describe("combineTables1 helper", () => {
 							{ i: 0, di: 0, j: 0, dj: arr.length, replace: arr },
 						]);
 						fc.pre(table.requiredLength <= arr.length);
-						const combined = combineTables1(lhs, table, p.integer(), false);
+						const combined = combineTables(lhs, table, p.integer(), false);
 						// console.log({
 						// 	lhs: lhs.entries,
 						// 	before: table.entries,
@@ -1028,7 +1105,7 @@ describe("combineTables1 helper", () => {
 					replace: [40, 50, 60, 70, 80],
 				},
 			]);
-			const combined = combineTables1<number, s.DRO<number>>(
+			const combined = combineTables<number, s.DRO<number>>(
 				left,
 				right,
 				p.integer(),
@@ -1062,7 +1139,7 @@ describe("combineTables1 helper", () => {
 					replace: [40, 50, 60, 70],
 				},
 			]);
-			const combined = combineTables1<number, s.DRO<number>>(
+			const combined = combineTables<number, s.DRO<number>>(
 				left,
 				right,
 				p.integer(),
@@ -1098,7 +1175,7 @@ describe("combineTables1 helper", () => {
 					replace: [],
 				},
 			]);
-			const combined = combineTables1<number, s.DRO<number>>(
+			const combined = combineTables<number, s.DRO<number>>(
 				left,
 				right,
 				p.integer(),
@@ -1130,7 +1207,7 @@ describe("combineTables1 helper", () => {
 				},
 			]);
 			const right = new SpliceTable<number, s.DRO<number>>([]);
-			const combined = combineTables1<number, s.DRO<number>>(
+			const combined = combineTables<number, s.DRO<number>>(
 				left,
 				right,
 				p.integer(),
@@ -1163,7 +1240,7 @@ describe("combineTables1 helper", () => {
 					replace: [0],
 				},
 			]);
-			const combined = combineTables1<number, s.DRO<number>>(
+			const combined = combineTables<number, s.DRO<number>>(
 				left,
 				right,
 				p.integer(),
@@ -1204,7 +1281,7 @@ describe("combineTables1 helper", () => {
 					change: s.makeReplaceOnly(-1),
 				},
 			]);
-			const combined = combineTables1<number, s.DRO<number>>(
+			const combined = combineTables<number, s.DRO<number>>(
 				left,
 				right,
 				p.integer(),
@@ -1231,7 +1308,7 @@ describe("combineTables1 helper", () => {
 				{ i: 4, di: 0, j: 5, dj: 10, replace: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
 				{ i: 5, di: 0, j: 16, dj: 1, replace: [0] },
 			]);
-			const combined = combineTables1<number, s.DRO<number>>(
+			const combined = combineTables<number, s.DRO<number>>(
 				left,
 				right,
 				p.integer(),
@@ -1260,7 +1337,7 @@ describe("combineTables1 helper", () => {
 			const lhs = new SpliceTable<number, s.DRO<number>>([
 				{ i: 0, di: 0, j: 0, dj: arr.length, replace: arr },
 			]);
-			const combined = combineTables1(lhs, table, p.integer(), false);
+			const combined = combineTables(lhs, table, p.integer(), false);
 			const actual = combined.apply([], p.integer());
 			const expected = table.apply(arr, p.integer());
 			expect(actual).toEqual(expected);
@@ -1275,7 +1352,7 @@ describe("combineTables1 helper", () => {
 			]);
 
 			const lhs = SpliceTable.fromSplice<number, s.DRO<number>>(0, 0, arr);
-			const combined = combineTables1(lhs, table, p.integer(), false);
+			const combined = combineTables(lhs, table, p.integer(), false);
 			const actual = combined.apply([], p.integer());
 			const expected = table.apply(arr, p.integer());
 			expect(actual).toEqual(expected);
@@ -1289,7 +1366,7 @@ describe("combineTables1 helper", () => {
 			]);
 
 			const lhs = SpliceTable.fromSplice<number, s.DRO<number>>(0, 0, arr);
-			const combined = combineTables1(lhs, table, p.integer(), false);
+			const combined = combineTables(lhs, table, p.integer(), false);
 			const actual = combined.apply([], p.integer());
 			const expected = table.apply(arr, p.integer());
 			expect(actual).toEqual(expected);
@@ -1303,13 +1380,13 @@ describe("combineTables1 helper", () => {
 			]);
 
 			const lhs = SpliceTable.fromSplice<number, s.DRO<number>>(0, 0, arr);
-			const combined = combineTables1(lhs, table, p.integer(), false);
+			const combined = combineTables(lhs, table, p.integer(), false);
 			const actual = combined.apply([], p.integer());
 			const expected = table.apply(arr, p.integer());
 			expect(actual).toEqual(expected);
 		});
 
-		test("no negative i, j fail 1", () => {
+		test("no negative i or j test 1", () => {
 			const lhs = new SpliceTable<null, null>([
 				{
 					i: 0,
@@ -1324,10 +1401,10 @@ describe("combineTables1 helper", () => {
 				{ i: 0, di: 100, j: 0, dj: 0, replace: [] },
 			]);
 			const combined = lhs.combine(rhs, p.constant(null));
-			console.log(combined.entries);
+			expect(combined.entries.every((e) => e.i >= 0 && e.j >= 0)).toBe(true);
 		});
 
-		test("no negative i, j fail 2", () => {
+		test("no negative i or j test 2", () => {
 			const lhs = new SpliceTable<null, null>([
 				{
 					i: 1,
@@ -1342,7 +1419,7 @@ describe("combineTables1 helper", () => {
 				{ i: 1, di: 1, j: 3, dj: 1, change: null },
 			]);
 			const combined = lhs.combine(rhs, p.constant(null));
-			console.log(combined.entries);
+			expect(combined.entries.every((e) => e.i >= 0 && e.j >= 0)).toBe(true);
 		});
 
 		test("assoc fail, actually merge fail", () => {
@@ -1364,8 +1441,9 @@ describe("combineTables1 helper", () => {
 			const apply = p.constant(null);
 			const ab = a.combine(b, apply);
 			const bc = b.combine(c, apply);
-			console.log(ab.entries, bc.entries);
-			console.log(ab.combine(c, apply).entries, a.combine(bc, apply).entries);
+			expect(ab.combine(c, apply).entries).toEqual(
+				a.combine(bc, apply).entries,
+			);
 		});
 	});
 });
@@ -1511,10 +1589,174 @@ describe("combine examples", () => {
 		]);
 		const right = new SpliceTable<null, null>([
 			{ i: 4, di: 1, j: 4, dj: 0, replace: [] },
-			{ i: 6, di: 1, j: 5, dj: 1, change: null }, // TODO should be left-inside
+			{ i: 6, di: 1, j: 5, dj: 1, change: null },
 		]);
 		const combined = left.combine(right, apply);
 		propApplyCombine({ apply, left, right, combined, arr });
+	});
+});
+
+// TODO still needs fixing
+describe.skip("array cut", () => {
+	describe("helpers", () => {
+		describe("cutSpliceEntry", () => {
+			test("cut zero dj", () => {
+				const e = {
+					i: 0,
+					di: 2,
+					j: 0,
+					dj: 0,
+					replace: [],
+				};
+				expect(cutSpliceEntry(e, 1)).toEqual([
+					{ i: 1, di: 1, j: 1, dj: 0, replace: [] },
+					{ i: 1, di: 1, j: 1, dj: 0, replace: [] },
+				]);
+			});
+
+			test("cut insertion entry", () => {
+				const e = {
+					i: 0,
+					di: 0,
+					j: 0,
+					dj: 2,
+					replace: [1, 2],
+				};
+				expect(cutSpliceEntry(e, 0)).toEqual([null, e]);
+			});
+		});
+	});
+	test("cut and stitch at zero", () => {
+		fc.assert(
+			fc.property(
+				p
+					.genValueWithChange(s.array(p.integer()))
+					.map((e) => e.dx)
+					.filter((dx) => dx instanceof SpliceTable)
+					.filter((dx) => dx.requiredLength > 0),
+				(dx) => {
+					try {
+						const [l, r] = dx.cut(0);
+						expect(l.entries.length).toBe(0);
+						expect(r.entries).toEqual(r.entries);
+						const stitched = l.stitch(r, 0);
+						expect(dx.entries).toEqual(stitched.entries);
+					} catch (e) {
+						console.error(e);
+						throw e;
+					}
+				},
+			),
+		);
+	});
+
+	test("cut and stitch in general", () => {
+		fc.assert(
+			fc.property(
+				p
+					.genValueWithChange(s.array(p.integer()))
+					.map((e) => e.dx)
+					.filter((dx) => dx instanceof SpliceTable)
+					.filter((dx) => dx.requiredLength > 0)
+					.chain((dx) =>
+						fc.record({
+							dx: fc.constant(dx as SpliceTable<number, s.DRO<number>>),
+							i: fc.integer({ min: 0, max: dx.requiredLength - 1 }),
+						}),
+					),
+				({ dx, i }) => {
+					try {
+						const [l, r] = dx.cut(i);
+						const stitched = l.stitch(r, i);
+						expect(dx.entries).toEqual(stitched.entries);
+					} catch (e) {
+						console.error(e);
+						throw e;
+					}
+				},
+			),
+		);
+	});
+
+	test("cut identity", () => {
+		fc.assert(
+			fc.property(fc.integer({ min: 0, max: 100 }), (i) => {
+				const id = SpliceTable.identity();
+				const [l, r] = id.cut(i);
+				return l.entries.length === 0 && r.entries.length === 0;
+			}),
+		);
+	});
+
+	test("cut and stitch between two entries", () => {
+		const table = new SpliceTable<number, s.DRO<number>>([
+			{ i: 0, di: 2, j: 0, dj: 4, replace: [10, 20, 30, 40] },
+			{ i: 10, di: 4, j: 10, dj: 2, replace: [50, 60] },
+		]);
+		const [l, r] = table.cut(8);
+		expect(l.entries).toEqual([table.entries[0]!]);
+		expect(r.entries).toEqual([
+			{ i: 2, di: 4, j: 2, dj: 2, replace: [50, 60] },
+		]);
+		const table1 = l.stitch(r, 8);
+		expect(table1.entries).toEqual(table.entries);
+	});
+
+	test("cut and stitch at zero example", () => {
+		const table = new SpliceTable<number, s.DRO<number>>([
+			{ i: 1, di: 1, j: 1, dj: 1, replace: [10] },
+		]);
+		const [l, r] = table.cut(0);
+		expect(l.entries).toEqual([]);
+		const table1 = l.stitch(r, 0);
+		expect(r.entries).toEqual(table1.entries);
+		expect(table1.entries).toEqual(table.entries);
+	});
+
+	test("cut and stitch restricted negative example", () => {
+		const table = new SpliceTable<number, s.DRO<number>>([
+			{ i: 0, di: 2, j: 0, dj: 0, replace: [] },
+		]);
+		const [l, r] = table.cut(1);
+		expect(l.entries).toEqual([]);
+		const table1 = l.stitch(r, 1);
+		expect(r.entries).toEqual(table1.entries);
+		expect(table1.entries).toEqual(table.entries);
+	});
+
+	test("cut and stitch multi-element replace", () => {
+		fc.assert(
+			fc.property(
+				fc.array(fc.integer(), { maxLength: 8 }),
+				fc.integer({ min: 0, max: 8 }),
+				(arr, i) => {
+					fc.pre(i < arr.length);
+					const splice = SpliceTable.fromSplice(0, arr.length, arr);
+					const [l, r] = splice.cut(i);
+					fc.pre(l.entries.length > 0 && r.entries.length > 0);
+					// @ts-expect-error .replace is treated as optional
+					const rl = l.entries[0]?.replace ?? [];
+					// @ts-expect-error .replace is treated as optional
+					const rr = r.entries[0]?.replace ?? [];
+					expect([...rl, ...rr]).toEqual(arr);
+
+					const combined = l.stitch(r, i);
+					const firstEntry = combined.entries[0] as
+						| SpliceEntry<number>
+						| undefined;
+					expect(firstEntry?.i).toEqual(0);
+					expect(firstEntry?.replace ?? []).toEqual(arr);
+				},
+			),
+		);
+	});
+
+	test("cut single replace example 1", () => {
+		const i = 3;
+		const arr = [0, 1, 2, 3, 4, 5];
+		const splice = SpliceTable.fromSplice(0, arr.length, arr);
+		const [l, r] = splice.cut(i);
+		console.log({ l: l.entries, r: r.entries });
 	});
 });
 

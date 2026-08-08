@@ -49,9 +49,14 @@ export enum MapResult {
 }
 
 export interface MapIndexResult<T, DT> {
+	/** The mapped index. */
 	readonly index: number;
+	/** If `result` is not `Unchanged`, the entry performing the change. */
 	readonly entry: SpliceTableEntry<T, DT> | null;
+	/** How the index was mapped. */
 	readonly result: MapResult;
+	/** Index to the nearest entry. */
+	readonly entryIndex: number;
 }
 
 export class IndexError extends ApplyError {}
@@ -92,23 +97,49 @@ export class SpliceTable<T, DT> {
 	/** Gets the minimum array length required to apply this `SpliceTable`. */
 	get requiredLength() {
 		const kLast = this.entries.length - 1;
-		return kLast < 0 ? 0 : this.entries[kLast]!.i + this.entries[kLast]!.di;
+		if (kLast < 0) {
+			return 0;
+		}
+		const { i, di } = this.entries[kLast]!;
+		return i + di;
+	}
+
+	/**
+	 * Gets the length difference between the output array and the input array.
+	 *
+	 *  `this.apply(array, ...).length - array.length`
+	 */
+	get lengthDifference() {
+		const kLast = this.entries.length - 1;
+		if (kLast <= 0) {
+			return 0;
+		}
+		const { j, dj } = this.entries[kLast]!;
+		return j + dj - this.requiredLength;
 	}
 
 	// region Mapping
 
+	/**
+	 * Given the input array index, returns the corresponding output index and splice table entry.
+	 */
 	mapIndex(index: number): MapIndexResult<T, DT> {
 		if (this.entries.length === 0) {
-			return { index, entry: null, result: MapResult.Unchanged };
+			return { index, entry: null, result: MapResult.Unchanged, entryIndex: 0 };
 		}
 		for (let k = 0; k < this.entries.length; k++) {
 			const entry = this.entries[k]!;
-			const nextEntry =
-				k + 1 === this.entries.length ? null : this.entries[k + 1]!;
 			if (index < entry.i) {
-				return { index, entry: null, result: MapResult.Unchanged };
+				return {
+					index,
+					entry: null,
+					result: MapResult.Unchanged,
+					entryIndex: k,
+				};
 			}
 
+			const nextEntry =
+				k + 1 === this.entries.length ? null : this.entries[k + 1]!;
 			const iMax = entry.i + entry.di;
 			if (index >= iMax) {
 				if (nextEntry && index >= nextEntry.i) {
@@ -122,6 +153,7 @@ export class SpliceTable<T, DT> {
 					index: jMax + off,
 					entry: null,
 					result: MapResult.Unchanged,
+					entryIndex: k + 1,
 				};
 			}
 			if (entry.dj === entry.di) {
@@ -129,6 +161,7 @@ export class SpliceTable<T, DT> {
 					index: entry.j + (index - entry.i),
 					entry,
 					result: MapResult.Replaced,
+					entryIndex: k,
 				};
 			}
 			const n = entry.dj < entry.di ? entry.dj : entry.di;
@@ -137,12 +170,14 @@ export class SpliceTable<T, DT> {
 					index: entry.j + (index - entry.i),
 					entry,
 					result: MapResult.Replaced,
+					entryIndex: k,
 				};
 			}
 			return {
 				index: entry.j + entry.dj,
 				entry,
 				result: entry.dj < entry.di ? MapResult.Removed : MapResult.Added,
+				entryIndex: k,
 			};
 		}
 
@@ -151,19 +186,26 @@ export class SpliceTable<T, DT> {
 			index: index + (last.j + last.dj) - (last.i + last.di),
 			entry: null,
 			result: MapResult.Unchanged,
+			entryIndex: this.entries.length,
 		};
 	}
 
+	/** Gets the position at the input array given the output array index. */
 	unmapIndex(index: number): MapIndexResult<T, DT> {
 		if (this.entries.length === 0) {
-			return { index, entry: null, result: MapResult.Unchanged };
+			return { index, entry: null, result: MapResult.Unchanged, entryIndex: 0 };
 		}
 		for (let k = 0; k < this.entries.length; k++) {
 			const entry = this.entries[k]!;
 			const nextEntry =
 				k + 1 === this.entries.length ? null : this.entries[k + 1]!;
 			if (index < entry.j) {
-				return { index, entry: null, result: MapResult.Unchanged };
+				return {
+					index,
+					entry: null,
+					result: MapResult.Unchanged,
+					entryIndex: k,
+				};
 			}
 
 			const jMax = entry.j + entry.dj;
@@ -179,6 +221,7 @@ export class SpliceTable<T, DT> {
 					index: iMax + off,
 					entry: null,
 					result: MapResult.Unchanged,
+					entryIndex: k,
 				};
 			}
 			if (entry.dj === entry.di) {
@@ -186,6 +229,7 @@ export class SpliceTable<T, DT> {
 					index: entry.i + (index - entry.j),
 					entry,
 					result: MapResult.Replaced,
+					entryIndex: k,
 				};
 			}
 			const n = entry.dj < entry.di ? entry.dj : entry.di;
@@ -194,12 +238,14 @@ export class SpliceTable<T, DT> {
 					index: entry.i + (index - entry.j),
 					entry,
 					result: MapResult.Replaced,
+					entryIndex: k,
 				};
 			}
 			return {
 				index: entry.i + entry.di,
 				entry,
 				result: entry.dj < entry.di ? MapResult.Removed : MapResult.Added,
+				entryIndex: k,
 			};
 		}
 
@@ -208,6 +254,7 @@ export class SpliceTable<T, DT> {
 			index: index + (last.i + last.di) - (last.j + last.dj),
 			entry: null,
 			result: MapResult.Unchanged,
+			entryIndex: this.entries.length,
 		};
 	}
 
@@ -260,44 +307,11 @@ export class SpliceTable<T, DT> {
 		change: DT,
 		apply: Apply<T, DT>,
 	): SpliceTable<T, DT> {
-		const res = this.mapIndex(index);
-		if (!res.entry) {
-			const k = 0; // TODO
-			return new SpliceTable([
-				...this.entries.slice(0, k),
-				...SpliceTable._applyOffset(this.entries.slice(k), 1, 1),
-			]);
-		}
-		const k = this.entries.indexOf(res.entry);
-		if ("change" in res.entry) {
-			return new SpliceTable([
-				...this.entries.slice(0, k),
-				{ ...res.entry, change: apply.combine(res.entry.change, change) },
-				...SpliceTable._applyOffset(this.entries.slice(k - 1), 1, 1),
-			]);
-		}
-		// TODO need to split up entry
-		// TODO fix this
-		return new SpliceTable([
-			...this.entries.slice(0, k),
-			...SpliceTable._applyOffset(this.entries.slice(k), 1, 1),
-		]);
-	}
-
-	private static _applyOffset<T, DT>(
-		entries: SpliceTableEntry<T, DT>[],
-		di: number,
-		dj: number,
-	): SpliceTableEntry<T, DT>[] {
-		return entries.map(({ i, j, ...rest }) => ({
-			i: i + di,
-			j: j + dj,
-			...rest,
-		}));
+		return this.combine(SpliceTable.fromChange(index, change), apply);
 	}
 
 	combine(other: SpliceTable<T, DT>, apply: Apply<T, DT>): SpliceTable<T, DT> {
-		return combineTables1(this, other, apply);
+		return combineTables(this, other, apply);
 	}
 
 	// endregion
@@ -354,6 +368,125 @@ export class SpliceTable<T, DT> {
 			newEntries[k] = { ...e, i: i0 + iOff, j: j0 + jOff };
 		}
 		return new SpliceTable(newEntries);
+	}
+
+	// endregion
+
+	// region Array manipulation
+
+	/**
+	 * Add an offset to the `i` and `j` of the entries.
+	 */
+	addOffset(di: number, dj = 0): SpliceTable<T, DT> {
+		if (this.entries.length > 0) {
+			if (this.entries[0]!.i + di < 0) {
+				console.error(this.entries[0], di);
+				throw new Error("addOffset: cannot result in negative index for i");
+			}
+			if (this.entries[0]!.j + di + dj < 0) {
+				console.error(this.entries[0], di + dj);
+				throw new Error("addOffset: cannot result in negative index for j");
+			}
+		}
+
+		return new SpliceTable(
+			this.entries.map((x) => {
+				const x1 = { ...x };
+				x1.i += di;
+				x1.j += di + dj;
+				return x1;
+			}),
+		);
+	}
+
+	cut(iSplit: number): [SpliceTable<T, DT>, SpliceTable<T, DT>] {
+		if (this.entries.length === 0) {
+			return [SpliceTable.identity(), SpliceTable.identity()];
+		}
+
+		if (iSplit < this.entries[0]!.i) {
+			return [SpliceTable.identity(), this.addOffset(-iSplit)];
+		}
+
+		const last = this.entries[this.entries.length - 1]!;
+		if (iSplit >= last.i + last.di) {
+			return [this, SpliceTable.identity()];
+		}
+
+		let k = 0;
+		while (k < this.entries.length) {
+			const { i } = this.entries[k]!;
+			if (iSplit >= i) {
+				break;
+			}
+			k++;
+		}
+
+		if (k >= this.entries.length) {
+			return [this, SpliceTable.identity()];
+		}
+
+		const e = this.entries[k]!;
+		const isInside =
+			(e.di === 0 && e.i === iSplit) || (e.i <= iSplit && iSplit < e.i + e.di);
+		if (!isInside) {
+			const left = new SpliceTable<T, DT>(
+				mergeAdjacents([...this.entries.slice(0, k - 1)]),
+			);
+			return [
+				left,
+				new SpliceTable<T, DT>(
+					mergeAdjacents(this.entries.slice(k + 1)),
+				).addOffset(-iSplit, left.lengthDifference),
+			];
+		}
+
+		const [l, r] =
+			"change" in e ? cutApplyEntry(e, iSplit) : cutSpliceEntry(e, iSplit);
+		const left = new SpliceTable<T, DT>(
+			mergeAdjacents([
+				...this.entries.slice(0, k === 0 ? 0 : k - 1),
+				...(l ? [l] : []),
+			]),
+		);
+		const right0 = new SpliceTable<T, DT>(
+			mergeAdjacents([...(r ? [r] : []), ...this.entries.slice(k + 1)]),
+		);
+		// TODO lengthDifference needs to be fixed ({i:0, di:2, j:0, dj: 0})
+		return [left, right0.addOffset(-iSplit, left.lengthDifference)];
+	}
+
+	stitch(right: SpliceTable<T, DT>, iStart: number) {
+		if (right.entries.length > 0 && iStart < this.requiredLength) {
+			console.error(
+				"overlap",
+				this.entries,
+				right.entries,
+				iStart,
+				this.requiredLength,
+			);
+			throw new Error("uncut: cannot create overlap");
+		}
+		return new SpliceTable<T, DT>(
+			mergeAdjacents([
+				...this.entries,
+				...right.addOffset(iStart, this.lengthDifference).entries,
+			]),
+		);
+	}
+
+	slice(i: number, iEnd: number): SpliceTable<T, DT> {
+		const [_, tr] = this.cut(i);
+		return tr.cut(iEnd - i)[0];
+	}
+
+	splice(
+		i: number,
+		toDelete: number,
+		replace: T[],
+		apply: Apply<T, DT>,
+	): SpliceTable<T, DT> {
+		return this.combine(SpliceTable.fromSplice(i, toDelete, replace), apply);
 	}
 
 	// endregion
@@ -497,7 +630,7 @@ export function unmapIndex<T, DT>(
 	return SpliceTable.fromParallelEntries(entries).unmapIndex(index);
 }
 
-export function combineTables1<T, DT>(
+export function combineTables<T, DT>(
 	leftTable: SpliceTable<T, DT>,
 	rightTable: SpliceTable<T, DT>,
 	apply: Apply<T, DT>,
@@ -579,9 +712,7 @@ export function combineTables1<T, DT>(
 	let dji = 0;
 	// rhs.i displacement due to lhs mutating
 	let dir = 0;
-	// console.log("-----");
 	while (l < left.length && r < right.length) {
-		// console.log("start", [l, left.length], [r, right.length], [res.length]);
 		const lhs = reoffsetLeft(left[l]!, dji);
 		const rhs = reoffsetRight(right[r]!, dir);
 		const { j: xs } = lhs;
@@ -593,10 +724,8 @@ export function combineTables1<T, DT>(
 		//      [rhs )
 		// after
 		if (xe <= ys) {
-			// console.log("after-lhs", l, r, "dji =", dji, "dir = ", dir);
 			res.push(lhs);
 			dji += getDjiAdjustment(lhs);
-			// console.log(" dji --> ", dji, " dir --> ", dir);
 			l++;
 			continue;
 		}
@@ -605,13 +734,11 @@ export function combineTables1<T, DT>(
 		// [rhs )
 		// before
 		if (ye <= xs) {
-			// console.log("before-rhs", l, r, "dji =", dji, "dir = ", dir);
 			// before-all case
 			res.push(reoffsetRightToLeft(rhs, dji, dir));
 			dji += getDjiAdjustment(rhs);
 			// must be done
 			dir += getDjiAdjustment(rhs);
-			// console.log(" dji --> ", dji, " dir --> ", dir);
 			r++;
 			continue;
 		}
@@ -620,23 +747,18 @@ export function combineTables1<T, DT>(
 		//    [rhs    ...
 		if (xs <= ys) {
 			if (ye <= xe) {
-				// console.log("left-inside", l, r, "dji =", dji, "dir = ", dir);
 				// [lhs       )
 				//    [rhs )
 				// left-inside
 				const off = rhs.i - lhs.j;
-				// console.log({ lhs, rhs });
 				const [lhsNew, ddir] = applyInside(lhs, rhs, apply, off);
-				// console.log({ lhsNew, ddir });
 				left[l] = lhsNew;
 				// Due to left entry being mutated, there's an extra adjustment
 				dir += ddir;
-				// console.log("  dji --> ", dji, " dir --> ", dir);
 				r++;
 				continue;
 			}
 
-			// console.log("left-overlap", l, r, "dji =", dji, "dir = ", dir);
 			// [lhs      )
 			//    [rhs        )
 			// left-overlap
@@ -659,7 +781,6 @@ export function combineTables1<T, DT>(
 
 		//       [lhs    )
 		//  [rhs |     )
-		// console.log("right-overlap", l, r, "dji =", dji, "dir = ", dir);
 		if ("change" in rhs) {
 			throw new Error("right-overlap: not possible");
 		}
@@ -671,21 +792,16 @@ export function combineTables1<T, DT>(
 		right.splice(r, 1, reoffsetRight(r1, -dir), reoffsetRight(r2, -dir));
 	}
 
-	// console.log("after", [l, left.length], [r, right.length]);
 	for (; l < left.length; l++) {
-		// console.log("add-left", l, "dji =", dji);
 		const lhs = reoffsetLeft(left[l]!, dji);
 		res.push(lhs);
 		dji += getDjiAdjustment(lhs);
-		// console.log("  dji --> ", dji);
 	}
 	for (; r < right.length; r++) {
-		// console.log("add-right", r, "dji =", dji, ", dir = ", dir);
 		const rhs = reoffsetRight(right[r]!, dir);
 		res.push(reoffsetRightToLeft(rhs, dji, dir));
 		dji += getDjiAdjustment(rhs);
 		dir += getDjiAdjustment(rhs);
-		// console.log(" dji --> ", dji, ", dir --> ", dir);
 	}
 
 	return new SpliceTable(shouldMergeAdjacents ? mergeAdjacents(res) : res);
@@ -699,7 +815,9 @@ export function mergeAdjacents<T, DT>(
 	for (let k = 0; k < res.length; k++) {
 		const entry = res[k]!;
 		if (k + 1 === res.length || "change" in entry) {
-			afterMerging.push(entry);
+			if (!(entry.di === 0 && entry.dj === 0)) {
+				afterMerging.push(entry);
+			}
 			continue;
 		}
 
@@ -707,7 +825,7 @@ export function mergeAdjacents<T, DT>(
 		let cdj = entry.dj;
 		const cReplace = [...entry.replace];
 		for (let k1 = k + 1; k1 < res.length; k1++) {
-			const next = res[k + 1]!;
+			const next = res[k1]!;
 			const i1 = entry.i + cdi;
 			const j1 = entry.j + cdj;
 			if ("change" in next || i1 !== next.i || j1 !== next.j) {
@@ -806,6 +924,59 @@ function splitEntryRight<T>(
 	const second = {
 		i: i + first.di,
 		di: di - first.di,
+		dj: dj < len ? 0 : dj - len,
+		replace: len > replace.length ? [] : replace.slice(len),
+	};
+	return [first, second];
+}
+
+export function cutApplyEntry<DT>(
+	entry: ApplyEntry<DT>,
+	iSplit: number,
+): readonly [ApplyEntry<DT> | null, ApplyEntry<DT> | null] {
+	const len = iSplit - entry.i;
+	if (len >= entry.di || len < 0) {
+		throw new Error("can't split");
+	}
+
+	return len === 0 ? [null, entry] : [entry, null];
+}
+
+/**
+ * Requires:
+ *  - Insert entry: `iSplit === entry.i`
+ *  - Others: `entry.i <= iSplit && iSplit < entry.i + entry.di`
+ */
+export function cutSpliceEntry<T>(
+	entry: SpliceEntry<T>,
+	iSplit: number,
+): readonly [SpliceEntry<T> | null, SpliceEntry<T> | null] {
+	if (entry.di === 0) {
+		if (iSplit !== entry.i) {
+			throw new Error("can only cut insert entries at exact index i");
+		}
+		return [null, entry];
+	}
+	const len = iSplit - entry.i;
+	if (len >= entry.di || len < 0) {
+		throw new Error("can't split");
+	}
+	const { i, di, j, dj, replace } = entry;
+	const first: SpliceEntry<T> = {
+		i,
+		di: len,
+		j: j,
+		dj: dj < len ? dj : len,
+		replace: len > replace.length ? replace : replace.slice(0, len),
+	};
+	if (len === di && len === dj) {
+		// second would be empty: [i, i), [j, j)
+		return [first, null];
+	}
+	const second = {
+		i: i + first.di,
+		di: di - first.di,
+		j: j + first.dj,
 		dj: dj < len ? 0 : dj - len,
 		replace: len > replace.length ? [] : replace.slice(len),
 	};
