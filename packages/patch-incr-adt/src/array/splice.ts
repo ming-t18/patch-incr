@@ -399,6 +399,7 @@ export class SpliceTable<T, DT> {
 		);
 	}
 
+	// TODO still broken
 	cut(iSplit: number): [SpliceTable<T, DT>, SpliceTable<T, DT>] {
 		if (this.entries.length === 0) {
 			return [SpliceTable.identity(), SpliceTable.identity()];
