@@ -1,7 +1,7 @@
 import { makeIFA } from "@/funcs/helpers";
 import type { Apply } from "@/types";
 import type { $A, $D, $T } from "@/types/abbr";
-import type { IFA } from "@/types/func/incrFunc";
+import type { IF, IFA } from "@/types/func/incrFunc";
 import type { IIsoA } from "@/types/func/iso";
 import { type APair, pair } from ".";
 
@@ -45,6 +45,18 @@ export class FPair<
 			fwd: this.comm0(),
 			inv: new FPair(this.flipped()).comm0(),
 		};
+	}
+
+	firstA<A1 extends $A>(_f1: IFA<A, A1>): IFA<APair<A, B>, APair<A1, B>> {
+		throw new Error("TODO");
+	}
+
+	first<A1 extends $A>(_f1: IF<A, A1>): IF<APair<A, B>, APair<A1, B>> {
+		throw new Error("TODO");
+	}
+
+	fromFork<In extends $A>(_f1: IF<In, A>, _f2: IF<In, B>): IF<In, APair<A, B>> {
+		throw new Error("TODO");
 	}
 
 	distrFst<C extends $A>(

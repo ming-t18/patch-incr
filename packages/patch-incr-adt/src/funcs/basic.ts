@@ -1,8 +1,11 @@
-import type { InferApplyValue } from "@/types";
+import type { IF, InferApplyValue } from "@/types";
 import type { $A, $T } from "@/types/abbr";
 import { type IF1, type IFA, IFKind } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
 import { makeIF1, makeIFA, REEVAL } from "./helpers";
+
+export const getOutput = <A extends $A, B extends $A>(func: IF<A, B>): B =>
+	func.kind === IFKind.IFR ? func.output.shape[0] : func.output;
 
 /** Given an `IF`, convert to an `IFA` by re-evaluating in the `forward` implementation. */
 export const fromIFA = <A extends $A, B extends $A>({

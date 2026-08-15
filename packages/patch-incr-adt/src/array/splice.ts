@@ -94,6 +94,10 @@ export class IndexError extends ApplyError {}
 export class SpliceTable<T, DT> {
 	constructor(readonly entries: Readonly<SpliceEntries<T, DT>>) {}
 
+	[Symbol.for("nodejs.util.inspect.custom")]() {
+		return this.entries;
+	}
+
 	/** Gets the minimum array length required to apply this `SpliceTable`. */
 	get requiredLength() {
 		const kLast = this.entries.length - 1;
@@ -116,6 +120,17 @@ export class SpliceTable<T, DT> {
 		}
 		const { j, dj } = this.entries[kLast]!;
 		return j + dj - this.requiredLength;
+	}
+
+	get isEmpty() {
+		return this.entries.length === 0;
+	}
+
+	get firstAffectedIndex(): number | null {
+		if (this.entries.length === 0) {
+			return null;
+		}
+		return this.entries[0]!.i;
 	}
 
 	// region Mapping

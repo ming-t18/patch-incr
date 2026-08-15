@@ -13,6 +13,8 @@ import {
 import type { $D, $T, DRO } from "@/types/abbr";
 import { SpliceTable } from "./splice";
 
+export { FArray } from "./func";
+
 export type DeriveArrayChange<T, DT> = SpliceTable<T, DT> | DRO<readonly T[]>;
 /**
  * The change-type for a JavaScript array (`T[]`) is an ordered list of concurrent splice operations,
