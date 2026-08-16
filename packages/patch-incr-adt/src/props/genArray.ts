@@ -9,6 +9,7 @@ import {
 	mergeAdjacents,
 	type ParApplyEntry,
 	type ParSpliceEntry,
+	type SpliceEntry,
 	SpliceTable,
 } from "@/array/splice";
 import { arbEmptyOrReplace, DRO_WEIGHT, MAX_ARRAY_LEN } from "./genUtils";
@@ -208,15 +209,23 @@ function arbArrayValue<T, DT>(
 		maxLength: MAX_ARRAY_LEN,
 	});
 }
-
-export function arbSpliceTable<T, DT>(opts: {
+export interface ArbSpliceTableParams<T, DT> {
 	maxLength?: number;
 	maxEntries?: number;
 	maxReplaceLength?: number;
 	arbValue: Arb<T>;
 	arbChange?: (index: number) => Arb<DT>;
 	merge?: boolean;
-}): Arb<SpliceTable<T, DT>> {
+}
+
+export type ArbSpliceEntryParams<T> = Pick<
+	ArbSpliceTableParams<T, never>,
+	"maxLength" | "arbValue" | "maxReplaceLength"
+>;
+
+export function arbSpliceTable<T, DT>(
+	opts: ArbSpliceTableParams<T, DT>,
+): Arb<SpliceTable<T, DT>> {
 	const {
 		maxLength = MAX_ARRAY_LEN,
 		maxEntries = MAX_ARRAY_LEN / 4,
@@ -288,4 +297,15 @@ export function arbSpliceTable<T, DT>(opts: {
 				return new SpliceTable(merge ? mergeAdjacents(entries) : entries);
 			}),
 	);
+}
+
+export function arbSpliceEntry<T>(
+	params: ArbSpliceEntryParams<T>,
+): Arb<SpliceEntry<T>> {
+	return arbSpliceTable({
+		...params,
+		maxEntries: 1,
+	})
+		.filter((x) => x.entries.length > 0 && "replace" in x.entries[0]!)
+		.map((x) => x.entries[0] as SpliceEntry<T>);
 }

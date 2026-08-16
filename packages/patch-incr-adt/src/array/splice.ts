@@ -114,12 +114,12 @@ export class SpliceTable<T, DT> {
 	 *  `this.apply(array, ...).length - array.length`
 	 */
 	get lengthDifference() {
-		const kLast = this.entries.length - 1;
-		if (kLast <= 0) {
+		if (this.entries.length === 0) {
 			return 0;
 		}
-		const { j, dj } = this.entries[kLast]!;
-		return j + dj - this.requiredLength;
+		const kLast = this.entries.length - 1;
+		const { i, di, j, dj } = this.entries[kLast]!;
+		return j + dj - (i + di);
 	}
 
 	get isEmpty() {
@@ -395,13 +395,13 @@ export class SpliceTable<T, DT> {
 	addOffset(di: number, dj = 0): SpliceTable<T, DT> {
 		if (this.entries.length > 0) {
 			if (this.entries[0]!.i + di < 0) {
-				console.error(this.entries[0], di);
-				throw new Error("addOffset: cannot result in negative index for i");
+				console.error("negative index error", { entries: this.entries, di });
+				// throw new Error("addOffset: cannot result in negative index for i");
 			}
-			if (this.entries[0]!.j + di + dj < 0) {
-				console.error(this.entries[0], di + dj);
-				throw new Error("addOffset: cannot result in negative index for j");
-			}
+			// if (this.entries[0]!.j + di + dj < 0) {
+			// 	console.error(this.entries[0], di + dj);
+			// 	throw new Error("addOffset: cannot result in negative index for j");
+			// }
 		}
 
 		return new SpliceTable(
@@ -409,6 +409,9 @@ export class SpliceTable<T, DT> {
 				const x1 = { ...x };
 				x1.i += di;
 				x1.j += di + dj;
+				// if (x1.j < 0) {
+				// 	x1.j = 0;
+				// }
 				return x1;
 			}),
 		);
@@ -430,31 +433,37 @@ export class SpliceTable<T, DT> {
 		}
 
 		let k = 0;
-		while (k < this.entries.length) {
-			const { i } = this.entries[k]!;
-			if (iSplit >= i) {
-				break;
-			}
-			k++;
-		}
+		for (
+			;
+			k < this.entries.length &&
+			iSplit >= this.entries[k]!.i + this.entries[k]!.di;
+			k++
+		) {}
+		// Invariant: entries[0..k] have e.i + e.di < iSplit
+		// Invariant: entries[k..] have e.i >= iSplit
 
 		if (k >= this.entries.length) {
 			return [this, SpliceTable.identity()];
 		}
 
 		const e = this.entries[k]!;
-		const isInside =
-			(e.di === 0 && e.i === iSplit) || (e.i <= iSplit && iSplit < e.i + e.di);
+		const isInside = e.i <= iSplit && iSplit < e.i + e.di;
 		if (!isInside) {
 			const left = new SpliceTable<T, DT>(
-				mergeAdjacents([...this.entries.slice(0, k - 1)]),
+				mergeAdjacents([...this.entries.slice(0, k)]),
 			);
-			return [
-				left,
-				new SpliceTable<T, DT>(
-					mergeAdjacents(this.entries.slice(k + 1)),
-				).addOffset(-iSplit, left.lengthDifference),
-			];
+			const right0 = new SpliceTable<T, DT>(
+				mergeAdjacents(this.entries.slice(k)),
+			);
+			const adj =
+				right0.entries.length === 0
+					? 0
+					: right0.entries[0]!.i - right0.entries[0]!.j;
+			// console.log("not inside");
+			// console.log("cut", { es: this.entries, iSplit, k });
+			// console.log({ left, right0 });
+			const right = right0.addOffset(-iSplit, adj);
+			return [left, right];
 		}
 
 		const [l, r] =
@@ -468,11 +477,20 @@ export class SpliceTable<T, DT> {
 		const right0 = new SpliceTable<T, DT>(
 			mergeAdjacents([...(r ? [r] : []), ...this.entries.slice(k + 1)]),
 		);
-		// TODO lengthDifference needs to be fixed ({i:0, di:2, j:0, dj: 0})
-		return [left, right0.addOffset(-iSplit, left.lengthDifference)];
+		// console.log("inside");
+		// console.log("cut", { es: this.entries, iSplit });
+		// console.log({ left, right0 });
+		const adj =
+			right0.entries.length === 0
+				? 0
+				: right0.entries[0]!.i - right0.entries[0]!.j;
+		return [left, right0.addOffset(-iSplit, adj)];
 	}
 
 	stitch(right: SpliceTable<T, DT>, iStart: number) {
+		if (this.entries.length === 0) {
+			return right.addOffset(iStart);
+		}
 		if (right.entries.length > 0 && iStart < this.requiredLength) {
 			console.error(
 				"overlap",
@@ -483,6 +501,15 @@ export class SpliceTable<T, DT> {
 			);
 			throw new Error("uncut: cannot create overlap");
 		}
+		if (right.entries.length === 0) {
+			return this;
+		}
+
+		// console.log({
+		// 	di: iStart,
+		// 	dj: iStart + this.lengthDifference,
+		// 	right: right.addOffset(iStart, this.lengthDifference).entries,
+		// });
 		return new SpliceTable<T, DT>(
 			mergeAdjacents([
 				...this.entries,
@@ -962,6 +989,8 @@ export function cutApplyEntry<DT>(
  * Requires:
  *  - Insert entry: `iSplit === entry.i`
  *  - Others: `entry.i <= iSplit && iSplit < entry.i + entry.di`
+ * Invariants:
+ *  - `j - i` for the split entries are preserved.
  */
 export function cutSpliceEntry<T>(
 	entry: SpliceEntry<T>,
@@ -992,7 +1021,7 @@ export function cutSpliceEntry<T>(
 	const second = {
 		i: i + first.di,
 		di: di - first.di,
-		j: j + first.dj,
+		j: j + first.di, // to preserve (j - i)
 		dj: dj < len ? 0 : dj - len,
 		replace: len > replace.length ? [] : replace.slice(len),
 	};

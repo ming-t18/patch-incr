@@ -1596,10 +1596,36 @@ describe("combine examples", () => {
 	});
 });
 
-// TODO still needs fixing
+// TODO still needs fixing due to j - i property failing
 describe.skip("array cut", () => {
 	describe("helpers", () => {
 		describe("cutSpliceEntry", () => {
+			test("j - i is preserved", () => {
+				fc.assert(
+					fc.property(
+						p
+							.arbSpliceEntry({
+								arbValue: fc.integer(),
+							})
+							.filter((e) => e.di > 0)
+							.chain((entry) =>
+								fc.record({
+									entry: fc.constant(entry),
+									i: fc.integer({ min: entry.i, max: entry.i + entry.di - 1 }),
+								}),
+							),
+						({ entry, i }) => {
+							const [a, b] = cutSpliceEntry(entry, i);
+							const expected = entry.j - entry.i;
+							return (
+								(a === null || a.j - a.i === expected) &&
+								(b === null || b.j - b.i === expected)
+							);
+						},
+					),
+				);
+			});
+
 			test("cut zero dj", () => {
 				const e = {
 					i: 0,
@@ -1609,7 +1635,7 @@ describe.skip("array cut", () => {
 					replace: [],
 				};
 				expect(cutSpliceEntry(e, 1)).toEqual([
-					{ i: 1, di: 1, j: 1, dj: 0, replace: [] },
+					{ i: 0, di: 1, j: 0, dj: 0, replace: [] },
 					{ i: 1, di: 1, j: 1, dj: 0, replace: [] },
 				]);
 			});
@@ -1626,7 +1652,40 @@ describe.skip("array cut", () => {
 			});
 		});
 	});
-	test("cut and stitch at zero", () => {
+
+	const arbCut = p
+		.genValueWithChange(s.array(p.integer()))
+		.map((e) => e.dx)
+		.filter((dx) => dx instanceof SpliceTable)
+		.filter((dx) => dx.requiredLength > 0)
+		.chain((dx) =>
+			fc.record({
+				dx: fc.constant(dx as SpliceTable<number, s.DRO<number>>),
+				i: fc.integer({ min: 0, max: dx.requiredLength - 1 }),
+			}),
+		);
+
+	test("cut should have zero initial offset on the right", () => {
+		fc.assert(
+			fc.property(arbCut, ({ dx, i }) => {
+				const [_l, r] = dx.cut(i);
+				fc.pre(r.entries.length > 0);
+				return r.entries[0]!.i === r.entries[0]!.j;
+			}),
+		);
+	});
+
+	test("cut should have non-negative initial i on the right", () => {
+		fc.assert(
+			fc.property(arbCut, ({ dx, i }) => {
+				const [_l, r] = dx.cut(i);
+				fc.pre(r.entries.length > 0);
+				return r.entries[0]!.i >= 0;
+			}),
+		);
+	});
+
+	test("cut and stitch at zero in general", () => {
 		fc.assert(
 			fc.property(
 				p
@@ -1652,29 +1711,16 @@ describe.skip("array cut", () => {
 
 	test("cut and stitch in general", () => {
 		fc.assert(
-			fc.property(
-				p
-					.genValueWithChange(s.array(p.integer()))
-					.map((e) => e.dx)
-					.filter((dx) => dx instanceof SpliceTable)
-					.filter((dx) => dx.requiredLength > 0)
-					.chain((dx) =>
-						fc.record({
-							dx: fc.constant(dx as SpliceTable<number, s.DRO<number>>),
-							i: fc.integer({ min: 0, max: dx.requiredLength - 1 }),
-						}),
-					),
-				({ dx, i }) => {
-					try {
-						const [l, r] = dx.cut(i);
-						const stitched = l.stitch(r, i);
-						expect(dx.entries).toEqual(stitched.entries);
-					} catch (e) {
-						console.error(e);
-						throw e;
-					}
-				},
-			),
+			fc.property(arbCut, ({ dx, i }) => {
+				try {
+					const [l, r] = dx.cut(i);
+					const stitched = l.stitch(r, i);
+					expect(dx.entries).toEqual(stitched.entries);
+				} catch (e) {
+					console.error(e);
+					throw e;
+				}
+			}),
 		);
 	});
 
@@ -1686,20 +1732,6 @@ describe.skip("array cut", () => {
 				return l.entries.length === 0 && r.entries.length === 0;
 			}),
 		);
-	});
-
-	test("cut and stitch between two entries", () => {
-		const table = new SpliceTable<number, s.DRO<number>>([
-			{ i: 0, di: 2, j: 0, dj: 4, replace: [10, 20, 30, 40] },
-			{ i: 10, di: 4, j: 10, dj: 2, replace: [50, 60] },
-		]);
-		const [l, r] = table.cut(8);
-		expect(l.entries).toEqual([table.entries[0]!]);
-		expect(r.entries).toEqual([
-			{ i: 2, di: 4, j: 2, dj: 2, replace: [50, 60] },
-		]);
-		const table1 = l.stitch(r, 8);
-		expect(table1.entries).toEqual(table.entries);
 	});
 
 	test("cut and stitch at zero example", () => {
@@ -1718,9 +1750,60 @@ describe.skip("array cut", () => {
 			{ i: 0, di: 2, j: 0, dj: 0, replace: [] },
 		]);
 		const [l, r] = table.cut(1);
-		expect(l.entries).toEqual([]);
+		expect(l.entries).toEqual([{ i: 0, di: 1, j: 0, dj: 0, replace: [] }]);
+		expect(r.entries).toEqual([{ i: 0, di: 1, j: 0, dj: 0, replace: [] }]);
+		expect(l.lengthDifference).toBe(-1);
+		expect(r.lengthDifference).toBe(-1);
 		const table1 = l.stitch(r, 1);
-		expect(r.entries).toEqual(table1.entries);
+		expect(table1.entries).toEqual(table.entries);
+	});
+
+	test("cut and stitch between two entries example 1", () => {
+		const table = new SpliceTable<number, s.DRO<number>>([
+			{ i: 0, di: 0, j: 0, dj: 1, replace: [1] },
+			{ i: 1, di: 0, j: 2, dj: 1, replace: [2] },
+			{ i: 2, di: 1, j: 4, dj: 1, change: s.makeReplaceOnly(3) },
+		]);
+		const [l, r] = table.cut(1);
+		const table1 = l.stitch(r, 1);
+		expect(table1.entries).toEqual(table.entries);
+	});
+
+	test("cut and stitch between two entries example 2", () => {
+		const table = new SpliceTable<number, s.DRO<number>>([
+			{ i: 0, di: 0, j: 0, dj: 1, replace: [1] },
+			{ i: 3, di: 0, j: 4, dj: 1, replace: [2] },
+		]);
+		const [l, r] = table.cut(1);
+		const table1 = l.stitch(r, 1);
+		expect(table1.entries).toEqual(table.entries);
+	});
+
+	test("cut and stitch between two entries example 3", () => {
+		const table = new SpliceTable<number, s.DRO<number>>([
+			{ i: 0, di: 2, j: 0, dj: 4, replace: [10, 20, 30, 40] },
+			{ i: 10, di: 4, j: 12, dj: 2, replace: [50, 60] },
+		]);
+		const [l, r] = table.cut(8);
+		expect(l.entries).toEqual([
+			{ i: 0, di: 2, j: 0, dj: 4, replace: [10, 20, 30, 40] },
+		]);
+		expect(r.entries).toEqual([
+			{ i: 2, di: 4, j: 2, dj: 2, replace: [50, 60] },
+		]);
+		const table1 = l.stitch(r, 8);
+		expect(table1.entries).toEqual(table.entries);
+	});
+
+	test("cut and stitch between two entries example 4", () => {
+		const table = new SpliceTable<number, s.DRO<number>>([
+			{ i: 0, di: 1, j: 0, dj: 0, replace: [] },
+			{ i: 2, di: 1, j: 1, dj: 1, replace: [10] },
+		]);
+		const [l, r] = table.cut(1);
+		expect(l.entries).toEqual([{ i: 0, di: 1, j: 0, dj: 0, replace: [] }]);
+		expect(r.entries).toEqual([{ i: 1, di: 1, j: 1, dj: 1, replace: [10] }]);
+		const table1 = l.stitch(r, 1);
 		expect(table1.entries).toEqual(table.entries);
 	});
 
@@ -1751,12 +1834,17 @@ describe.skip("array cut", () => {
 		);
 	});
 
-	test("cut single replace example 1", () => {
+	test("cut single uniform replace example", () => {
 		const i = 3;
 		const arr = [0, 1, 2, 3, 4, 5];
 		const splice = SpliceTable.fromSplice(0, arr.length, arr);
 		const [l, r] = splice.cut(i);
-		console.log({ l: l.entries, r: r.entries });
+		expect(l.entries).toEqual([
+			{ i: 0, di: 3, j: 0, dj: 3, replace: [0, 1, 2] },
+		]);
+		expect(r.entries).toEqual([
+			{ i: 0, di: 3, j: 0, dj: 3, replace: [3, 4, 5] },
+		]);
 	});
 });
 
