@@ -194,8 +194,6 @@ declare module "@/array" {
 
 declare module "@/array/stack" {
 	export interface AArrayStack<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>> {
-		getArbApply: A extends HasArbApply<T, DT>
-			? () => ArbApply<this>
-			: undefined;
+		getArbApply: A extends AnyHasArbApply ? () => ArbApply<this> : undefined;
 	}
 }

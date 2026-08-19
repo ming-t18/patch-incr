@@ -14,6 +14,7 @@ import type { $D, $T, DRO } from "@/types/abbr";
 import { SpliceTable } from "./splice";
 
 export { FArray } from "./func";
+export { SpliceTable } from "./splice";
 
 export type DeriveArrayChange<T, DT> = SpliceTable<T, DT> | DRO<readonly T[]>;
 /**

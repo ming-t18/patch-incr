@@ -181,7 +181,7 @@ export class ArbArray<
 				arbChange: (i) =>
 					inner
 						.getArbApply()
-						.arbChange(diveArbChangeConfig((x) => x[i] as T, opts)),
+						.arbChange(diveArbChangeConfig((x) => x?.[i] as T, opts)),
 			}),
 		};
 

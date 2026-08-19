@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import fc from "fast-check";
+import type { APair } from "@/pair";
 import {
 	type AnyHasArbApply,
 	genChangeFromApply,
@@ -8,8 +9,9 @@ import {
 	genValueWithChange,
 } from "@/props";
 import { makePropsIF, makePropsIFA, type PropsIF } from "@/props/func";
+import type { AnyApply } from "@/types";
 import type { $T } from "@/types/abbr";
-import type { IF1, IFA } from "@/types/func";
+import { type IF, type IF1, type IFA, IFKind, type IFR } from "@/types/func";
 
 const propTestCase = <A extends AnyHasArbApply, B extends AnyHasArbApply>(
 	func: IF1<A, B> | IFA<A, B>,
@@ -63,11 +65,39 @@ const propTestCase = <A extends AnyHasArbApply, B extends AnyHasArbApply>(
 	});
 };
 
-export const testCasesIF = <A extends AnyHasArbApply, B extends AnyHasArbApply>(
+export const testCasesIF1 = <
+	A extends AnyHasArbApply,
+	B extends AnyHasArbApply,
+>(
 	func: IF1<A, B>,
 ) => {
 	const props = makePropsIF<A, B>(func);
 	propTestCase(func, props);
+};
+
+export const testCasesIFR = <
+	A extends AnyHasArbApply,
+	B extends AnyHasArbApply,
+	R extends AnyHasArbApply,
+>(
+	func: IFR<A, B, R>,
+) => {
+	const func1: IF1<A, APair<B, R>> = { ...func, kind: IFKind.IF1 };
+	const props = makePropsIF<A, APair<B, R>>(func1);
+	// @ts-expect-error Derive check fails
+	propTestCase(func1, props);
+};
+
+export const testCasesIF = <A extends AnyHasArbApply, B extends AnyHasArbApply>(
+	func: IF<A, B>,
+) => {
+	if (func.kind === IFKind.IFR) {
+		return testCasesIFR<A, B, AnyApply>(func);
+	}
+	if (func.kind === IFKind.IFA) {
+		return testCasesIFA(func);
+	}
+	return testCasesIF1(func);
 };
 
 export const testCasesIFA = <

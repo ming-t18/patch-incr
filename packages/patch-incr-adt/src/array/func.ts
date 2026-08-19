@@ -1,10 +1,13 @@
+/** biome-ignore-all lint/style/noNonNullAssertion: for indexing arrays */
 import { array as A, type AArray, array } from "@/array";
 import { type AAtomic, atomic } from "@/atomic";
 import { compose, compose1R, composeR } from "@/funcs/basic";
-import { makeIF1 } from "@/funcs/helpers";
+import { makeIF1, makeIFR } from "@/funcs/helpers";
 import { type APair, pair } from "@/pair";
+import { getReplaceOnly } from "@/replaceOnly";
 import {
 	type $A,
+	type $D,
 	type $T,
 	type IF,
 	type IF1,
@@ -12,7 +15,12 @@ import {
 	IFKind,
 	type IFR,
 } from "@/types";
-import { SpliceTable } from "./splice";
+import {
+	type ApplyEntry,
+	type SpliceEntry,
+	SpliceTable,
+	type SpliceTableEntry,
+} from "./splice";
 
 /** Cumulative sum residual type. */
 export type ACsum = AArray<AAtomic<number>>;
@@ -81,18 +89,134 @@ export class FArray<A extends $A> {
 		return this.scan((s, x) => s + func(x), init, out);
 	}
 
+	/** Flattens an array at depth 1. The residual is the cumulative sum of array lengths. */
 	flat(): IFR<AArray<AArray<A>>, AArray<A>, ACsum> {
-		throw new Error("TODO");
+		const csum: IF1<AArray<AArray<A>>, ACsum> = new FArray(this.array).csum(
+			(xs) => xs.length,
+		);
+		const getOff = (csum: readonly number[], i: number): number =>
+			i === 0 ? 0 : csum[i - 1]!;
+		return makeIFR(array(this.array), this.array, csum.output, {
+			evaluate: (xss: $T<AArray<AArray<A>>>): $T<APair<AArray<A>, ACsum>> => [
+				xss.flat(1),
+				csum.evaluate(xss),
+			],
+			forward: (xss, dxss, [_ys, ss]) => {
+				const dss = csum.forward(xss, dxss, ss);
+				const ss1 = csum.output.apply(ss, dss);
+				const dys = new SpliceTable<$T<AArray<A>>, $D<AArray<A>>>(
+					dxss.entries.flatMap(
+						(
+							entryParent: SpliceTableEntry<$T<AArray<A>>, $D<AArray<A>>>,
+						): SpliceTableEntry<$T<A>, $D<A>>[] => {
+							const { i: ixs, j: jxs } = entryParent;
+							const i1 = getOff(ss, ixs);
+							const j1 = getOff(ss1, jxs);
+							if ("replace" in entryParent) {
+								const flattened: $T<AArray<A>> = entryParent.replace.flat(1);
+								const di1 = getOff(ss, ixs + entryParent.di) - i1;
+								return [
+									{
+										i: i1,
+										di: di1,
+										j: j1,
+										dj: flattened.length,
+										replace: flattened,
+									} satisfies SpliceEntry<$T<A>>,
+								];
+							}
+
+							const dxs = entryParent.change;
+							if (this.array.isEmpty(dxs)) {
+								return [];
+							}
+							const r = this.array.isReplace(dxs);
+							if (r !== null) {
+								const replace = getReplaceOnly(r);
+								return [
+									{
+										i: i1,
+										di: xss[ixs]!.length,
+										j: j1,
+										dj: replace.length,
+										replace,
+									},
+								];
+							}
+
+							return (dxs as SpliceTable<$T<A>, $D<A>>).entries.map(
+								(
+									entryChild: SpliceTableEntry<$T<A>, $D<A>>,
+								): SpliceTableEntry<$T<A>, $D<A>> => {
+									const i = getOff(ss, ixs) + entryChild.i;
+									const j = getOff(ss1, jxs) + entryChild.j;
+									if ("change" in entryChild) {
+										// a sub-array has changed
+										return {
+											i,
+											di: 1,
+											j,
+											dj: 1,
+											change: entryChild.change,
+										} satisfies ApplyEntry<$D<A>>;
+									}
+									return {
+										i,
+										di: entryChild.di,
+										j,
+										dj: entryChild.replace.length,
+										replace: entryChild.replace,
+									} satisfies SpliceEntry<$T<A>>;
+								},
+							);
+						},
+					),
+				);
+				return [dys, dss];
+			},
+		});
 	}
 
-	map1<B extends $A>(_func: IFA<A, B> | IF1<A, B>): IF1<AArray<A>, AArray<B>> {
-		throw new Error("TODO");
+	map1<B extends $A>(func: IFA<A, B> | IF1<A, B>): IF1<AArray<A>, AArray<B>> {
+		return makeIF1(this.array, array(func.output), {
+			evaluate: (xs: $T<AArray<A>>): $T<AArray<B>> =>
+				xs.map((x) => func.evaluate(x)),
+			forward: (xs, dxs, ys) =>
+				dxs.map({
+					evaluate: (_i, x) => func.evaluate(x),
+					forward: (i, dx) => func.forward(xs[i], dx, ys[i]),
+				}),
+		});
 	}
 
 	mapR<B extends $A, R extends $A>(
-		_func: IFR<A, B, R>,
+		func: IFR<A, B, R>,
 	): IFR<AArray<A>, AArray<B>, AArray<R>> {
-		throw new Error("TODO");
+		const outArray: AArray<B> = array(func.output.shape[0]);
+		const outResidual: AArray<R> = array(func.output.shape[1]);
+
+		const outPair: APair<B, R> = func.output;
+		return makeIFR(this.array, outArray, outResidual, {
+			evaluate: (xs: $T<AArray<A>>): $T<APair<AArray<B>, AArray<R>>> => {
+				const pairs = xs.map((x) => func.evaluate(x));
+				return [pairs.map((p) => p[0]), pairs.map((p) => p[1])];
+			},
+			forward: (xs, dxs, [ys, rs]) => {
+				const dPairs = dxs.map({
+					evaluate: (_i, x) => func.evaluate(x),
+					forward: (i, dx) => func.forward(xs[i], dx, [ys[i], rs[i]]),
+				});
+				const dys: SpliceTable<$T<B>, $D<B>> = dPairs.map({
+					evaluate: (_i, p) => p[0],
+					forward: (_i, dp) => outPair.forwardGet("0", dp),
+				});
+				const drs: SpliceTable<$T<R>, $D<R>> = dPairs.map({
+					evaluate: (_i, p) => p[1],
+					forward: (_i, dp) => outPair.forwardGet("1", dp),
+				});
+				return [dys, drs];
+			},
+		});
 	}
 
 	map<B extends $A>(func: IF<A, B>): IF<AArray<A>, AArray<B>> {

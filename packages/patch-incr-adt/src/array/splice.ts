@@ -329,6 +329,24 @@ export class SpliceTable<T, DT> {
 		return combineTables(this, other, apply);
 	}
 
+	map<S, DS>({
+		evaluate,
+		forward,
+	}: {
+		evaluate: (i: number, input: T[]) => S;
+		forward: (i: number, change: DT) => DS;
+	}): SpliceTable<S, DS> {
+		return new SpliceTable(
+			this.entries.map((e) => {
+				const { i } = e;
+				if ("change" in e) {
+					return { ...e, change: forward(i, e.change) };
+				}
+				return { ...e, replace: e.replace.map((x, i1) => evaluate(i + i1, x)) };
+			}),
+		);
+	}
+
 	// endregion
 
 	// region Update

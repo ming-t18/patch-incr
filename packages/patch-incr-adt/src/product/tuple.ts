@@ -129,8 +129,17 @@ export abstract class BaseProductShapedTuple<
 		}
 		return c;
 	}
+
 	isEmpty(change: DeriveProductChangeTuple<Prod, Shape>) {
 		return change === null;
+	}
+
+	forwardGet<K extends keyof DeriveProductShapedChangeTuple<Shape>>(
+		key: K,
+		change: DeriveProductChangeTuple<Prod, Shape>,
+	): DeriveProductShapedChangeTuple<Shape>[K] {
+		// @ts-expect-error Can't be checked
+		return this.project([key], change)[key];
 	}
 
 	project(
