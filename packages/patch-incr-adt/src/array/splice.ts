@@ -333,7 +333,7 @@ export class SpliceTable<T, DT> {
 		evaluate,
 		forward,
 	}: {
-		evaluate: (i: number, input: T[]) => S;
+		evaluate: (i: number, input: T) => S;
 		forward: (i: number, change: DT) => DS;
 	}): SpliceTable<S, DS> {
 		return new SpliceTable(

@@ -9,7 +9,6 @@ import {
 	genValueWithChange,
 } from "@/props";
 import { makePropsIF, makePropsIFA, type PropsIF } from "@/props/func";
-import type { AnyApply } from "@/types";
 import type { $T } from "@/types/abbr";
 import { type IF, type IF1, type IFA, IFKind, type IFR } from "@/types/func";
 
@@ -92,7 +91,7 @@ export const testCasesIF = <A extends AnyHasArbApply, B extends AnyHasArbApply>(
 	func: IF<A, B>,
 ) => {
 	if (func.kind === IFKind.IFR) {
-		return testCasesIFR<A, B, AnyApply>(func);
+		return testCasesIFR<A, B, AnyHasArbApply>(func as never);
 	}
 	if (func.kind === IFKind.IFA) {
 		return testCasesIFA(func);

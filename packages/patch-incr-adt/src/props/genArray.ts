@@ -178,10 +178,17 @@ export class ArbArray<
 			weight: 4,
 			arbitrary: arbSpliceTable({
 				arbValue,
+				maxLength: "value" in opts ? opts.value?.length : undefined,
 				arbChange: (i) =>
-					inner
-						.getArbApply()
-						.arbChange(diveArbChangeConfig((x) => x?.[i] as T, opts)),
+					inner.getArbApply().arbChange(
+						diveArbChangeConfig((x) => {
+							if (!x || i >= x.length) {
+								console.error("ArbArray: out of bounds", { arr: x, i });
+								throw new Error("ArbArray: index out of bounds");
+							}
+							return x[i] as T;
+						}, opts),
+					),
 			}),
 		};
 
@@ -235,31 +242,35 @@ export function arbSpliceTable<T, DT>(
 		merge = true,
 	} = opts;
 
-	return fc.integer({ min: 0, max: maxLength }).chain((arrLen) =>
-		fc
-			.set(fc.integer({ min: 0, max: maxEntries - 1 }))
+	return fc.integer({ min: 0, max: maxLength }).chain((arrLen) => {
+		return fc
+			.set(
+				arrLen === 0 ? fc.constant(0) : fc.integer({ min: 0, max: arrLen }),
+				{ maxLength: maxEntries },
+			)
 			.map(
-				(is): number[] => [...is].sort(),
+				(is: Set<number>): number[] => [...is].sort((x, y) => x - y),
 				(is) => new Set<number>([...(is as number[])]),
 			)
 			.chain((startIdxs: number[]): Arb<{ i: number; di: number }[]> => {
 				const parts: Arb<{ i: number; di: number }>[] = [];
 				for (let k = 0; k < startIdxs.length; k++) {
 					const i = startIdxs[k]!;
-					const iNext = k + 1 === startIdxs.length ? arrLen : startIdxs[k + 1]!;
-					if (iNext <= i) {
-						parts.push(
-							fc.record({
-								i: fc.constant(i),
-								di: fc.constant(0),
-							}),
-						);
-						continue;
+					if (i > arrLen) {
+						console.error({ i, startIdxs, arrLen });
+						throw new Error("ArbArray: length mismatch");
+					}
+					const iNext = k + 1 === startIdxs.length ? i : startIdxs[k + 1]!;
+					if (iNext - i < 0) {
+						throw new Error("ArbArray: ordering check failed");
 					}
 					parts.push(
 						fc.record({
 							i: fc.constant(i),
-							di: fc.integer({ min: 0, max: iNext - i }),
+							di:
+								iNext - i === 0
+									? fc.constant(0)
+									: fc.integer({ min: 0, max: iNext - i }),
 						}),
 					);
 				}
@@ -277,7 +288,7 @@ export function arbSpliceTable<T, DT>(
 									replace: fc.array(arbValue, { maxLength: maxReplaceLength }),
 								}) satisfies Arb<ParSpliceEntry<T>>,
 							},
-							...(arbChange
+							...(arbChange && i < arrLen && di !== 0
 								? [
 										{
 											weight: 1,
@@ -295,8 +306,8 @@ export function arbSpliceTable<T, DT>(
 			.map((es) => {
 				const { entries } = SpliceTable.fromParallelEntries(es);
 				return new SpliceTable(merge ? mergeAdjacents(entries) : entries);
-			}),
-	);
+			});
+	});
 }
 
 export function arbSpliceEntry<T>(

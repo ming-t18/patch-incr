@@ -10,6 +10,7 @@ export { cons, list } from "./list";
 export * from "./map";
 export * from "./optional";
 export * as Pair from "./pair";
+export { pair } from "./pair";
 export * from "./rec";
 export * from "./record";
 export { record as object } from "./record";

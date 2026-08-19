@@ -1,7 +1,7 @@
 import type { APair } from "@/pair";
 import { pair } from "@/pair";
 import type { UnknownApply } from "@/types";
-import type { $A } from "@/types/abbr";
+import type { $A, $D } from "@/types/abbr";
 import { type IF, type IF1, type IFA, IFKind, type IFR } from "@/types/func";
 
 export const composeA = <A extends $A, B extends $A, C extends $A>(
@@ -96,20 +96,35 @@ export const compose1R = <
 >(
 	f1: IF1<A, B>,
 	f2: IFR<B, C, R>,
-): IFR<A, C, APair<B, R>> => ({
-	kind: IFKind.IFR,
-	input: f1.input,
-	output: pair(f2.output.shape[0], pair(f1.output, f2.output.shape[1])),
-	evaluate: (x) => {
-		const y = f1.evaluate(x);
-		const [z, r] = f2.evaluate(y);
-		return [z, [y, r]];
-	},
-	forward: (x, dx, [z, [y, r]]) => {
-		const dy = f1.forward(x, dx, y);
-		return f2.forward(x, dy, [z, r]);
-	},
-});
+): IFR<A, C, APair<B, R>> => {
+	const br: APair<B, R> = pair(f1.output, f2.output.shape[1]);
+	const cr: APair<C, R> = f2.output;
+	const cbr: APair<C, APair<B, R>> = pair(f2.output.shape[0], br);
+	return {
+		kind: IFKind.IFR,
+		input: f1.input,
+		output: cbr,
+		evaluate: (x) => {
+			const y = f1.evaluate(x);
+			const [z, r] = f2.evaluate(y);
+			return [z, [y, r]];
+		},
+		forward: (x, dx, [z, [y, r]]): $D<typeof cbr> => {
+			const dy: $D<B> = f1.forward(x, dx, y);
+			const dzr: $D<APair<C, R>> = f2.forward(y, dy, [z, r]);
+			const [dz, dr] = cr.project(["0", "1"], dzr);
+			// Required to pass prop test on empty patch
+			if (
+				cr.shape[0].isEmpty(dz) &&
+				cr.shape[1].isEmpty(dr) &&
+				f1.output.isEmpty(dy)
+			) {
+				return cbr.empty;
+			}
+			return [dz, [dy, dr]];
+		},
+	};
+};
 
 export const composeRA = <
 	A extends $A,

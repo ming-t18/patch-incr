@@ -2,7 +2,7 @@
 import { array as A, type AArray, array } from "@/array";
 import { type AAtomic, atomic } from "@/atomic";
 import { compose, compose1R, composeR } from "@/funcs/basic";
-import { makeIF1, makeIFR } from "@/funcs/helpers";
+import { makeIF1, makeIFA, makeIFR } from "@/funcs/helpers";
 import { type APair, pair } from "@/pair";
 import { getReplaceOnly } from "@/replaceOnly";
 import {
@@ -182,6 +182,7 @@ export class FArray<A extends $A> {
 			evaluate: (xs: $T<AArray<A>>): $T<AArray<B>> =>
 				xs.map((x) => func.evaluate(x)),
 			forward: (xs, dxs, ys) =>
+				// TODO invalid but type checks for some reason
 				dxs.map({
 					evaluate: (_i, x) => func.evaluate(x),
 					forward: (i, dx) => func.forward(xs[i], dx, ys[i]),
@@ -257,7 +258,10 @@ export class FArray<A extends $A> {
 	}
 
 	singleton(): IFA<A, AArray<A>> {
-		throw new Error("TODO");
+		return makeIFA(this.inner, this.array, {
+			evaluate: (x) => [x],
+			forward: (_x, dx) => SpliceTable.fromChange(0, dx),
+		});
 	}
 
 	distr<C extends $A>(_c: C): IF<APair<AArray<A>, C>, AArray<APair<A, C>>> {
