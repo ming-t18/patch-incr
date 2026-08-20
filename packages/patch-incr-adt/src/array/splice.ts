@@ -122,6 +122,10 @@ export class SpliceTable<T, DT> {
 		return j + dj - (i + di);
 	}
 
+	mapLength(len: number): number {
+		return len + this.lengthDifference;
+	}
+
 	get isEmpty() {
 		return this.entries.length === 0;
 	}

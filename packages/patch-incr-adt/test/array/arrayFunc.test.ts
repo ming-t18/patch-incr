@@ -164,3 +164,27 @@ describe("flatMap", () => {
 		testCasesIF(fm);
 	});
 });
+
+describe("distr", () => {
+	describe("(integer, boolean)", () => {
+		testCasesIF(new s.FArray(p.integer()).distr(p.boolean()));
+	});
+	describe("(pair, pair)", () => {
+		testCasesIF(
+			new s.FArray(s.pair(p.string(), p.integer())).distr(
+				s.pair(p.boolean(), p.boolean()),
+			),
+		);
+	});
+});
+
+describe("distrMap", () => {
+	describe("(pair, integer)", () => {
+		const inputPair = s.pair(p.integer(), p.integer());
+		const ctx = p.integer();
+		const combinedPair = s.pair(inputPair, ctx);
+		testCasesIF(
+			new s.FArray(inputPair).distrMap(ctx, new f.FPair(combinedPair).fst()),
+		);
+	});
+});

@@ -2,9 +2,9 @@
 import { array as A, type AArray, array } from "@/array";
 import { type AAtomic, atomic } from "@/atomic";
 import { compose, compose1R, composeR } from "@/funcs/basic";
-import { makeIF1, makeIFA, makeIFR } from "@/funcs/helpers";
+import { makeIF1, makeIFA, makeIFR, REEVAL } from "@/funcs/helpers";
 import { type APair, pair } from "@/pair";
-import { getReplaceOnly } from "@/replaceOnly";
+import { getReplaceOnly, isReplaceOnly } from "@/replaceOnly";
 import {
 	type $A,
 	type $D,
@@ -264,8 +264,45 @@ export class FArray<A extends $A> {
 		});
 	}
 
-	distr<C extends $A>(_c: C): IF<APair<AArray<A>, C>, AArray<APair<A, C>>> {
-		throw new Error("TODO");
+	distr<C extends $A>(c: C): IF1<APair<AArray<A>, C>, AArray<APair<A, C>>> {
+		const input = pair(this.array, c);
+		const pairInner = pair(this.inner, c);
+		return makeIF1(input, array(pairInner), {
+			evaluate: ([xs, c]) => xs.map((x) => [x, c]),
+			forward: ([xs0, c0], dp, _xcs0) => {
+				const [dxs, dc] = input.project(["0", "1"], dp);
+				if (input.shape[0].isEmpty(dxs) && input.shape[1].isEmpty(dc)) {
+					return null;
+				}
+
+				if (isReplaceOnly(dxs)) {
+					return REEVAL;
+				}
+
+				const dxs1 = (
+					dxs ??
+					SpliceTable.identity<$T<typeof pairInner>, $D<typeof pairInner>>()
+				).map<$T<typeof pairInner>, $D<typeof pairInner>>({
+					evaluate: (_i, x) => [x, c0],
+					forward: (_i, dx) => [dx, c.empty],
+				});
+				const dxs2 = new SpliceTable<
+					$T<typeof pairInner>,
+					$D<typeof pairInner>
+				>(
+					Array(dxs1.mapLength(xs0.length))
+						.fill(null)
+						.map((_, i) => ({
+							i,
+							di: 1,
+							j: i,
+							dj: 1,
+							change: [null, dc],
+						})),
+				);
+				return dxs1.combine(dxs2, pairInner);
+			},
+		});
 	}
 
 	distrMap<C extends $A, B extends $A>(

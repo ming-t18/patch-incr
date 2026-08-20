@@ -22,19 +22,28 @@ export const composeA = <A extends $A, B extends $A, C extends $A>(
 export const compose1 = <A extends $A, B extends $A, C extends $A>(
 	f1: IF1<A, B>,
 	f2: IF1<B, C>,
-): IFR<A, C, B> => ({
-	kind: IFKind.IFR,
-	input: f1.input,
-	output: pair(f2.output, f1.output),
-	evaluate: (x) => {
-		const y = f1.evaluate(x);
-		return [f2.evaluate(y), y];
-	},
-	forward: (x, dx, [z, y]) => {
-		const dy = f1.forward(x, dx, y);
-		return f2.forward(x, dy, z);
-	},
-});
+): IFR<A, C, B> => {
+	const output = pair(f2.output, f1.output);
+	return {
+		kind: IFKind.IFR,
+		input: f1.input,
+		output,
+		evaluate: (x) => {
+			const y = f1.evaluate(x);
+			return [f2.evaluate(y), y];
+		},
+		forward: (x, dx, [z, y]) => {
+			const dy = f1.forward(x, dx, y);
+			const dz = f2.forward(x, dy, z);
+
+			// Required to pass prop test on empty patch
+			if (output.shape[0].isEmpty(dz) && output.shape[1].isEmpty(dy)) {
+				return f2.output.empty;
+			}
+			return [dz, dy];
+		},
+	};
+};
 
 export const composeA1 = <A extends $A, B extends $A, C extends $A>(
 	f1: IFA<A, B>,
