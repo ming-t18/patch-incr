@@ -17,7 +17,7 @@ export const evaluateAndForward = <
 	if (func.kind === IFKind.IFR) {
 		const [y, r] = func.evaluate(x);
 		const dyr = func.forward(x, dx, y);
-		const [dy, dr] = func.output.project(["0", "1"], dyr);
+		const [dy, dr] = func.output.project(null, dyr);
 		return { y, dy, r, dr };
 	}
 	const y = func.evaluate(x);

@@ -270,7 +270,7 @@ export class FArray<A extends $A> {
 		return makeIF1(input, array(pairInner), {
 			evaluate: ([xs, c]) => xs.map((x) => [x, c]),
 			forward: ([xs0, c0], dp, _xcs0) => {
-				const [dxs, dc] = input.project(["0", "1"], dp);
+				const [dxs, dc] = input.project(null, dp);
 				if (input.shape[0].isEmpty(dxs) && input.shape[1].isEmpty(dc)) {
 					return null;
 				}

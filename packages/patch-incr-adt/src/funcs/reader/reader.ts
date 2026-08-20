@@ -62,7 +62,7 @@ export const passthru = <Ctx extends $A, A extends $A, B extends Ctx>(
 	const b: B = B.getOutput(f.func);
 	return {
 		usesCtx: true,
-		func: new FPair(pair(b, ctx)).fromFork(
+		func: new FPair(pair(b, ctx)).from_fork(
 			f.func,
 			new FPair(pair(a, ctx)).snd(),
 		),
@@ -94,7 +94,7 @@ export const compose = <
 	const ctx: Ctx = f1.func.input.shape[1];
 	const left: IF<APair<A, Ctx>, APair<B, Ctx>> = new FPair(
 		pair(b, ctx),
-	).fromFork(f1.func, new FPair(pair(a, ctx)).snd());
+	).from_fork(f1.func, new FPair(pair(a, ctx)).snd());
 	if (!f2.usesCtx) {
 		return {
 			usesCtx: true,
@@ -127,10 +127,10 @@ export const first = <
 	}
 	const a: A = f1.func.input.shape[0];
 	const ctx: Ctx = f1.func.input.shape[1];
-	const fp = new FPair(pair(a, b));
+	const fi = new FPair(pair(pair(a, b), ctx));
 	const fp1 = new FPair(pair(pair(a, ctx), b));
 	return {
 		usesCtx: true,
-		func: B.compose(fp.distrFst(ctx), fp1.first<A1>(f1.func)),
+		func: B.compose(fi.distrFst(), fp1.first<A1>(f1.func)),
 	};
 };

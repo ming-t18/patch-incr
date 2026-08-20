@@ -54,7 +54,6 @@ export const composeA1 = <A extends $A, B extends $A, C extends $A>(
 	output: f2.output,
 	evaluate: (x) => f2.evaluate(f1.evaluate(x)),
 	forward: (x, dx, z) => {
-		const _y = f1.evaluate(x);
 		const dy = f1.forward(x, dx);
 		return f2.forward(x, dy, z);
 	},
@@ -121,7 +120,7 @@ export const compose1R = <
 		forward: (x, dx, [z, [y, r]]): $D<typeof cbr> => {
 			const dy: $D<B> = f1.forward(x, dx, y);
 			const dzr: $D<APair<C, R>> = f2.forward(y, dy, [z, r]);
-			const [dz, dr] = cr.project(["0", "1"], dzr);
+			const [dz, dr] = cr.project(null, dzr);
 			// Required to pass prop test on empty patch
 			if (
 				cr.shape[0].isEmpty(dz) &&

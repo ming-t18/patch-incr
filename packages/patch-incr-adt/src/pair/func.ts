@@ -55,31 +55,40 @@ export class FPair<
 		throw new Error("TODO");
 	}
 
-	fromFork<In extends $A>(_f1: IF<In, A>, _f2: IF<In, B>): IF<In, APair<A, B>> {
+	from_fork<In extends $A>(
+		_f1: IF<In, A>,
+		_f2: IF<In, B>,
+	): IF<In, APair<A, B>> {
 		throw new Error("TODO");
 	}
 
-	distrFst<C extends $A>(
-		c: C,
+	distrFst<A extends $A, B extends $A, C extends $A>(
+		this: FPair<APair<A, B>, C>,
 	): IFA<APair<APair<A, B>, C>, APair<APair<A, C>, B>> {
-		return makeIFA(
-			pair(this.pair, c),
-			pair(pair(this.pair.shape[0], c), this.pair.shape[1]),
-			{
-				evaluate: ([[a, b], c]) => [[a, c], b],
-				forward: (_p, [dab, dc]) => {
-					const [da, db] = this.pair.project(null, dab);
-					return [[da, dc], db];
-				},
-			},
+		const b: B = this.pair.shape[0].shape[1];
+		const pac: APair<A, C> = pair(
+			this.pair.shape[0].shape[0],
+			this.pair.shape[1],
 		);
+		return makeIFA(this.pair, pair(pac, b), {
+			evaluate: ([[a, b], c]) => [[a, c], b],
+			forward: (_p, [dab, dc]) => {
+				const [da, db] = this.pair.project(null, dab);
+				return [[da, dc], db];
+			},
+		});
 	}
 
-	undistrFst<C extends $A>(
-		c: C,
+	undistrFst<A extends $A, B extends $A, C extends $A>(
+		this: FPair<APair<A, C>, B>,
 	): IFA<APair<APair<A, C>, B>, APair<APair<A, B>, C>> {
-		const pac = pair(this.pair.shape[0], c);
-		return makeIFA(pair(pac, this.pair.shape[1]), pair(this.pair, c), {
+		const c: C = this.pair.shape[0].shape[1];
+		const pab: APair<A, B> = pair(
+			this.pair.shape[0].shape[0],
+			this.pair.shape[1],
+		);
+		const pac: APair<A, C> = pair(this.pair.shape[0].shape[0], c);
+		return makeIFA(this.pair, pair(pab, c), {
 			evaluate: ([[a, c], b]) => [[a, b], c],
 			forward: (_p, [dac, db]) => {
 				const [da, dc] = pac.project(null, dac);
@@ -88,30 +97,40 @@ export class FPair<
 		});
 	}
 
-	distrSnd<C extends $A>(
-		c: C,
+	distrSnd<A extends $A, B extends $A, C extends $A>(
+		this: FPair<APair<A, B>, C>,
 	): IFA<APair<APair<A, B>, C>, APair<A, APair<B, C>>> {
-		return makeIFA(
-			pair(this.pair, c),
-			pair(this.pair.shape[0], pair(this.pair.shape[1], c)),
+		const [
 			{
-				evaluate: ([[a, b], c]) => [a, [b, c]],
-				forward: (_p, [dab, dc]) => {
-					if (this.pair.isEmpty(dab)) {
-						return [this.pair.shape[0].empty, [this.pair.shape[1].empty, dc]];
-					}
-					const [da, db] = this.pair.project(null, dab);
-					return [da, [db, dc]];
-				},
+				shape: [a, b],
 			},
-		);
+			c,
+		] = this.pair.shape;
+		const pbc: APair<B, C> = pair(b, c);
+		return makeIFA(this.pair, pair(a, pbc), {
+			evaluate: ([[a, b], c]) => [a, [b, c]],
+			forward: (_p, [dab, dc]) => {
+				if (this.pair.isEmpty(dab)) {
+					return [a.empty, [b.empty, dc]];
+				}
+				const [da, db] = this.pair.project(null, dab);
+				return [da, [db, dc]];
+			},
+		});
 	}
 
-	undistrSnd<C extends $A>(
-		c: C,
+	undistrSnd<A extends $A, B extends $A, C extends $A>(
+		this: FPair<A, APair<B, C>>,
 	): IFA<APair<A, APair<B, C>>, APair<APair<A, B>, C>> {
-		const pbc = pair(this.pair.shape[1], c);
-		return makeIFA(pair(this.pair.shape[0], pbc), pair(this.pair, c), {
+		const [
+			a,
+			{
+				shape: [b, c],
+			},
+		] = this.pair.shape;
+		const pab = pair(a, b);
+		const pbc = pair(b, c);
+		return makeIFA(this.pair, pair(pab, c), {
 			evaluate: ([a, [b, c]]) => [[a, b], c],
 			forward: (_p, [da, dbc]) => {
 				const [db, dc] = pbc.project(null, dbc);

@@ -1,19 +1,19 @@
 import { describe } from "bun:test";
 import * as f from "@/funcs";
 import * as s from "@/index";
-import { Either, Pair } from "@/index";
+import { Either } from "@/index";
 import { FPair } from "@/pair/func";
 import * as p from "@/props";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 import { testCasesIdentity, testCasesIFA } from "./fastCheck/testPropsIF.test";
 
-const pair1 = Pair.pair(p.boolean(), p.integer());
-const pairNested1 = Pair.pair(pair1, p.string());
-const pairNested2 = Pair.pair(
+const pair1 = s.pair(p.boolean(), p.integer());
+const pairNested1 = s.pair(pair1, p.string());
+const pairNested2 = s.pair(
 	pair1.shape[0],
-	Pair.pair(pair1.shape[1], pairNested1.shape[1]),
+	s.pair(pair1.shape[1], pairNested1.shape[1]),
 );
-const pairComplex = Pair.pair(
+const pairComplex = s.pair(
 	Either.either(p.boolean(), p.integer()),
 	s.record({
 		single: s.record({ bool: p.boolean() }),
@@ -47,21 +47,23 @@ describe("FPair", () => {
 
 	describe("distrFst", () => {
 		const c = p.boolean();
-		testCasesIFA(new FPair(pair1).distrFst<typeof c>(c));
+		testCasesIFA(new FPair(s.pair(pair1, c)).distrFst());
 	});
 
 	describe("undistrFst", () => {
 		const c = p.boolean();
-		testCasesIFA(new FPair(pair1).undistrFst<typeof c>(c));
+		testCasesIFA(new FPair(s.pair(pair1, c)).undistrFst());
 	});
 
 	describe("distrSnd", () => {
 		const c = p.boolean();
-		testCasesIFA(new FPair(pair1).distrSnd<typeof c>(c));
+		const input = new FPair(s.pair(pair1, c)).distrFst().output;
+		testCasesIFA(new FPair(input).distrSnd());
 	});
 
 	describe("undistrSnd", () => {
 		const c = p.boolean();
-		testCasesIFA(new FPair(pair1).undistrSnd<typeof c>(c));
+		const input = new FPair(s.pair(pair1, c)).distrSnd().output;
+		testCasesIFA(new FPair(input).undistrSnd());
 	});
 });
