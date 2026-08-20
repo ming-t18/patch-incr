@@ -31,7 +31,11 @@ export class FArray<A extends $A> {
 		readonly array: AArray<A> = A(inner),
 	) {}
 
-	static fromArray<A extends $A>(arr: AArray<A>): FArray<A> {
+	static of<A extends $A>(inner: A): FArray<A> {
+		return new FArray(inner, A(inner));
+	}
+
+	static ofArray<A extends $A>(arr: AArray<A>): FArray<A> {
 		return new FArray(arr.inner, arr);
 	}
 
@@ -90,13 +94,15 @@ export class FArray<A extends $A> {
 	}
 
 	/** Flattens an array at depth 1. The residual is the cumulative sum of array lengths. */
-	flat(): IFR<AArray<AArray<A>>, AArray<A>, ACsum> {
-		const csum: IF1<AArray<AArray<A>>, ACsum> = new FArray(this.array).csum(
+	flat<A extends $A>(
+		this: FArray<AArray<A>>,
+	): IFR<AArray<AArray<A>>, AArray<A>, ACsum> {
+		const csum: IF1<AArray<AArray<A>>, ACsum> = FArray.ofArray(this.array).csum(
 			(xs) => xs.length,
 		);
 		const getOff = (csum: readonly number[], i: number): number =>
 			i === 0 ? 0 : csum[i - 1]!;
-		return makeIFR(array(this.array), this.array, csum.output, {
+		return makeIFR(csum.input, this.inner, csum.output, {
 			evaluate: (xss: $T<AArray<AArray<A>>>): $T<APair<AArray<A>, ACsum>> => [
 				xss.flat(1),
 				csum.evaluate(xss),
@@ -236,14 +242,14 @@ export class FArray<A extends $A> {
 	> {
 		return composeR(
 			this.mapR(func),
-			new FArray<B>(func.output.shape[0].inner).flat(),
+			FArray.of<AArray<B>>(func.output.shape[0]).flat(),
 		);
 	}
 
 	flatMap1<B extends $A>(
 		func: IFA<A, AArray<B>> | IF1<A, AArray<B>>,
 	): IFR<AArray<A>, AArray<B>, APair<AArray<AArray<B>>, ACsum>> {
-		return compose1R(this.map1(func), new FArray<B>(func.output.inner).flat());
+		return compose1R(this.map1(func), FArray.of<AArray<B>>(func.output).flat());
 	}
 
 	flatMap<B extends $A>(func: IF<A, AArray<B>>): IF<AArray<A>, AArray<B>> {
@@ -257,13 +263,14 @@ export class FArray<A extends $A> {
 		throw new Error("TODO");
 	}
 
-	singleton(): IFA<A, AArray<A>> {
+	from_singleton(): IFA<A, AArray<A>> {
 		return makeIFA(this.inner, this.array, {
 			evaluate: (x) => [x],
 			forward: (_x, dx) => SpliceTable.fromChange(0, dx),
 		});
 	}
 
+	// TODO rename to from_distr
 	distr<C extends $A>(c: C): IF1<APair<AArray<A>, C>, AArray<APair<A, C>>> {
 		const input = pair(this.array, c);
 		const pairInner = pair(this.inner, c);
@@ -305,33 +312,33 @@ export class FArray<A extends $A> {
 		});
 	}
 
+	// TODO rename to from_distrMap
 	distrMap<C extends $A, B extends $A>(
 		c: C,
 		func: IF<APair<A, C>, B>,
 	): IF<APair<AArray<A>, C>, AArray<B>> {
 		const a: A = func.input.shape[0];
-		return compose(this.distr(c), new FArray(pair(a, c)).map(func));
+		return compose(this.distr(c), FArray.of(pair(a, c)).map(func));
 	}
 
+	// TODO rename to from_distrFlatMap
 	distrFlatMap<C extends $A, B extends $A>(
 		c: C,
 		func: IF<APair<A, C>, AArray<B>>,
 	): IF<APair<AArray<A>, C>, AArray<B>> {
 		const a: A = func.input.shape[0];
-		return compose(this.distr(c), new FArray(pair(a, c)).flatMap(func));
+		return compose(this.distr(c), FArray.of(pair(a, c)).flatMap(func));
 	}
-}
 
-export class FArrayZip<A extends $A, B extends $A> {
-	constructor(
-		readonly a: A,
-		readonly b: B,
-	) {}
-	zip(): IF1<APair<AArray<A>, AArray<B>>, AArray<APair<A, B>>> {
+	unzip<A extends $A, B extends $A>(
+		this: AArray<APair<A, B>>,
+	): IF1<AArray<APair<A, B>>, APair<AArray<A>, AArray<B>>> {
 		throw new Error("TODO");
 	}
 
-	unzip(): IF1<APair<AArray<A>, AArray<B>>, AArray<APair<A, B>>> {
+	from_zip<A extends $A, B extends $A>(
+		this: AArray<APair<A, B>>,
+	): IF1<APair<AArray<A>, AArray<B>>, AArray<APair<A, B>>> {
 		throw new Error("TODO");
 	}
 }

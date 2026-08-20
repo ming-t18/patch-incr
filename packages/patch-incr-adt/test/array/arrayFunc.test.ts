@@ -7,14 +7,14 @@ import { testCasesIF } from "../fastCheck/testPropsIF.test";
 
 describe("csum", () => {
 	const arrInt = s.array(p.integer());
-	testCasesIF(s.FArray.fromArray(arrInt).csum((x) => x, 0, p.integer()));
+	testCasesIF(s.FArray.ofArray(arrInt).csum((x) => x, 0, p.integer()));
 });
 
 describe("map", () => {
 	describe("map integer", () => {
 		const arrInt = s.array(p.integer());
 		testCasesIF(
-			s.FArray.fromArray(arrInt).map(
+			s.FArray.ofArray(arrInt).map(
 				f.atomicFuncA(arrInt.inner, arrInt.inner, (x) => x + 1),
 			),
 		);
@@ -23,14 +23,14 @@ describe("map", () => {
 	describe("map either", () => {
 		const arrPair = s.array(s.either(p.integer(), p.string()));
 		testCasesIF(
-			s.FArray.fromArray(arrPair).map(new f.FEither(arrPair.inner).comm0()),
+			s.FArray.ofArray(arrPair).map(new f.FEither(arrPair.inner).comm0()),
 		);
 	});
 
 	describe("map pair", () => {
 		const arrPair = s.array(s.pair(p.integer(), p.string()));
 		testCasesIF(
-			s.FArray.fromArray(arrPair).map(new f.FPair(arrPair.inner).snd()),
+			s.FArray.ofArray(arrPair).map(new f.FPair(arrPair.inner).snd()),
 		);
 	});
 });
@@ -39,7 +39,7 @@ describe("flatten", () => {
 	describe("of number", () => {
 		const arr = s.array(p.integer({ min: 0, max: 100 }));
 		const arr2Int = s.array(arr);
-		const flatten = s.FArray.fromArray(arr).flat();
+		const flatten = s.FArray.of(arr).flat();
 		testCasesIF(flatten);
 
 		describe("forward examples", () => {
@@ -120,19 +120,19 @@ describe("flatten", () => {
 		const arr = s.array(
 			s.record({ int: p.integer({ min: 0, max: 100 }), str: p.string() }),
 		);
-		const flatten = s.FArray.fromArray(arr).flat();
+		const flatten = s.FArray.of(arr).flat();
 		testCasesIF(flatten);
 	});
 
 	describe("of either", () => {
 		const arr = s.array(s.either(p.integer({ min: 0, max: 100 }), p.string()));
-		const flatten = s.FArray.fromArray(arr).flat();
+		const flatten = s.FArray.of(arr).flat();
 		testCasesIF(flatten);
 	});
 
 	describe("of pair", () => {
 		const arr = s.array(s.pair(p.integer({ min: 0, max: 100 }), p.string()));
-		const flatten = s.FArray.fromArray(arr).flat();
+		const flatten = s.FArray.of(arr).flat();
 		testCasesIF(flatten);
 	});
 });
@@ -141,8 +141,8 @@ describe("flatMap", () => {
 	describe("of singleton", () => {
 		const value = s.pair(p.string(), p.boolean());
 		const input = s.array(value);
-		const fm = s.FArray.fromArray(input).flatMap(
-			new s.FArray(value).singleton(),
+		const fm = s.FArray.ofArray(input).flatMap(
+			new s.FArray(value).from_singleton(),
 		);
 		testCasesIF(fm);
 	});
@@ -150,7 +150,7 @@ describe("flatMap", () => {
 	describe("of pair", () => {
 		const rec = s.pair(p.string(), s.array(s.pair(p.integer(), p.boolean())));
 		const input = s.array(rec);
-		const fm = s.FArray.fromArray(input).flatMap(new f.FPair(rec).snd());
+		const fm = s.FArray.ofArray(input).flatMap(new f.FPair(rec).snd());
 		testCasesIF(fm);
 	});
 
@@ -160,7 +160,7 @@ describe("flatMap", () => {
 			b: s.array(s.pair(p.integer(), p.boolean())),
 		});
 		const input = s.array(rec);
-		const fm = s.FArray.fromArray(input).flatMap(new f.FRecord(rec).get("b"));
+		const fm = s.FArray.ofArray(input).flatMap(new f.FRecord(rec).get("b"));
 		testCasesIF(fm);
 	});
 });
