@@ -1,4 +1,5 @@
 import * as B from "@/funcs/basic";
+import { Pair } from "@/index";
 import { type APair, pair } from "@/pair";
 import { FPair } from "@/pair/func";
 import type { $A, IF } from "@/types";
@@ -55,17 +56,13 @@ export const passthru = <Ctx extends $A, A extends $A, B extends Ctx>(
 		const ta: A = f.func.input;
 		return {
 			usesCtx: true,
-			func: new FPair(pair(ta, ctx)).first<B>(f.func),
+			func: Pair.first(pair(ta, ctx))(f.func),
 		};
 	}
 	const a: A = f.func.input.shape[0];
-	const b: B = B.getOutput(f.func);
 	return {
 		usesCtx: true,
-		func: new FPair(pair(b, ctx)).from_fork(
-			f.func,
-			new FPair(pair(a, ctx)).snd(),
-		),
+		func: Pair.fork(pair(a, ctx))(f.func, Pair.snd(pair(a, ctx))),
 	};
 };
 
@@ -92,13 +89,14 @@ export const compose = <
 	const a: A = f1.func.input.shape[0];
 	const b: B = f2.usesCtx ? f2.func.input.shape[0] : f2.func.input;
 	const ctx: Ctx = f1.func.input.shape[1];
-	const left: IF<APair<A, Ctx>, APair<B, Ctx>> = new FPair(
-		pair(b, ctx),
-	).from_fork(f1.func, new FPair(pair(a, ctx)).snd());
+	const left: IF<APair<A, Ctx>, APair<B, Ctx>> = Pair.fork(pair(a, ctx))(
+		f1.func,
+		Pair.snd(pair(a, ctx)),
+	);
 	if (!f2.usesCtx) {
 		return {
 			usesCtx: true,
-			func: B.compose(left, B.compose(new FPair(pair(b, ctx)).fst(), f2.func)),
+			func: B.compose(left, B.compose(Pair.fst(pair(b, ctx)), f2.func)),
 		};
 	}
 
@@ -122,15 +120,16 @@ export const first = <
 		return {
 			usesCtx: false,
 			ctx: f1.ctx,
-			func: new FPair(pair(a, b)).first(f1.func),
+			func: Pair.first(pair(a, b))(f1.func),
 		};
 	}
 	const a: A = f1.func.input.shape[0];
 	const ctx: Ctx = f1.func.input.shape[1];
-	const fi = new FPair(pair(pair(a, b), ctx));
-	const fp1 = new FPair(pair(pair(a, ctx), b));
 	return {
 		usesCtx: true,
-		func: B.compose(fi.distrFst(), fp1.first<A1>(f1.func)),
+		func: B.compose(
+			Pair.distrFst(pair(pair(a, b), ctx)),
+			Pair.first(pair(pair(a, ctx), b))(f1.func),
+		),
 	};
 };

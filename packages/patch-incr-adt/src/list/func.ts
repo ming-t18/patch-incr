@@ -1,8 +1,8 @@
 import { composeA, condA, constant, FProduct, FUnion, trimA } from "@/funcs";
 import { type APair, pair } from "@/pair";
-import { FPair } from "@/pair/func";
 import type { $A, $D, $T } from "@/types/abbr";
 import { type IFA, IFKind } from "@/types/func";
+import { Pair } from "..";
 import { type AList, type Cons, list } from "./prod";
 
 class MemoedRec<A extends $A, B extends $A> implements IFA<AList<A>, B> {
@@ -65,11 +65,10 @@ export class FList<A extends $A> {
 
 	cons(): IFA<APair<A, AList<A>>, AList<A>> {
 		const input: APair<A, AList<A>> = pair(this.inner, this.list);
-		const fInput = new FPair(input);
 		return composeA(
 			this.fCons.introA(input, {
-				head: fInput.fst(),
-				tail: fInput.snd(),
+				head: Pair.fst(input),
+				tail: Pair.snd(input),
 			}),
 			this.fUnion.introCase("cons"),
 		);

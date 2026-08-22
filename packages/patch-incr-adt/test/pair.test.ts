@@ -1,8 +1,7 @@
 import { describe } from "bun:test";
 import * as f from "@/funcs";
 import * as s from "@/index";
-import { Either } from "@/index";
-import { FPair } from "@/pair/func";
+import { Either, Pair } from "@/index";
 import * as p from "@/props";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 import { testCasesIdentity, testCasesIFA } from "./fastCheck/testPropsIF.test";
@@ -21,7 +20,7 @@ const pairComplex = s.pair(
 	}),
 );
 
-describe("pair", () => {
+describe("pair apply", () => {
 	describe("[boolean, integer]", () => {
 		testCasesPropsApply(pair1);
 	});
@@ -36,34 +35,48 @@ describe("pair", () => {
 	});
 });
 
-describe("FPair", () => {
-	describe("comm", () => {
-		testCasesIFA(new FPair(pair1).comm0());
+describe("pair functions", () => {
+	describe("comm and commIso", () => {
+		testCasesIFA(Pair.comm(pair1));
 		describe("compose with inverse", () => {
-			const { fwd, inv } = new FPair(pair1).comm();
+			const { fwd, inv } = Pair.commIso(pair1);
 			testCasesIdentity(f.composeA(fwd, inv));
 		});
+	});
+	describe("assoc and assocIso", () => {
+		const pairA = pairNested1;
+		testCasesIFA(Pair.assocLR(pairA));
+		describe("compose with inverse", () => {
+			const { fwd, inv } = Pair.assocIso(pairA);
+			testCasesIdentity(f.composeA(fwd, inv));
+		});
+	});
+	describe("fst", () => {
+		testCasesIFA(Pair.fst(s.pair(p.boolean(), p.string())));
+	});
+	describe("snd", () => {
+		testCasesIFA(Pair.snd(s.pair(p.boolean(), p.string())));
 	});
 
 	describe("distrFst", () => {
 		const c = p.boolean();
-		testCasesIFA(new FPair(s.pair(pair1, c)).distrFst());
+		testCasesIFA(Pair.distrFst(s.pair(pair1, c)));
 	});
 
 	describe("undistrFst", () => {
 		const c = p.boolean();
-		testCasesIFA(new FPair(s.pair(pair1, c)).undistrFst());
+		testCasesIFA(Pair.undistrFst(s.pair(pair1, c)));
 	});
 
 	describe("distrSnd", () => {
 		const c = p.boolean();
-		const input = new FPair(s.pair(pair1, c)).distrFst().output;
-		testCasesIFA(new FPair(input).distrSnd());
+		const input = Pair.distrFst(s.pair(pair1, c)).output;
+		testCasesIFA(Pair.distrSnd(input));
 	});
 
 	describe("undistrSnd", () => {
 		const c = p.boolean();
-		const input = new FPair(s.pair(pair1, c)).distrSnd().output;
-		testCasesIFA(new FPair(input).undistrSnd());
+		const input = Pair.distrSnd(s.pair(pair1, c)).output;
+		testCasesIFA(Pair.undistrSnd(input));
 	});
 });
