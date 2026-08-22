@@ -34,7 +34,7 @@ export const compose1 = <A extends $A, B extends $A, C extends $A>(
 		},
 		forward: (x, dx, [z, y]) => {
 			const dy = f1.forward(x, dx, y);
-			const dz = f2.forward(x, dy, z);
+			const dz = f2.forward(y, dy, z);
 
 			// Required to pass prop test on empty patch
 			if (output.shape[0].isEmpty(dz) && output.shape[1].isEmpty(dy)) {
@@ -55,7 +55,8 @@ export const composeA1 = <A extends $A, B extends $A, C extends $A>(
 	evaluate: (x) => f2.evaluate(f1.evaluate(x)),
 	forward: (x, dx, z) => {
 		const dy = f1.forward(x, dx);
-		return f2.forward(x, dy, z);
+		const y = f1.evaluate(x);
+		return f2.forward(y, dy, z);
 	},
 });
 
@@ -92,7 +93,7 @@ export const compose1A = <A extends $A, B extends $A, C extends $A>(
 	},
 	forward: (x, dx, [_, y]) => {
 		const dy = f1.forward(x, dx, y);
-		return f2.forward(x, dy);
+		return f2.forward(y, dy);
 	},
 });
 
@@ -152,7 +153,7 @@ export const composeRA = <
 	},
 	forward: (x, dx, [_, [y, r]]) => {
 		const dy = f1.forward(x, dx, [y, r]);
-		return f2.forward(x, dy);
+		return f2.forward(y, dy);
 	},
 });
 
@@ -174,7 +175,7 @@ export const composeR1 = <
 	},
 	forward: (x, dx, [z, [y, r]]) => {
 		const dy = f1.forward(x, dx, [y, r]);
-		return f2.forward(x, dy, z);
+		return f2.forward(y, dy, z);
 	},
 });
 
@@ -199,7 +200,7 @@ export const composeR = <
 	},
 	forward: (x, dx, [z, [yr1, r2]]) => {
 		const dy = f1.forward(x, dx, yr1);
-		return f2.forward(x, dy, [z, r2]);
+		return f2.forward(yr1[0], dy, [z, r2]);
 	},
 });
 
