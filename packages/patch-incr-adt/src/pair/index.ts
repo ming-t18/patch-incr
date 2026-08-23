@@ -1,35 +1,19 @@
 import { makeIF1, makeIFA, makeIFR, REEVAL } from "@/funcs/helpers";
 import { isReplaceOnly } from "@/replaceOnly";
 import type { $A } from "@/types/abbr";
-import type {
-	AnyApply,
-	InferApplyChange,
-	InferApplyValue,
-} from "@/types/algebra";
 import { type IF, type IF1, type IFA, IFKind, type IFR } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
 import type { AUnit, AZero } from "@/unit";
-import { tuple } from "../tuple/tuple";
 
-export const pair = <A extends $A, B extends $A>(a: A, b: B) => tuple([a, b]);
+import { type APair, flip, pair } from "./pair";
 
-export const flip = <A extends $A, B extends $A>({
-	shape: [a, b],
-}: APair<A, B>): APair<B, A> => pair(b, a);
-
-export type APair<A extends AnyApply, B extends AnyApply> = ReturnType<
-	typeof pair<A, B>
->;
-export type Pair<A extends AnyApply, B extends AnyApply> = InferApplyValue<
-	ReturnType<typeof pair<A, B>>
->;
-export type DPair<A extends AnyApply, B extends AnyApply> = InferApplyChange<
-	ReturnType<typeof pair<A, B>>
->;
+export { first, firstSecond, second } from "./firstSecond";
+export { fork } from "./fork";
+export { type APair, type DPair, flip, type Pair, pair } from "./pair";
 
 // Introduction rules
 
-// region intro helpers
+// region intro
 export const introA =
 	<C extends $A>(c: C) =>
 	<A extends $A, B extends $A>(
@@ -156,31 +140,6 @@ export const snd = <A extends $A, B extends $A>(
 	});
 
 // Arrow rules
-
-export const first =
-	<A extends $A, B extends $A>(_pair: APair<A, B>) =>
-	<A1 extends $A>(_f1: IF<A, A1>): IF<APair<A, B>, APair<A1, B>> => {
-		throw new Error("TODO");
-	};
-export const second =
-	<A extends $A, B extends $A>(_pair: APair<A, B>) =>
-	<B1 extends $A>(_f2: IF<B, B1>): IF<APair<A, B>, APair<A, B1>> => {
-		throw new Error("TODO");
-	};
-
-export declare const firstSecond: <A extends $A, B extends $A>(
-	pair: APair<A, B>,
-) => <A1 extends $A, B1 extends $A>(
-	f1: IF1<A, A1>,
-	f2: IF1<B, B1>,
-) => IF1<APair<A, B>, APair<A1, B1>>;
-
-export declare const fork: <C extends $A>(
-	c: C,
-) => <A extends $A, B extends $A>(
-	f1: IF<C, A>,
-	f2: IF<C, B>,
-) => IF<C, APair<A, B>>;
 
 // Algebraic rules
 
