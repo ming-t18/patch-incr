@@ -29,9 +29,7 @@ describe("map", () => {
 
 	describe("map pair", () => {
 		const arrPair = s.array(s.pair(p.integer(), p.string()));
-		testCasesIF(
-			s.FArray.ofArray(arrPair).map(new f.FPair(arrPair.inner).snd()),
-		);
+		testCasesIF(s.FArray.ofArray(arrPair).map(s.Pair.snd(arrPair.inner)));
 	});
 });
 
@@ -150,7 +148,7 @@ describe("flatMap", () => {
 	describe("of pair", () => {
 		const rec = s.pair(p.string(), s.array(s.pair(p.integer(), p.boolean())));
 		const input = s.array(rec);
-		const fm = s.FArray.ofArray(input).flatMap(new f.FPair(rec).snd());
+		const fm = s.FArray.ofArray(input).flatMap(s.Pair.snd(rec));
 		testCasesIF(fm);
 	});
 
@@ -184,7 +182,7 @@ describe("distrMap", () => {
 		const ctx = p.integer();
 		const combinedPair = s.pair(inputPair, ctx);
 		testCasesIF(
-			new s.FArray(inputPair).distrMap(ctx, new f.FPair(combinedPair).fst()),
+			new s.FArray(inputPair).distrMap(ctx, s.Pair.fst(combinedPair)),
 		);
 	});
 });

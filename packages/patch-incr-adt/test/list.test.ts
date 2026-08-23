@@ -199,12 +199,12 @@ describe("map", () => {
 		const pair = s.Pair.pair(p.boolean(), p.string());
 		const fList = new FList(s.list(pair));
 		describe("fst", () => {
-			const f = fList.map(new s.fn.FPair(pair).fst());
+			const f = fList.map(s.Pair.fst(pair));
 			testCasesIFA(f);
 			testPropIndexFirstChange(f);
 		});
 		describe("snd", () => {
-			const f = fList.map(new s.fn.FPair(pair).snd());
+			const f = fList.map(s.Pair.snd(pair));
 			testCasesIFA(f);
 			testPropIndexFirstChange(f);
 		});

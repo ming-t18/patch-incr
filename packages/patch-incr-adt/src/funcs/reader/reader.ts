@@ -1,7 +1,6 @@
 import * as B from "@/funcs/basic";
 import { Pair } from "@/index";
 import { type APair, pair } from "@/pair";
-import { FPair } from "@/pair/func";
 import type { $A, IF } from "@/types";
 
 export interface IReaderLift<Ctx extends $A, A extends $A, B extends $A> {
@@ -26,18 +25,37 @@ export const getTypes = <Ctx extends $A, A extends $A, B extends $A>(
 	return [r.func.input.shape[1], r.func.input.shape[0], B.getOutput(r.func)];
 };
 
-export const arr = <Ctx extends $A, A extends $A, B extends $A>(
-	ctx: Ctx,
-	f: IF<A, B>,
-): IReader<Ctx, A, B> => ({
-	usesCtx: false,
-	ctx,
-	func: f,
-});
+export const arr =
+	<Ctx extends $A>(ctx: Ctx) =>
+	<A extends $A, B extends $A>(f: IF<A, B>): IReader<Ctx, A, B> => ({
+		usesCtx: false,
+		ctx,
+		func: f,
+	});
+
+/** Alias of `arr` */
+export const lift = arr;
+
+export const ask =
+	<Ctx extends $A>(ctx: Ctx) =>
+	<A extends $A>(a: A): IReader<Ctx, A, Ctx> => ({
+		usesCtx: true,
+		func: Pair.snd(pair(a, ctx)),
+	});
 
 export const fromReader = <Ctx extends $A, A extends $A, B extends $A>(
 	f: IF<APair<A, Ctx>, B>,
 ): IReader<Ctx, A, B> => ({ usesCtx: true, func: f });
+
+export const toUsesCtx = <Ctx extends $A, A extends $A, B extends $A>(
+	r: IReader<Ctx, A, B>,
+): IReaderUsesCtx<Ctx, A, B> => {
+	if (!r.usesCtx) {
+		const a: A = r.func.input;
+		return { usesCtx: true, func: B.compose(Pair.fst(pair(a, r.ctx)), r.func) };
+	}
+	return r;
+};
 
 export const identity = <Ctx extends $A, A extends $A>(
 	ctx: Ctx,
@@ -48,23 +66,22 @@ export const identity = <Ctx extends $A, A extends $A>(
 	func: B.identity(input),
 });
 
-export const passthru = <Ctx extends $A, A extends $A, B extends Ctx>(
-	ctx: Ctx,
-	f: IReader<Ctx, A, B>,
-): IReader<Ctx, A, APair<B, Ctx>> => {
-	if (!f.usesCtx) {
-		const ta: A = f.func.input;
+export const passthru =
+	<Ctx extends $A, A extends $A, B extends Ctx>(ctx: Ctx) =>
+	(f: IReader<Ctx, A, B>): IReader<Ctx, A, APair<B, Ctx>> => {
+		if (!f.usesCtx) {
+			const ta: A = f.func.input;
+			return {
+				usesCtx: true,
+				func: Pair.first(pair(ta, ctx))(f.func),
+			};
+		}
+		const a: A = f.func.input.shape[0];
 		return {
 			usesCtx: true,
-			func: Pair.first(pair(ta, ctx))(f.func),
+			func: Pair.fork(pair(a, ctx))(f.func, Pair.snd(pair(a, ctx))),
 		};
-	}
-	const a: A = f.func.input.shape[0];
-	return {
-		usesCtx: true,
-		func: Pair.fork(pair(a, ctx))(f.func, Pair.snd(pair(a, ctx))),
 	};
-};
 
 export const compose = <
 	Ctx extends $A,
@@ -83,7 +100,7 @@ export const compose = <
 		const ctx: Ctx = f2.func.input.shape[1];
 		return {
 			usesCtx: true,
-			func: B.compose(new FPair(pair(a, ctx)).first<B>(f1.func), f2.func),
+			func: B.compose(Pair.first(pair(a, ctx))(f1.func), f2.func),
 		};
 	}
 	const a: A = f1.func.input.shape[0];
@@ -106,30 +123,26 @@ export const compose = <
 	};
 };
 
-export const first = <
-	Ctx extends $A,
-	A extends $A,
-	B extends $A,
-	A1 extends $A,
->(
-	b: B,
-	f1: IReader<Ctx, A, A1>,
-): IReader<Ctx, APair<A, B>, APair<A1, B>> => {
-	if (!f1.usesCtx) {
-		const a: A = f1.func.input;
+export const first =
+	<B extends $A>(b: B) =>
+	<Ctx extends $A, A extends $A, A1 extends $A>(
+		f1: IReader<Ctx, A, A1>,
+	): IReader<Ctx, APair<A, B>, APair<A1, B>> => {
+		if (!f1.usesCtx) {
+			const a: A = f1.func.input;
+			return {
+				usesCtx: false,
+				ctx: f1.ctx,
+				func: Pair.first(pair(a, b))(f1.func),
+			};
+		}
+		const a: A = f1.func.input.shape[0];
+		const ctx: Ctx = f1.func.input.shape[1];
 		return {
-			usesCtx: false,
-			ctx: f1.ctx,
-			func: Pair.first(pair(a, b))(f1.func),
+			usesCtx: true,
+			func: B.compose(
+				Pair.distrFst(pair(pair(a, b), ctx)),
+				Pair.first(pair(pair(a, ctx), b))(f1.func),
+			),
 		};
-	}
-	const a: A = f1.func.input.shape[0];
-	const ctx: Ctx = f1.func.input.shape[1];
-	return {
-		usesCtx: true,
-		func: B.compose(
-			Pair.distrFst(pair(pair(a, b), ctx)),
-			Pair.first(pair(pair(a, ctx), b))(f1.func),
-		),
 	};
-};
