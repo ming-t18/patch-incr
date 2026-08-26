@@ -1,6 +1,5 @@
 import type { APair } from "@/pair";
 import type { $A, $D, $T } from "@/types/abbr";
-import type { AnyApply } from "@/types/algebra";
 
 export interface IFBase<A extends $A, B extends $A> {
 	readonly input: A;
@@ -78,15 +77,10 @@ export interface IFR<A extends $A, B extends $A, R extends $A>
  * This type is recommended to represent
  * composable `IF`s in general.
  */
-export type IF<A extends $A, B extends $A, R extends AnyApply = AnyApply> =
+export type IF<A extends $A, B extends $A, R extends $A = $A> =
 	| IFA<A, B>
 	| IF1<A, B>
 	| IFR<A, B, R>;
 
-/** An IF taking a context in the second parameter. Represents a reader arrow. */
-export type IFC<
-	C extends $A,
-	A extends $A,
-	B extends $A,
-	R extends AnyApply = AnyApply,
-> = IF<APair<A, C>, B, R>;
+export type IFOutput<F extends IF<$A, $A>> =
+	F extends IFR<infer _A, infer B, infer _R> ? B : F["output"];

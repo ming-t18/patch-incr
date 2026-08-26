@@ -1,7 +1,7 @@
 import * as B from "@/funcs/basic";
 import { Pair } from "@/index";
 import { type APair, pair } from "@/pair";
-import type { $A, IF } from "@/types";
+import type { $A, $T, IF } from "@/types";
 
 export interface IReaderLift<Ctx extends $A, A extends $A, B extends $A> {
 	usesCtx: false;
@@ -24,6 +24,9 @@ export const getTypes = <Ctx extends $A, A extends $A, B extends $A>(
 	}
 	return [r.func.input.shape[1], r.func.input.shape[0], B.getOutput(r.func)];
 };
+export const getOutput = <Ctx extends $A, A extends $A, B extends $A>(
+	r: IReader<Ctx, A, B>,
+): B => getTypes(r)[2];
 
 export const arr =
 	<Ctx extends $A>(ctx: Ctx) =>
@@ -47,6 +50,21 @@ export const fromReader = <Ctx extends $A, A extends $A, B extends $A>(
 	f: IF<APair<A, Ctx>, B>,
 ): IReader<Ctx, A, B> => ({ usesCtx: true, func: f });
 
+/** Converts an `IReader` to an `IF` by providing a constant context value. */
+export const runConstantCtx = <Ctx extends $A, A extends $A, B extends $A>(
+	r: IReader<Ctx, A, B>,
+	ctxValue: $T<Ctx>,
+): IF<A, B> => {
+	if (!r.usesCtx) {
+		return r.func;
+	}
+	const [ctx, a, _b] = getTypes(r);
+	return B.compose(
+		Pair.fork(a)(B.identity(a), B.constant(a, ctx, ctxValue)),
+		r.func,
+	);
+};
+
 export const toUsesCtx = <Ctx extends $A, A extends $A, B extends $A>(
 	r: IReader<Ctx, A, B>,
 ): IReaderUsesCtx<Ctx, A, B> => {
@@ -56,6 +74,10 @@ export const toUsesCtx = <Ctx extends $A, A extends $A, B extends $A>(
 	}
 	return r;
 };
+
+export const runReader = <Ctx extends $A, A extends $A, B extends $A>(
+	r: IReader<Ctx, A, B>,
+): IF<APair<A, Ctx>, B> => toUsesCtx(r).func;
 
 export const identity = <Ctx extends $A, A extends $A>(
 	ctx: Ctx,
