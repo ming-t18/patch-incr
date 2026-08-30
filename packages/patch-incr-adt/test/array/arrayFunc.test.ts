@@ -22,9 +22,8 @@ describe("map", () => {
 
 	describe("map either", () => {
 		const arrPair = s.array(s.either(p.integer(), p.string()));
-		testCasesIF(
-			s.FArray.ofArray(arrPair).map(new f.FEither(arrPair.inner).comm0()),
-		);
+		const ce = s.Either.comm(arrPair.inner);
+		testCasesIF(s.FArray.ofArray(arrPair).map(ce));
 	});
 
 	describe("map pair", () => {

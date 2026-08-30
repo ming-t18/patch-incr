@@ -16,19 +16,6 @@ export class FEither<A extends $A, B extends $A> {
 		readonly fRight = new FMapValue(either.shape.right),
 	) {}
 
-	flipped(): AEither<B, A> {
-		return either(this.either.shape.right.inner, this.either.shape.left.inner);
-	}
-
-	// Introduction rules
-	left(): IFA<A, AEither<A, B>> {
-		return composeA(this.fLeft.intro(), this.fUnion.introCase("left"));
-	}
-
-	right(): IFA<B, AEither<A, B>> {
-		return composeA(this.fRight.intro(), this.fUnion.introCase("right"));
-	}
-
 	introCond<C extends $A>(
 		isRight: (input: $T<C>) => boolean,
 		funcs: { left: IF1<C, A>; right: IF1<C, B> },
@@ -67,24 +54,46 @@ export class FEither<A extends $A, B extends $A> {
 			right: composeA(this.fRight.elim(), right),
 		});
 	}
-
-	comm0(): IFA<AEither<A, B>, AEither<B, A>> {
-		return makeIFA(this.either, this.flipped(), {
-			evaluate: (e) => ("left" in e ? { right: e.left } : { left: e.right }),
-			forward: (_x, dx) =>
-				dx.type === "left" ? dRight(dx.change) : dLeft(dx.change),
-		});
-	}
-
-	comm(): IIsoA<AEither<A, B>, AEither<B, A>> {
-		return {
-			fwd: this.comm0(),
-			inv: new FEither(this.flipped()).comm0(),
-		};
-	}
 }
 
 // Algebraic rules
+
+export const flip = <A extends $A, B extends $A>(
+	eab: AEither<A, B>,
+): AEither<B, A> => either(eab.shape.right.inner, eab.shape.left.inner);
+
+// Introduction rules
+
+export const introLeft = <A extends $A, B extends $A>(
+	either: AEither<A, B>,
+): IFA<A, AEither<A, B>> => {
+	const fe = new FEither(either);
+	return composeA(fe.fLeft.intro(), fe.fUnion.introCase("left"));
+};
+
+export const introRight = <A extends $A, B extends $A>(
+	either: AEither<A, B>,
+): IFA<B, AEither<A, B>> => {
+	const fe = new FEither(either);
+	return composeA(fe.fRight.intro(), fe.fUnion.introCase("right"));
+};
+
+export const comm = <A extends $A, B extends $A>(
+	either: AEither<A, B>,
+): IFA<AEither<A, B>, AEither<B, A>> => {
+	return makeIFA(either, flip(either), {
+		evaluate: (e) => ("left" in e ? { right: e.left } : { left: e.right }),
+		forward: (_x, dx) =>
+			dx.type === "left" ? dRight(dx.change) : dLeft(dx.change),
+	});
+};
+
+export const commIso = <A extends $A, B extends $A>(
+	either: AEither<A, B>,
+): IIsoA<AEither<A, B>, AEither<B, A>> => ({
+	fwd: comm(either),
+	inv: comm(flip(either)),
+});
 
 export const introZeroLeft = <A extends $A>(
 	right: A,

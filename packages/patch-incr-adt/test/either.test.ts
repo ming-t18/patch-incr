@@ -1,7 +1,7 @@
 import { describe } from "bun:test";
-import { FEither } from "@/either/func";
 import * as f from "@/funcs";
 import * as s from "@/index";
+import { Either } from "@/modules";
 import * as p from "@/props";
 import { testCasesPropsApply } from "./fastCheck/testPropsApply.test";
 import { testCasesIdentity, testCasesIFA } from "./fastCheck/testPropsIF.test";
@@ -40,17 +40,19 @@ describe("either apply", () => {
 });
 
 describe("either", () => {
-	const fe = new FEither(eitherIntegerString);
-	describe("left", () => {
-		testCasesIFA(fe.left());
+	describe("introLeft", () => {
+		testCasesIFA(Either.introLeft(eitherIntegerString));
 	});
-	describe("right", () => {
-		testCasesIFA(fe.left());
+	describe("introRight", () => {
+		testCasesIFA(Either.introRight(eitherIntegerString));
 	});
 	describe("comm", () => {
-		testCasesIFA(fe.comm0());
+		testCasesIFA(Either.comm(eitherIntegerString));
 		describe("comm . comm is identity", () => {
-			const id1 = f.composeA(fe.comm0(), new FEither(fe.flipped()).comm0());
+			const id1 = f.composeA(
+				Either.comm(eitherIntegerString),
+				Either.comm(Either.flip(eitherIntegerString)),
+			);
 			testCasesIFA(id1);
 			testCasesIdentity(id1);
 		});

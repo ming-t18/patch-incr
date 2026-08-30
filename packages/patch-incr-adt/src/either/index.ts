@@ -8,6 +8,7 @@ import type {
 import { union } from "@/union";
 import type { AEither, DeriveEitherShapedChange, Left, Right } from "./types";
 
+export * from "./func";
 export type * from "./types";
 
 export const either = <L extends AnyApply, R extends AnyApply>(
