@@ -8,6 +8,8 @@ import { UnionCaseError } from "@/union";
 import { type AZero, zeroType } from "@/unit";
 import { type AEither, dLeft, dRight, either, matchDEither } from ".";
 
+export * from "./choice";
+
 export class FEither<A extends $A, B extends $A> {
 	constructor(
 		readonly either: AEither<A, B>,
