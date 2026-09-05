@@ -19,8 +19,9 @@ export class Composer<
 		return new Composer(func);
 	}
 
-	// biome-ignore lint/suspicious/noExplicitAny: intentional
-	pipe(next: any | ((out: B) => any)): Composer<any, any, any> {
+	pipe<C extends $A>(
+		next: IF<B, C> | ((out: B) => IF<B, C>),
+	): Composer<IF<A, C>> {
 		return new Composer(
 			composeNonOverload(
 				this.func,

@@ -8,6 +8,7 @@ import type {
 import { union } from "@/union";
 import type { AEither, DeriveEitherShapedChange, Left, Right } from "./types";
 
+export * from "./compose";
 export * from "./func";
 export type * from "./types";
 

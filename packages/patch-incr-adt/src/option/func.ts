@@ -1,5 +1,7 @@
 import { FUnion } from "@/funcs";
 import * as B from "@/funcs/basic";
+import { composer } from "@/funcs/compose/chain";
+import { makeIFA } from "@/funcs/helpers";
 import { FMapValue } from "@/funcs/map";
 import type { $A, IF1, IFA } from "@/types";
 import { type AOption, option } from ".";
@@ -17,6 +19,17 @@ export const introSome = <A extends $A>(input: A): IFA<A, AOption<A>> => {
 		new FMapValue(opt.shape.some).intro(),
 		new FUnion(opt).introCase("some"),
 	);
+};
+
+export const join = <A extends $A>(
+	input: AOption<AOption<A>>,
+): IFA<AOption<AOption<A>>, AOption<A>> => {
+	const output: AOption<A> = input.shape.some.inner;
+	const _a: A = output.shape.some.inner;
+	return makeIFA(input, output, {
+		evaluate: (x) => x?.value ?? null,
+		forward: (_x, dx) => dx.change,
+	});
 };
 
 export const mapA =
@@ -38,3 +51,13 @@ export const map1 =
 	<B extends $A>(_func: IF1<A, B>): IF1<AOption<A>, AOption<B>> => {
 		throw new Error("TODO");
 	};
+
+export const composeA = <A extends $A, B extends $A, C extends $A>(
+	f1: IFA<A, AOption<B>>,
+	f2: IFA<B, AOption<C>>,
+): IFA<A, AOption<C>> => {
+	return composer(f1)
+		.pipe((i) => mapA(i)(f2))
+		.pipe(join)
+		.build();
+};
