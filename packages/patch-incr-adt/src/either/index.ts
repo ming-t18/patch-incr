@@ -23,6 +23,10 @@ export const either = <L extends AnyApply, R extends AnyApply>(
 		(x) => ("left" in x ? "left" : "right"),
 	);
 
+export const getTypes = <L extends AnyApply, R extends AnyApply>(
+	input: AEither<L, R>,
+): [L, R] => [input.shape.left.inner, input.shape.right.inner];
+
 export function isLeft<L extends AnyApply, R extends AnyApply>(
 	x: InferApplyValue<AEither<L, R>>,
 ): x is Left<L> {

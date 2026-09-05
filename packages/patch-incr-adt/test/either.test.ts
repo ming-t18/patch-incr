@@ -1,4 +1,5 @@
-import { describe } from "bun:test";
+import { describe, expect, test } from "bun:test";
+import fc from "fast-check";
 import * as f from "@/funcs";
 import * as s from "@/index";
 import { Either } from "@/modules";
@@ -76,5 +77,53 @@ describe("either", () => {
 			testCasesIFA(id1);
 			testCasesIdentity(id1);
 		});
+	});
+	describe("leftToOption", () => {
+		describe("string/integer", () => {
+			const input = s.either(p.string(), p.integer());
+			const fn = Either.leftToOption(input);
+			test("evaluate", () => {
+				fc.assert(
+					fc.property(p.genValueFromApply(input), (x) => {
+						const y = fn.evaluate(x);
+						if (Either.isLeft(x)) {
+							expect(y).toEqual({ value: x.left });
+						} else {
+							expect(y).toEqual(null);
+						}
+					}),
+				);
+			});
+			testCasesIFA(fn);
+		});
+		testCasesIFA(
+			Either.leftToOption(
+				s.either(s.pair(p.string(), p.boolean()), p.integer()),
+			),
+		);
+	});
+	describe("rightToOption", () => {
+		describe("string/integer", () => {
+			const input = s.either(p.string(), p.integer());
+			const fn = Either.rightToOption(input);
+			test("evaluate", () => {
+				fc.assert(
+					fc.property(p.genValueFromApply(input), (x) => {
+						const y = fn.evaluate(x);
+						if (Either.isLeft(x)) {
+							expect(y).toEqual(null);
+						} else {
+							expect(y).toEqual({ value: x.right });
+						}
+					}),
+				);
+			});
+			testCasesIFA(fn);
+		});
+		testCasesIFA(
+			Either.rightToOption(
+				s.either(p.integer(), s.pair(p.string(), p.boolean())),
+			),
+		);
 	});
 });

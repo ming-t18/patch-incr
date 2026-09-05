@@ -1,12 +1,14 @@
 import { composeA, composeA1, composeWithIsoA, FUnion } from "@/funcs";
 import { makeIFA, REEVAL } from "@/funcs/helpers";
 import { FMapValue } from "@/funcs/map";
+import { Option } from "@/modules";
+import type { AOption } from "@/option";
 import type { $A, $T } from "@/types/abbr";
 import type { Evaluate, IF1, IFA } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
 import { UnionCaseError } from "@/union";
 import { type AZero, zeroType } from "@/unit";
-import { type AEither, dLeft, dRight, either, matchDEither } from ".";
+import { type AEither, dLeft, dRight, either, getTypes, matchDEither } from ".";
 
 export * from "./choice";
 
@@ -221,3 +223,25 @@ export const assoc = <A extends $A, B extends $A, C extends $A>(
 	fwd: assocLR(a, b, c),
 	inv: assocRL(a, b, c),
 });
+
+// To option
+
+export const leftToOption = <A extends $A, B extends $A>(
+	input: AEither<A, B>,
+): IFA<AEither<A, B>, AOption<A>> => {
+	const [left, right] = getTypes(input);
+	return new FEither(input).elimA(
+		Option.introSome(left),
+		Option.constNone(right, left),
+	);
+};
+
+export const rightToOption = <A extends $A, B extends $A>(
+	input: AEither<A, B>,
+): IFA<AEither<A, B>, AOption<B>> => {
+	const [left, right] = getTypes(input);
+	return new FEither(input).elimA(
+		Option.constNone(left, right),
+		Option.introSome(right),
+	);
+};
