@@ -1,5 +1,5 @@
 import * as B from "@/funcs/basic";
-import { Pair } from "@/index";
+import { type AEither, Pair } from "@/index";
 import { type APair, pair } from "@/pair";
 import type { $A, $T, IF } from "@/types";
 
@@ -146,25 +146,72 @@ export const compose = <
 };
 
 export const first =
-	<B extends $A>(b: B) =>
-	<Ctx extends $A, A extends $A, A1 extends $A>(
+	<A extends $A, B extends $A>(input: APair<A, B>) =>
+	<Ctx extends $A, A1 extends $A>(
 		f1: IReader<Ctx, A, A1>,
 	): IReader<Ctx, APair<A, B>, APair<A1, B>> => {
+		const [a, b] = input.shape;
 		if (!f1.usesCtx) {
-			const a: A = f1.func.input;
 			return {
 				usesCtx: false,
 				ctx: f1.ctx,
-				func: Pair.first(pair(a, b))(f1.func),
+				func: Pair.first(input)(f1.func),
 			};
 		}
-		const a: A = f1.func.input.shape[0];
 		const ctx: Ctx = f1.func.input.shape[1];
 		return {
 			usesCtx: true,
 			func: B.compose(
-				Pair.distrFst(pair(pair(a, b), ctx)),
+				Pair.distrFst(pair(input, ctx)),
 				Pair.first(pair(pair(a, ctx), b))(f1.func),
 			),
 		};
+	};
+
+export const second =
+	<A extends $A, B extends $A>(input: APair<A, B>) =>
+	<Ctx extends $A, B1 extends $A>(
+		f1: IReader<Ctx, B, B1>,
+	): IReader<Ctx, APair<A, B>, APair<A, B1>> => {
+		const [a, b] = input.shape;
+		if (!f1.usesCtx) {
+			return {
+				usesCtx: false,
+				ctx: f1.ctx,
+				func: Pair.second(input)(f1.func),
+			};
+		}
+		const ctx: Ctx = f1.func.input.shape[1];
+		return {
+			usesCtx: true,
+			func: B.compose(
+				Pair.distrSnd(pair(input, ctx)),
+				Pair.second(pair(a, pair(b, ctx)))(f1.func),
+			),
+		};
+	};
+
+export const left =
+	<A extends $A, B extends $A>(_input: AEither<A, B>) =>
+	<Ctx extends $A, A1 extends $A>(
+		_f1: IReader<Ctx, A, A1>,
+	): IReader<Ctx, AEither<A, B>, AEither<A1, B>> => {
+		throw new Error("TODO");
+	};
+
+export const right =
+	<A extends $A, B extends $A>(_input: AEither<A, B>) =>
+	<Ctx extends $A, B1 extends $A>(
+		_f2: IReader<Ctx, B, B1>,
+	): IReader<Ctx, AEither<A, B>, AEither<A, B1>> => {
+		throw new Error("TODO");
+	};
+
+export const leftRight =
+	<A extends $A, B extends $A>(_input: AEither<A, B>) =>
+	<Ctx extends $A, A1 extends $A, B1 extends $A>(
+		_f1: IReader<Ctx, A, A1>,
+		_f2: IReader<Ctx, B, B1>,
+	): IReader<Ctx, AEither<A, B>, AEither<A1, B1>> => {
+		throw new Error("TODO");
 	};

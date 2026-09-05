@@ -23,7 +23,7 @@ export const arr = <Ctx extends $A, A extends $A, B extends $A>(
 	func: IF<A, B>,
 ): Ijq<Ctx, A, B> => ({
 	isMulti: false,
-	func: R.arr<Ctx, A, B>(ctx, func),
+	func: R.arr(ctx)(func),
 });
 
 export const fromSingleCtx = <Ctx extends $A, A extends $A, B extends $A>(
