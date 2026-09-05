@@ -34,7 +34,7 @@ export const mapA =
 	};
 
 export const map1 =
-	<A extends $A>(input: AOption<A>) =>
-	<B extends $A>(func: IF1<A, B>): IF1<AOption<A>, AOption<B>> => {
+	<A extends $A>(_input: AOption<A>) =>
+	<B extends $A>(_func: IF1<A, B>): IF1<AOption<A>, AOption<B>> => {
 		throw new Error("TODO");
 	};

@@ -1,4 +1,4 @@
-import type { AnyApply, OverwriteShape } from "@/types";
+import type { $T, AnyApply, OverwriteShape } from "@/types";
 import { type AUnion, union } from ".";
 
 export type AUnionPick<
@@ -31,6 +31,13 @@ export type AUnionOmit<
 	Key extends keyof Shape = keyof Shape,
 	ToExclude extends Key = never,
 > = AUnion<Omit<Shape, ToExclude>, Exclude<Key, ToExclude>>;
+
+export type AUnionAssign<
+	Shape extends Record<Key, AnyApply>,
+	K extends Key,
+	Value extends AnyApply,
+	Key extends keyof Shape = keyof Shape,
+> = AUnion<{ [k in Key]: k extends K ? Value : Shape[k] }, Key>;
 
 export const omit = <
 	Map extends Record<Key, AnyApply>,
@@ -84,4 +91,22 @@ export const overwrite = <
 	}
 	// @ts-expect-error Can't be checked
 	return union(shape2, getDiscrimant);
+};
+
+export const assign = <
+	Map extends Record<Key, AnyApply>,
+	K extends Key,
+	A extends AnyApply,
+	Key extends keyof Map = keyof Map,
+>(
+	{ shape }: AUnion<Map, Key>,
+	k: K,
+	value: A,
+	newGetDiscrimant: (value: $T<AUnionAssign<Map, K, A, Key>>) => Key,
+): AUnionAssign<Map, K, A, Key> => {
+	const shape1: Map = { ...shape };
+	// @ts-expect-error Can't be checked
+	shape1[k] = value;
+	// @ts-expect-error Can't be checked
+	return union(shape1, newGetDiscrimant);
 };

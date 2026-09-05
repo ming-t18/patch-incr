@@ -1,34 +1,11 @@
-import { type AOption, type ASome, option } from "@/option";
-import type { $A } from "@/types/abbr";
+import { Option } from "@/modules";
+import { type AOption, option } from "@/option";
+import type { $A, $T } from "@/types/abbr";
 import type { IFA } from "@/types/func";
 import type { AUnion } from "@/union";
-import { composeA, constant, identity } from "./basic";
-import { FRecord } from "./product";
+import { type AUnionAssign, assign } from "@/union/utils";
+import { makeIFA, REEVAL } from "./helpers";
 import { FUnion } from "./union";
-
-export class FOption<A extends $A> {
-	constructor(
-		readonly type: A,
-		readonly opt: AOption<A> = option(type),
-		readonly fUnion = new FUnion(opt),
-		readonly fSome = new FRecord(opt.shape.some),
-	) {}
-	/** `x => { value: x } as Option<A>` */
-	some(): IFA<A, AOption<A>> {
-		const makeSome: IFA<A, ASome<A>> = this.fSome.introA(this.type, {
-			value: identity(this.type),
-		});
-		const someToOptional: IFA<ASome<A>, AOption<A>> = this.fUnion.introCase(
-			"some",
-		);
-		return composeA(makeSome, someToOptional);
-	}
-
-	/** `_ => null as Option<A>` */
-	none<T extends $A>(t: T): IFA<T, AOption<A>> {
-		return constant(t, this.opt, null);
-	}
-}
 
 declare module "./union" {
 	interface FUnion<
@@ -36,6 +13,11 @@ declare module "./union" {
 		Key extends keyof Shape = keyof Shape,
 	> {
 		preview<K extends Key>(key: K): IFA<AUnion<Shape, Key>, AOption<Shape[K]>>;
+		mapKeyA<K extends Key, B extends $A>(
+			key: K,
+			func: IFA<Shape[K], B>,
+			newGetDiscrimant: (value: $T<AUnionAssign<Shape, K, B, Key>>) => Key,
+		): IFA<AUnion<Shape, Key>, AUnionAssign<Shape, K, B, Key>>;
 	}
 }
 
@@ -48,15 +30,56 @@ FUnion.prototype.preview = function <
 	key: K,
 ): IFA<AUnion<Shape, Key>, AOption<Shape[K]>> {
 	const { shape, keys } = this.union;
-	const fopt = new FOption(shape[key]);
-	const output = option(shape[key]);
+	const val: Shape[K] = shape[key];
+	const output = option(val);
 	const funcs = {} as { [key1 in Key]: IFA<Shape[key1], AOption<Shape[K]>> };
 	for (const key1 of keys) {
 		if (key1 === key) {
-			funcs[key] = fopt.some();
+			funcs[key] = Option.introSome(val);
 		} else {
-			funcs[key] = fopt.none<Shape[K]>(shape[key]);
+			funcs[key] = Option.constNone(val, val);
 		}
 	}
 	return this.elimA<AOption<Shape[K]>>(output, funcs);
+};
+
+// @ts-expect-error Can't be checked
+FUnion.prototype.mapKeyA = function <
+	Shape extends Record<Key, $A>,
+	Key extends keyof Shape,
+	K extends Key,
+	B extends $A,
+>(
+	this: FUnion<Shape, Key>,
+	key: K,
+	func: IFA<Shape[K], B>,
+	newGetDiscrimant: (value: $T<AUnionAssign<Shape, K, B, Key>>) => Key,
+): IFA<AUnion<Shape, Key>, AUnionAssign<Shape, K, B, Key>> {
+	const input = this.union;
+	const output = assign(input, key, func.output, newGetDiscrimant);
+	return makeIFA(input, output, {
+		evaluate: (x) => {
+			if (input.getDiscrimant(x) === key) {
+				return func.evaluate(x);
+			}
+			return x;
+		},
+		forward: (x, dx) => {
+			const disc1 = input.getDiscrimant(x);
+			const disc2 = dx.type;
+			if (disc1 === key) {
+				if (disc2 !== key) {
+					return REEVAL;
+				}
+				return { type: disc1, change: func.forward(x, dx) };
+			}
+
+			if (disc2 === key) {
+				return REEVAL;
+			}
+
+			// disc1 !== key && disc2 !== key
+			return dx;
+		},
+	});
 };
