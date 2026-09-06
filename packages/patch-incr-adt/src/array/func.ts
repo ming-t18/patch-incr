@@ -2,7 +2,9 @@
 import { array as A, type AArray, array } from "@/array";
 import { type AAtomic, atomic } from "@/atomic";
 import { compose, compose1R, composeR } from "@/funcs/basic";
+import { composer } from "@/funcs/compose/chain";
 import { makeIF1, makeIFA, makeIFR, REEVAL } from "@/funcs/helpers";
+import { Pair } from "@/modules";
 import { type APair, pair } from "@/pair";
 import { getReplaceOnly, isReplaceOnly } from "@/replaceOnly";
 import {
@@ -304,7 +306,6 @@ export class FArray<A extends $A> {
 		});
 	}
 
-	// TODO rename to from_distrMap
 	distrMap<C extends $A, B extends $A>(
 		c: C,
 		func: IF<APair<A, C>, B>,
@@ -313,7 +314,6 @@ export class FArray<A extends $A> {
 		return compose(this.distr(c), FArray.of(pair(a, c)).map(func));
 	}
 
-	// TODO rename to from_distrFlatMap
 	distrFlatMap<C extends $A, B extends $A>(
 		c: C,
 		func: IF<APair<A, C>, AArray<B>>,
@@ -368,11 +368,24 @@ export const singleton = <A extends $A>(input: A): IFA<A, AArray<A>> => {
 	});
 };
 
-export const distr =
-	<A extends $A>(input: AArray<A>) =>
-	<C extends $A>(c: C): IF1<APair<AArray<A>, C>, AArray<APair<A, C>>> => {
-		return FArray.ofArray(input).distr(c);
-	};
+export const distr = <A extends $A, C extends $A>(
+	input: AArray<A>,
+	toDist: C,
+): IF1<APair<AArray<A>, C>, AArray<APair<A, C>>> => {
+	return FArray.ofArray(input).distr(toDist);
+};
+
+export const distl = <C extends $A, A extends $A>(
+	toDist: C,
+	input: AArray<A>,
+): IF<APair<C, AArray<A>>, AArray<APair<C, A>>> => {
+	//const flipped = Pair.comm();
+	return composer(Pair.comm(pair(toDist, input)))
+		.pipe((t) => distr(t.shape[0], t.shape[1]))
+		.pipe((t) => map(t)(Pair.comm(t.inner)))
+		.build();
+	// return B.compose(FArray.ofArray(input).distr(toDist));
+};
 
 export const distrMap =
 	<A extends $A, C extends $A>(input: AArray<A>, c: C) =>
@@ -391,13 +404,15 @@ export const distrFlatMap =
 	};
 
 export const zip = <A extends $A, B extends $A>(
-	_pair: APair<A, B>,
+	_input: APair<AArray<A>, AArray<B>>,
 ): IF1<APair<AArray<A>, AArray<B>>, AArray<APair<A, B>>> => {
 	throw new Error("TODO");
 };
 
 export const unzip = <A extends $A, B extends $A>(
-	_pair: APair<A, B>,
+	_input: AArray<APair<A, B>>,
 ): IF1<AArray<APair<A, B>>, APair<AArray<A>, AArray<B>>> => {
 	throw new Error("TODO");
 };
+
+export * from "./cartesian";

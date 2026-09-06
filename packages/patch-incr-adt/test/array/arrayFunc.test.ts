@@ -158,24 +158,47 @@ describe("flatMap", () => {
 
 describe("distr", () => {
 	describe("(integer, boolean)", () => {
-		testCasesIF(new s.FArray(p.integer()).distr(p.boolean()));
+		testCasesIF(Arr.distr(s.array(p.integer()), p.boolean()));
 	});
 	describe("(pair, pair)", () => {
-		testCasesIF(
-			new s.FArray(s.pair(p.string(), p.integer())).distr(
-				s.pair(p.boolean(), p.boolean()),
-			),
-		);
+		const p1 = s.pair(p.string(), p.integer());
+		const p2 = s.pair(p.boolean(), p.boolean());
+		testCasesIF(Arr.distr(s.array(p1), p2));
+	});
+});
+
+describe("distl", () => {
+	describe("(integer, boolean)", () => {
+		testCasesIF(Arr.distl(s.array(p.integer()), s.array(p.boolean())));
+	});
+	describe("(pair, pair)", () => {
+		const p1 = s.pair(p.string(), p.integer());
+		const p2 = s.pair(p.boolean(), p.boolean());
+		testCasesIF(Arr.distl(p1, s.array(p2)));
 	});
 });
 
 describe("distrMap", () => {
-	describe("(pair, integer)", () => {
+	describe("(integer, integer)", () => {
 		const inputPair = s.pair(p.integer(), p.integer());
 		const ctx = p.integer();
 		const combinedPair = s.pair(inputPair, ctx);
 		testCasesIF(
 			Arr.distrMap(s.array(inputPair), ctx)(s.Pair.fst(combinedPair)),
 		);
+	});
+});
+
+// TODO broken
+describe.skip("cartesian", () => {
+	describe("(integer, integer)", () => {
+		testCasesIF(
+			Arr.cartesian(s.pair(s.array(p.integer()), s.array(p.integer()))),
+		);
+	});
+	describe("(pair, pair)", () => {
+		const p1 = s.pair(p.string(), p.integer());
+		const p2 = s.pair(p.boolean(), p.boolean());
+		testCasesIF(Arr.cartesian(s.pair(s.array(p1), s.array(p2))));
 	});
 });
