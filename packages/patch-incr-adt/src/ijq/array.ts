@@ -1,6 +1,6 @@
 import type { AArray } from "@/array";
-import { FArray } from "@/array/func";
 import * as R from "@/funcs/reader";
+import { Arr } from "@/modules";
 import type { $A } from "@/types";
 import type { Ijq } from "./ijq";
 
@@ -11,7 +11,7 @@ export const collect = <Ctx extends $A, A extends $A, B extends $A>(
 		const [ctx, _a, b] = R.getTypes(f1.func);
 		return {
 			isMulti: false,
-			func: R.compose(f1.func, R.arr(ctx)(FArray.of(b).from_singleton())),
+			func: R.compose(f1.func, R.arr(ctx)(Arr.singleton(b))),
 		};
 	}
 	return {

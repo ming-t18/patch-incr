@@ -45,14 +45,14 @@ export class Nil<T> {
 	}
 }
 
-export type List<T> = Cons<T> | null;
+export type TList<T> = Cons<T> | null;
 
 export const cons = <T>(h: T, t = null as Cons<T> | null) => new Cons(h, t);
 
-export const empty = <T>(): List<T> => null;
+export const empty = <T>(): TList<T> => null;
 
-export const fromArray = <T>(xs: T[]): List<T> => {
-	let l: List<T> = null;
+export const fromArray = <T>(xs: T[]): TList<T> => {
+	let l: TList<T> = null;
 	for (let i = xs.length - 1; i >= 0; i--) {
 		l = new Cons(xs[i] as T, l);
 	}

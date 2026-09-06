@@ -16,9 +16,6 @@ export type DeriveEitherShapedChange<L extends AnyApply, R extends AnyApply> =
 	| UnionChangeEntry<"left", InferApplyChange<L>>
 	| UnionChangeEntry<"right", InferApplyChange<R>>;
 
-export type Either<A extends AnyApply, B extends AnyApply> = InferApplyValue<
-	AEither<A, B>
->;
 export type DEither<A extends AnyApply, B extends AnyApply> = InferApplyChange<
 	AEither<A, B>
 >;

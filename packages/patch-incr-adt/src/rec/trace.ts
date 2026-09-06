@@ -1,4 +1,4 @@
-import type { AEither, Either, Right } from "@/either";
+import type { AEither, Right } from "@/either";
 import { makeIFA, makeIFR, REEVAL } from "@/funcs/helpers";
 import type { APair } from "@/pair";
 import type { $A, $T, Evaluate, IFA, IFR } from "@/types";
@@ -18,7 +18,7 @@ export const trace = <A extends $A, B extends $A, C extends $A>(
 	func: IFA<AEither<A, C>, AEither<B, C>>,
 ): IFR<A, B, AAtomic<number>> => {
 	const evaluate: Evaluate<A, APair<B, AAtomic<number>>> = (input) => {
-		let state: Either<B, C> = func.evaluate({ left: input });
+		let state: $T<AEither<B, C>> = func.evaluate({ left: input });
 		let iters = 0;
 		while ("right" in state) {
 			iters++;

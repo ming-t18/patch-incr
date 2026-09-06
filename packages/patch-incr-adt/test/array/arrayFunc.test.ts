@@ -2,33 +2,32 @@
 import { describe, expect, test } from "bun:test";
 import * as f from "@/funcs";
 import * as s from "@/index";
+import { Arr } from "@/modules";
 import * as p from "@/props";
 import { testCasesIF } from "../fastCheck/testPropsIF.test";
 
 describe("csum", () => {
 	const arrInt = s.array(p.integer());
-	testCasesIF(s.FArray.ofArray(arrInt).csum((x) => x, 0, p.integer()));
+	testCasesIF(Arr.csum(arrInt)((x) => x, 0, p.integer()));
 });
 
 describe("map", () => {
 	describe("map integer", () => {
 		const arrInt = s.array(p.integer());
 		testCasesIF(
-			s.FArray.ofArray(arrInt).map(
-				f.atomicFuncA(arrInt.inner, arrInt.inner, (x) => x + 1),
-			),
+			Arr.map(arrInt)(f.atomicFuncA(arrInt.inner, arrInt.inner, (x) => x + 1)),
 		);
 	});
 
 	describe("map either", () => {
 		const arrPair = s.array(s.either(p.integer(), p.string()));
 		const ce = s.Either.comm(arrPair.inner);
-		testCasesIF(s.FArray.ofArray(arrPair).map(ce));
+		testCasesIF(Arr.map(arrPair)(ce));
 	});
 
 	describe("map pair", () => {
 		const arrPair = s.array(s.pair(p.integer(), p.string()));
-		testCasesIF(s.FArray.ofArray(arrPair).map(s.Pair.snd(arrPair.inner)));
+		testCasesIF(Arr.map(arrPair)(s.Pair.snd(arrPair.inner)));
 	});
 });
 
@@ -36,7 +35,7 @@ describe("flatten", () => {
 	describe("of number", () => {
 		const arr = s.array(p.integer({ min: 0, max: 100 }));
 		const arr2Int = s.array(arr);
-		const flatten = s.FArray.of(arr).flat();
+		const flatten = Arr.flat(arr2Int);
 		testCasesIF(flatten);
 
 		describe("forward examples", () => {
@@ -117,19 +116,19 @@ describe("flatten", () => {
 		const arr = s.array(
 			s.record({ int: p.integer({ min: 0, max: 100 }), str: p.string() }),
 		);
-		const flatten = s.FArray.of(arr).flat();
+		const flatten = Arr.flat(s.array(arr));
 		testCasesIF(flatten);
 	});
 
 	describe("of either", () => {
 		const arr = s.array(s.either(p.integer({ min: 0, max: 100 }), p.string()));
-		const flatten = s.FArray.of(arr).flat();
+		const flatten = Arr.flat(s.array(arr));
 		testCasesIF(flatten);
 	});
 
 	describe("of pair", () => {
 		const arr = s.array(s.pair(p.integer({ min: 0, max: 100 }), p.string()));
-		const flatten = s.FArray.of(arr).flat();
+		const flatten = Arr.flat(s.array(arr));
 		testCasesIF(flatten);
 	});
 });
@@ -137,17 +136,13 @@ describe("flatten", () => {
 describe("flatMap", () => {
 	describe("of singleton", () => {
 		const value = s.pair(p.string(), p.boolean());
-		const input = s.array(value);
-		const fm = s.FArray.ofArray(input).flatMap(
-			new s.FArray(value).from_singleton(),
-		);
+		const fm = Arr.flatMap(s.array(value))(Arr.singleton(value));
 		testCasesIF(fm);
 	});
 
 	describe("of pair", () => {
 		const rec = s.pair(p.string(), s.array(s.pair(p.integer(), p.boolean())));
-		const input = s.array(rec);
-		const fm = s.FArray.ofArray(input).flatMap(s.Pair.snd(rec));
+		const fm = Arr.flatMap(s.array(rec))(s.Pair.snd(rec));
 		testCasesIF(fm);
 	});
 
@@ -156,8 +151,7 @@ describe("flatMap", () => {
 			a: p.string(),
 			b: s.array(s.pair(p.integer(), p.boolean())),
 		});
-		const input = s.array(rec);
-		const fm = s.FArray.ofArray(input).flatMap(new f.FRecord(rec).get("b"));
+		const fm = Arr.flatMap(s.array(rec))(new f.FRecord(rec).get("b"));
 		testCasesIF(fm);
 	});
 });
@@ -181,7 +175,7 @@ describe("distrMap", () => {
 		const ctx = p.integer();
 		const combinedPair = s.pair(inputPair, ctx);
 		testCasesIF(
-			new s.FArray(inputPair).distrMap(ctx, s.Pair.fst(combinedPair)),
+			Arr.distrMap(s.array(inputPair), ctx)(s.Pair.fst(combinedPair)),
 		);
 	});
 });

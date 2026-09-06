@@ -1,3 +1,4 @@
+export * as Arr from "./array";
 export * as Either from "./either";
 export * as fn from "./funcs";
 export * as Reader from "./funcs/reader";

@@ -263,14 +263,6 @@ export class FArray<A extends $A> {
 		throw new Error("TODO");
 	}
 
-	from_singleton(): IFA<A, AArray<A>> {
-		return makeIFA(this.inner, this.array, {
-			evaluate: (x) => [x],
-			forward: (_x, dx) => SpliceTable.fromChange(0, dx),
-		});
-	}
-
-	// TODO rename to from_distr
 	distr<C extends $A>(c: C): IF1<APair<AArray<A>, C>, AArray<APair<A, C>>> {
 		const input = pair(this.array, c);
 		const pairInner = pair(this.inner, c);
@@ -329,16 +321,83 @@ export class FArray<A extends $A> {
 		const a: A = func.input.shape[0];
 		return compose(this.distr(c), FArray.of(pair(a, c)).flatMap(func));
 	}
-
-	unzip<A extends $A, B extends $A>(
-		this: AArray<APair<A, B>>,
-	): IF1<AArray<APair<A, B>>, APair<AArray<A>, AArray<B>>> {
-		throw new Error("TODO");
-	}
-
-	from_zip<A extends $A, B extends $A>(
-		this: AArray<APair<A, B>>,
-	): IF1<APair<AArray<A>, AArray<B>>, AArray<APair<A, B>>> {
-		throw new Error("TODO");
-	}
 }
+
+export const scan =
+	<A extends $A>(input: AArray<A>) =>
+	<Acc, AAcc extends AAtomic<Acc>>(
+		func: (acc: Acc, value: $T<A>) => Acc,
+		init: Acc,
+		acc: AAcc,
+	): IF1<AArray<A>, AArray<AAcc>> => {
+		return FArray.ofArray(input).scan(func, init, acc);
+	};
+
+export const csum =
+	<A extends $A>(input: AArray<A>) =>
+	<AOut extends AAtomic<number>>(
+		func: (value: $T<A>) => number,
+		init = 0,
+		out = atomic<number>() as AOut,
+	): IF1<AArray<A>, AArray<AOut>> => {
+		return FArray.ofArray(input).scan((s, x) => s + func(x), init, out);
+	};
+
+export const flat = <A extends $A>(
+	input: AArray<AArray<A>>,
+): IFR<AArray<AArray<A>>, AArray<A>, ACsum> => {
+	return FArray.ofArray(input).flat();
+};
+
+export const map =
+	<A extends $A>(input: AArray<A>) =>
+	<B extends $A>(func: IF<A, B>): IF<AArray<A>, AArray<B>> => {
+		return FArray.ofArray(input).map(func);
+	};
+
+export const flatMap =
+	<A extends $A>(input: AArray<A>) =>
+	<B extends $A>(func: IF<A, AArray<B>>): IF<AArray<A>, AArray<B>> => {
+		return FArray.ofArray(input).flatMap(func);
+	};
+
+export const singleton = <A extends $A>(input: A): IFA<A, AArray<A>> => {
+	return makeIFA(input, array(input), {
+		evaluate: (x) => [x],
+		forward: (_x, dx) => SpliceTable.fromChange(0, dx),
+	});
+};
+
+export const distr =
+	<A extends $A>(input: AArray<A>) =>
+	<C extends $A>(c: C): IF1<APair<AArray<A>, C>, AArray<APair<A, C>>> => {
+		return FArray.ofArray(input).distr(c);
+	};
+
+export const distrMap =
+	<A extends $A, C extends $A>(input: AArray<A>, c: C) =>
+	<B extends $A>(
+		func: IF<APair<A, C>, B>,
+	): IF<APair<AArray<A>, C>, AArray<B>> => {
+		return FArray.ofArray(input).distrMap(c, func);
+	};
+
+export const distrFlatMap =
+	<A extends $A, C extends $A>(input: AArray<A>, c: C) =>
+	<B extends $A>(
+		func: IF<APair<A, C>, AArray<B>>,
+	): IF<APair<AArray<A>, C>, AArray<B>> => {
+		return FArray.ofArray(input).distrFlatMap(c, func);
+	};
+
+export const zip = <A extends $A, B extends $A>(
+	_pair: APair<A, B>,
+): IF1<APair<AArray<A>, AArray<B>>, AArray<APair<A, B>>> => {
+	throw new Error("TODO");
+};
+
+export const unzip = <A extends $A, B extends $A>(
+	_pair: APair<A, B>,
+): IF1<AArray<APair<A, B>>, APair<AArray<A>, AArray<B>>> => {
+	throw new Error("TODO");
+};
