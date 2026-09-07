@@ -3,7 +3,7 @@ import { makeIFA, REEVAL } from "@/funcs/helpers";
 import { FMapValue } from "@/funcs/map";
 import { Option } from "@/modules";
 import type { AOption } from "@/option";
-import type { $A, $T } from "@/types/abbr";
+import type { $A, $T } from "@/types";
 import type { Evaluate, IF1, IFA } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
 import { UnionCaseError } from "@/union";

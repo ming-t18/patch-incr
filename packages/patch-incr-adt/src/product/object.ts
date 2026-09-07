@@ -4,12 +4,12 @@ import type {
 } from "@/record/types";
 import { getReplaceOnly, isReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
 import {
+	type $A,
 	type $D,
-	type AnyApply,
+	type $T,
 	type Apply,
 	BaseApplyClass,
 	type DRO,
-	type InferApplyValue,
 	type ReplaceOnly,
 } from "@/types";
 import type {
@@ -20,7 +20,7 @@ import type {
 
 export interface HasFromToRecord<
 	Prod,
-	Shape extends Record<Key, AnyApply>,
+	Shape extends Record<Key, $A>,
 	Key extends keyof Shape = keyof Shape,
 > {
 	readonly fromRecord: (recordForm: DeriveRecordValue<Shape, Key>) => Prod;
@@ -29,7 +29,7 @@ export interface HasFromToRecord<
 
 export abstract class BaseProductShaped<
 		Prod,
-		Shape extends Record<Key, AnyApply>,
+		Shape extends Record<Key, $A>,
 		Key extends keyof Shape = keyof Shape,
 	>
 	extends BaseApplyClass<Prod, DeriveProductChange<Prod, Shape, Key>, null>
@@ -60,9 +60,9 @@ export abstract class BaseProductShaped<
 
 	abstract assign(
 		value: Prod,
-		change: Readonly<Partial<{ [k in Key]: InferApplyValue<Shape[k]> }>>,
+		change: Readonly<Partial<{ [k in Key]: $T<Shape[k]> }>>,
 	): Prod;
-	abstract get<K extends Key>(value: Prod, key: K): InferApplyValue<Shape[K]>;
+	abstract get<K extends Key>(value: Prod, key: K): $T<Shape[K]>;
 
 	apply(value: Prod, change: DeriveProductChange<Prod, Shape, Key>): Prod {
 		if (change === null) {

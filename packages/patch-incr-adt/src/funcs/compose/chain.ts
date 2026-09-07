@@ -1,5 +1,5 @@
 import type { APair } from "@/pair";
-import type { $A } from "@/types/abbr";
+import type { $A } from "@/types";
 import type { IF, IF1, IFA, IFOutput, IFR } from "@/types/func";
 import { composeNonOverload, getOutput } from "../basic";
 

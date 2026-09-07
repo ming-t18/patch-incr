@@ -1,6 +1,6 @@
 import { composeA, condA, constant, FProduct, FUnion, trimA } from "@/funcs";
 import { type APair, pair } from "@/pair";
-import type { $A, $D, $T } from "@/types/abbr";
+import type { $A, $D, $T } from "@/types";
 import { type IFA, IFKind } from "@/types/func";
 import { Pair } from "..";
 import { type AList, type Cons, list } from "./prod";

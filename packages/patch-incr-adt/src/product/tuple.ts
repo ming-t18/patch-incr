@@ -1,10 +1,10 @@
 import { getReplaceOnly, isReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
 import type { AnyTuple, DeriveTupleValue, KeyOfTuple } from "@/tuple/types";
 import {
-	type AnyApply,
+	type $A,
+	type $T,
 	type Apply,
 	BaseApplyClass,
-	type InferApplyValue,
 	type ReplaceOnly,
 } from "@/types";
 import type {
@@ -17,10 +17,7 @@ const range = (n: number): Readonly<number[]> =>
 	Array(n)
 		.fill(null)
 		.map((_, i) => i);
-export abstract class BaseProductShapedTuple<
-		Prod,
-		Shape extends AnyTuple<AnyApply>,
-	>
+export abstract class BaseProductShapedTuple<Prod, Shape extends AnyTuple<$A>>
 	extends BaseApplyClass<Prod, DeriveProductChangeTuple<Prod, Shape>, null>
 	implements
 		Apply<Prod, DeriveProductChangeTuple<Prod, Shape>>,
@@ -49,10 +46,7 @@ export abstract class BaseProductShapedTuple<
 		value: Prod,
 		change: DeriveProductShapedChangeTuple<Shape>,
 	): Prod;
-	abstract get<K extends KeyOfTuple<Shape>>(
-		value: Prod,
-		key: K,
-	): InferApplyValue<Shape[K]>;
+	abstract get<K extends KeyOfTuple<Shape>>(value: Prod, key: K): $T<Shape[K]>;
 
 	apply(value: Prod, change: DeriveProductChangeTuple<Prod, Shape>): Prod {
 		if (change === null) {
@@ -183,7 +177,7 @@ export abstract class BaseProductShapedTuple<
 			if (!Object.hasOwn(change, key)) {
 				continue;
 			}
-			const inner = this.shape[key] as AnyApply;
+			const inner = this.shape[key] as $A;
 			const d1 = inner.trim(change[key]);
 			if (inner.isEmpty(d1)) {
 				continue;

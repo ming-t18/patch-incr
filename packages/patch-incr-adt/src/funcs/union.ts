@@ -7,7 +7,7 @@ import {
 	isLeft,
 } from "@/either";
 import { getReplaceOnly } from "@/replaceOnly";
-import type { $A, $D, $T } from "@/types/abbr";
+import type { $A, $D, $T } from "@/types";
 import { type Evaluate, type IF1, type IFA, IFKind } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
 import {

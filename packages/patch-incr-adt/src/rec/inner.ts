@@ -1,4 +1,4 @@
-import type { $D, $T } from "@/types/abbr";
+import type { $D, $T } from "@/types/algebra";
 import { type Apply, BaseApplyClass, type ReplaceOnly } from "@/types/algebra";
 
 /**

@@ -1,14 +1,14 @@
-import type { $T, AnyApply, OverwriteShape } from "@/types";
+import type { $A, $T, OverwriteShape } from "@/types";
 import { type AUnion, union } from ".";
 
 export type AUnionPick<
-	Shape extends Record<Key, AnyApply>,
+	Shape extends Record<Key, $A>,
 	Key extends keyof Shape = keyof Shape,
 	ToInclude extends Key = never,
 > = AUnion<Pick<Shape, ToInclude>, ToInclude>;
 
 export const pick = <
-	Map extends Record<Key, AnyApply>,
+	Map extends Record<Key, $A>,
 	Key extends keyof Map = keyof Map,
 	ToIncludeR extends Record<never, unknown> = Record<never, unknown>,
 >(
@@ -27,20 +27,20 @@ export const pick = <
 };
 
 export type AUnionOmit<
-	Shape extends Record<Key, AnyApply>,
+	Shape extends Record<Key, $A>,
 	Key extends keyof Shape = keyof Shape,
 	ToExclude extends Key = never,
 > = AUnion<Omit<Shape, ToExclude>, Exclude<Key, ToExclude>>;
 
 export type AUnionAssign<
-	Shape extends Record<Key, AnyApply>,
+	Shape extends Record<Key, $A>,
 	K extends Key,
-	Value extends AnyApply,
+	Value extends $A,
 	Key extends keyof Shape = keyof Shape,
 > = AUnion<{ [k in Key]: k extends K ? Value : Shape[k] }, Key>;
 
 export const omit = <
-	Map extends Record<Key, AnyApply>,
+	Map extends Record<Key, $A>,
 	Key extends keyof Map = keyof Map,
 	ToExcludeR extends Record<never, unknown> = Record<never, unknown>,
 >(
@@ -57,9 +57,9 @@ export const omit = <
 };
 
 export const merge = <
-	Map extends Record<Key, AnyApply>,
+	Map extends Record<Key, $A>,
 	Key extends keyof Map = keyof Map,
-	Shape1 extends Record<string, AnyApply> = Record<string, never>,
+	Shape1 extends Record<string, $A> = Record<string, never>,
 >(
 	{ shape, getDiscrimant }: AUnion<Map, Key>,
 	shape1: Shape1,
@@ -74,8 +74,8 @@ export const merge = <
 };
 
 export const overwrite = <
-	Shape extends Record<Key, AnyApply>,
-	Shape1 extends Record<Key1, AnyApply>,
+	Shape extends Record<Key, $A>,
+	Shape1 extends Record<Key1, $A>,
 	Key extends keyof Shape = keyof Shape,
 	Key1 extends keyof Shape & keyof Shape1 = keyof Shape & keyof Shape1,
 >(
@@ -94,9 +94,9 @@ export const overwrite = <
 };
 
 export const assign = <
-	Map extends Record<Key, AnyApply>,
+	Map extends Record<Key, $A>,
 	K extends Key,
-	A extends AnyApply,
+	A extends $A,
 	Key extends keyof Map = keyof Map,
 >(
 	{ shape }: AUnion<Map, Key>,

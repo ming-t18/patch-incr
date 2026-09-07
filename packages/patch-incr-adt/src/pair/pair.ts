@@ -1,4 +1,4 @@
-import type { $A, $D, $T } from "@/types/abbr";
+import type { $A, $D, $T } from "@/types";
 import { tuple } from "../tuple/tuple";
 
 export const pair = <A extends $A, B extends $A>(a: A, b: B) => tuple([a, b]);

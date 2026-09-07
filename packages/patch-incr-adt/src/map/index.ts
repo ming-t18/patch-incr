@@ -1,13 +1,12 @@
 import { getReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
 import {
-	type AnyApply,
+	type $A,
+	type $D,
+	type $T,
 	type Apply,
 	BaseApplyClass,
-	type InferApplyChange,
-	type InferApplyValue,
 	type ReplaceOnly,
 } from "@/types";
-import type { $D, $T } from "@/types/abbr";
 
 /**
  * Creates a new `Apply` based on an existing `Apply`, except with the value-type
@@ -20,8 +19,8 @@ import type { $D, $T } from "@/types/abbr";
  * change-type.
  */
 export class AMapValue<A extends Apply<T0, DT0>, T, T0 = $T<A>, DT0 = $D<A>>
-	extends BaseApplyClass<T, InferApplyChange<A>, A["empty"]>
-	implements Apply<T, InferApplyChange<A>>
+	extends BaseApplyClass<T, $D<A>, A["empty"]>
+	implements Apply<T, $D<A>>
 {
 	declare readonly "~apply": {
 		readonly value: T;
@@ -33,25 +32,25 @@ export class AMapValue<A extends Apply<T0, DT0>, T, T0 = $T<A>, DT0 = $D<A>>
 	readonly $type = "mapValue";
 	constructor(
 		readonly inner: A,
-		readonly map: (input: InferApplyValue<A>) => T,
-		readonly unmap: (input: T) => InferApplyValue<A>,
+		readonly map: (input: $T<A>) => T,
+		readonly unmap: (input: T) => $T<A>,
 	) {
 		super(inner.empty, inner.structure);
 	}
 
-	isEmpty(value: InferApplyChange<A>) {
+	isEmpty(value: $D<A>) {
 		return this.inner.isEmpty(value);
 	}
 
-	apply(value: T, change: InferApplyChange<A>): T {
+	apply(value: T, change: $D<A>): T {
 		return this.map(this.inner.apply(this.unmap(value), change));
 	}
 
-	fromReplace(value: T): InferApplyChange<A> {
+	fromReplace(value: T): $D<A> {
 		return this.inner.fromReplace(this.unmap(value));
 	}
 
-	isReplace(change: InferApplyChange<A>): ReplaceOnly<T> | null {
+	isReplace(change: $D<A>): ReplaceOnly<T> | null {
 		const res = this.inner.isReplace(change);
 		if (res == null) {
 			return null;
@@ -59,15 +58,15 @@ export class AMapValue<A extends Apply<T0, DT0>, T, T0 = $T<A>, DT0 = $D<A>>
 		return makeReplaceOnly(this.map(getReplaceOnly(res)));
 	}
 
-	override canApply(value: T, change: InferApplyChange<A>): boolean {
+	override canApply(value: T, change: $D<A>): boolean {
 		return this.inner.canApply(this.unmap(value), change);
 	}
 
-	combine(a: InferApplyChange<A>, b: InferApplyChange<A>): InferApplyChange<A> {
+	combine(a: $D<A>, b: $D<A>): $D<A> {
 		return this.inner.combine(a, b);
 	}
 
-	override canCombine(a: InferApplyChange<A>, b: InferApplyChange<A>): boolean {
+	override canCombine(a: $D<A>, b: $D<A>): boolean {
 		return this.inner.canCombine(a, b);
 	}
 
@@ -91,7 +90,7 @@ export class AMapValue<A extends Apply<T0, DT0>, T, T0 = $T<A>, DT0 = $D<A>>
  */
 export class ASingleKey<
 	K extends string | symbol,
-	A extends AnyApply,
+	A extends $A,
 > extends AMapValue<A, Record<K, $T<A>>> {
 	constructor(key: K, inner: A) {
 		super(
@@ -103,7 +102,7 @@ export class ASingleKey<
 }
 
 /** @see {@link ASingleKey} */
-export const singleKey = <K extends string | symbol, A extends AnyApply>(
+export const singleKey = <K extends string | symbol, A extends $A>(
 	key: K,
 	inner: A,
 ) => new ASingleKey(key, inner);

@@ -11,8 +11,8 @@ const todoItem = s.record({
   text: s.string(),
 });
 
-type TodoItem = s.infer<typeof todoItem>
-type DTodoItem = s.inferChange<typeof todoItem>
+type TodoItem = s.$T<typeof todoItem>
+type DTodoItem = s.$D<typeof todoItem>
 ```
 
 ## Outline of concepts

@@ -1,6 +1,6 @@
 import { type APair, pair } from "@/pair";
 import { getReplaceOnly } from "@/replaceOnly";
-import type { $A, $D, $T } from "../types/abbr";
+import type { $A, $D, $T } from "@/types";
 import {
 	type Evaluate,
 	type IF1,

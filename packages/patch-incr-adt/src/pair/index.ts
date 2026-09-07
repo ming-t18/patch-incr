@@ -1,6 +1,6 @@
 import { makeIF1, makeIFA, makeIFR, REEVAL } from "@/funcs/helpers";
 import { isReplaceOnly } from "@/replaceOnly";
-import type { $A } from "@/types/abbr";
+import type { $A } from "@/types";
 import { type IF, type IF1, type IFA, IFKind, type IFR } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
 import type { AUnit, AZero } from "@/unit";

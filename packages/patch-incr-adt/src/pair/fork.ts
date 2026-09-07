@@ -1,5 +1,5 @@
 import { makeIF1, makeIFA, makeIFR } from "@/funcs/helpers";
-import type { $A } from "@/types/abbr";
+import type { $A } from "@/types";
 import { type IF, type IF1, type IFA, IFKind, type IFR } from "@/types/func";
 import { type APair, pair } from "./pair";
 

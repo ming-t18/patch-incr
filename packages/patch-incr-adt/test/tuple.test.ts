@@ -13,8 +13,8 @@ type _TupleKey4 = s.KeyOfTuple<["a", "b", "c", "d"]>;
 const tupNoArb = s.tuple([s.string(), s.number(), s.nullType()]);
 const tup = s.tuple([p.string(), p.integer(), p.constant(null)]);
 
-export type Tup = s.infer<typeof tupNoArb>;
-export type DTup = s.inferChange<typeof tupNoArb>;
+export type Tup = s.$T<typeof tupNoArb>;
+export type DTup = s.$D<typeof tupNoArb>;
 
 export type S1 = DeriveProductShapedChangeTuple<typeof tupNoArb.shape>;
 

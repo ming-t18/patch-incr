@@ -1,5 +1,5 @@
 import type { DeriveProductChange, DeriveProductShapedChange } from "@/product";
-import type { AnyApply, Apply, InferApplyValue } from "@/types/algebra";
+import type { $A, $T, Apply } from "@/types/algebra";
 
 // type KeysWithUndefinedValue<T> = {
 // 	[k in keyof T]: undefined extends T[k] ? k : never;
@@ -40,32 +40,32 @@ export type AddQuestionMarks<
 } & { [k in Key]?: unknown };
 
 export type RequiredKeysByShape<
-	Shape extends Record<Key, AnyApply>,
+	Shape extends Record<Key, $A>,
 	Key extends keyof Shape = keyof Shape,
 > = {
 	[k in Key]: Shape[k] extends { $type: "optional" } ? never : k;
 }[Key];
 
 export type OptionalKeysByShape<
-	Shape extends Record<Key, AnyApply>,
+	Shape extends Record<Key, $A>,
 	Key extends keyof Shape = keyof Shape,
 > = {
 	[k in Key]: Shape[k] extends { $type: "optional" } ? k : never;
 }[Key];
 
 export type AddQuestionMarksByShape<
-	Shape extends Record<Key, AnyApply>,
+	Shape extends Record<Key, $A>,
 	Key extends keyof Shape,
 > = {
-	readonly [k in RequiredKeysByShape<Shape, Key>]: InferApplyValue<Shape[k]>;
+	readonly [k in RequiredKeysByShape<Shape, Key>]: $T<Shape[k]>;
 } & {
-	readonly [k in OptionalKeysByShape<Shape, Key>]?: InferApplyValue<Shape[k]>;
+	readonly [k in OptionalKeysByShape<Shape, Key>]?: $T<Shape[k]>;
 } & { [k in Key]?: unknown };
 
 export type DeriveRecordValue<
-	Shape extends Record<Key, AnyApply>,
+	Shape extends Record<Key, $A>,
 	Key extends keyof Shape = keyof Shape,
-> = { readonly [key in Key]: InferApplyValue<Shape[key]> };
+> = { readonly [key in Key]: $T<Shape[key]> };
 
 // Will break recursive types if used
 // AddQuestionMarksByShape<Shape, Key>;
@@ -75,12 +75,12 @@ export type DeriveRecordValue<
 // >;
 
 export type DeriveRecordChangeNoReplace<
-	Map extends Record<Key, AnyApply>,
+	Map extends Record<Key, $A>,
 	Key extends keyof Map = keyof Map,
 > = DeriveProductShapedChange<Map, Key>;
 
 export type DeriveRecordChange<
-	Map extends Record<Key, AnyApply>,
+	Map extends Record<Key, $A>,
 	Key extends keyof Map = keyof Map,
 > = DeriveProductChange<DeriveRecordValue<Map, Key>, Map, Key>;
 
@@ -91,6 +91,6 @@ type _TestDRC = DeriveRecordChange<{
 }>;
 
 export type RecordApply<
-	Shape extends Record<Key, AnyApply>,
+	Shape extends Record<Key, $A>,
 	Key extends keyof Shape = keyof Shape,
 > = Apply<DeriveRecordValue<Shape, Key>, DeriveRecordChange<Shape, Key>>;

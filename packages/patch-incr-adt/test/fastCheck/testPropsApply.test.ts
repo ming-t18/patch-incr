@@ -9,7 +9,7 @@ import {
 	genValueWith2Changes,
 	genValueWithChange,
 } from "@/props/gen";
-import type { $A, $D, $T } from "@/types/abbr";
+import type { $A, $D, $T } from "@/types/algebra";
 import { ApplyStructure } from "@/types/algebra";
 export const propCanApplyApplies = <A extends $A>(
 	apply: A,

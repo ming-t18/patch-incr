@@ -1,5 +1,5 @@
 import { BaseProductShapedTuple } from "@/product";
-import type { AnyApply, InferApplyValue } from "@/types/algebra";
+import type { $A, $T } from "@/types/algebra";
 import type {
 	AnyTuple,
 	DeriveTupleChange,
@@ -10,7 +10,7 @@ import type {
 
 export type * from "./types";
 
-export class ATuple<Shape extends AnyTuple<AnyApply>>
+export class ATuple<Shape extends AnyTuple<$A>>
 	extends BaseProductShapedTuple<DeriveTupleValue<Shape>, Shape>
 	implements Tuple$<Shape>
 {
@@ -35,13 +35,13 @@ export class ATuple<Shape extends AnyTuple<AnyApply>>
 	override get<K extends KeyOfTuple<Shape>>(
 		value: DeriveTupleValue<Shape>,
 		key: K,
-	): InferApplyValue<Shape[K]> {
+	): $T<Shape[K]> {
 		// @ts-expect-error Can't be checked
 		return value[key];
 	}
 }
 
-export const tuple = <Shape extends AnyTuple<AnyApply>>(shape: Shape) =>
+export const tuple = <Shape extends AnyTuple<$A>>(shape: Shape) =>
 	new ATuple<Shape>(
 		shape,
 		Array(shape.length)

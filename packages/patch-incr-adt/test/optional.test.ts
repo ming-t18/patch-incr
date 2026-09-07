@@ -16,9 +16,9 @@ export const recordOptWithArb = s.optional(
 );
 
 // Should type check
-const _undef: s.infer<typeof recordOpt> = undefined;
+const _undef: s.$T<typeof recordOpt> = undefined;
 
-const defined: s.infer<typeof recordOpt> = { a: false, b: "test" };
+const defined: s.$T<typeof recordOpt> = { a: false, b: "test" };
 describe("optional", () => {
 	describe("of record", () => {
 		it.skip("type checking for optional arb", () => {

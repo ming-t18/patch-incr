@@ -11,11 +11,11 @@ import { testCasesIdentity, testCasesIFA } from "./fastCheck/testPropsIF.test";
 
 const listProdString = lp.list(s.string());
 const listProdStringGen = lp.list(p.string());
-const cons1: s.infer<typeof listProdString> = lp.cons(
+const cons1: s.$T<typeof listProdString> = lp.cons(
 	"abc",
 	lp.cons("def", lp.cons("ghi", lp.cons("mno"))),
 );
-const dProd1: s.inferChange<typeof listProdString> = {
+const dProd1: s.$D<typeof listProdString> = {
 	type: "cons",
 	change: {
 		head: s.makeReplaceOnly("pqr"),
@@ -54,7 +54,7 @@ describe("filter", () => {
 		it("evaluate, no net change", () => {
 			const fList = new FList(listProdString);
 			// { list[1] = 'def' }
-			const dx: s.inferChange<typeof listProdString> = {
+			const dx: s.$D<typeof listProdString> = {
 				type: "cons",
 				change: {
 					tail: {
@@ -75,7 +75,7 @@ describe("filter", () => {
 		it("remains filtered out", () => {
 			const fList = new FList(listProdString);
 			// { list[1] = 'def' }
-			const dx: s.inferChange<typeof listProdString> = {
+			const dx: s.$D<typeof listProdString> = {
 				type: "cons",
 				change: {
 					tail: {
@@ -97,7 +97,7 @@ describe("filter", () => {
 		it.skip("change to filtered out", () => {
 			const fList = new FList(listProdString);
 			// { list[1] = '-' }
-			const dx: s.inferChange<typeof listProdString> = {
+			const dx: s.$D<typeof listProdString> = {
 				type: "cons",
 				change: {
 					tail: {

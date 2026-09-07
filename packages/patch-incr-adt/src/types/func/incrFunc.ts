@@ -1,5 +1,5 @@
 import type { APair } from "@/pair";
-import type { $A, $D, $T } from "@/types/abbr";
+import type { $A, $D, $T } from "@/types/algebra";
 
 export interface IFBase<A extends $A, B extends $A> {
 	readonly input: A;

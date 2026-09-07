@@ -1,13 +1,7 @@
 import type { Arbitrary as Arb } from "fast-check";
 import type { DeriveRecordValue } from "@/record/types";
 import type { AnyTuple, DeriveTupleValue } from "@/tuple";
-import type { $D, $T } from "@/types/abbr";
-import type {
-	AnyApply,
-	Apply,
-	InferApplyChange,
-	InferApplyValue,
-} from "@/types/algebra";
+import type { $A, $D, $T, Apply } from "@/types/algebra";
 
 export type { Arbitrary as Arb } from "fast-check";
 
@@ -41,17 +35,17 @@ export type RecBrandCond<T> = T extends RecBrand ? {} : { [RECURSIVE]?: true };
 export type AnyHasArbApply = HasArbApply<any, any>;
 
 export type ArbRecordValueFromRecordArb<
-	Shape extends Record<Key, AnyApply>,
+	Shape extends Record<Key, $A>,
 	Key extends keyof Shape = keyof Shape,
 > = {
-	readonly [k in Key]: Arb<InferApplyValue<Shape[k]>>;
+	readonly [k in Key]: Arb<$T<Shape[k]>>;
 };
 
 export type ArbProdChangeFromRecordArb<
-	Shape extends Record<Key, AnyApply>,
+	Shape extends Record<Key, $A>,
 	Key extends keyof Shape = keyof Shape,
 > = {
-	readonly [k in Key]: Arb<InferApplyChange<Shape[k]>>;
+	readonly [k in Key]: Arb<$D<Shape[k]>>;
 };
 
 export type OmitRecursive<T extends {}> = {
@@ -89,7 +83,7 @@ export interface HasArbProductRecord<
 declare module "@/product/object" {
 	export interface BaseProductShaped<
 		Prod,
-		Shape extends Record<Key, AnyApply>,
+		Shape extends Record<Key, $A>,
 		Key extends keyof Shape = keyof Shape,
 	> {
 		/**
@@ -111,10 +105,7 @@ export interface HasArbProductTuple<Shape extends AnyTuple<AnyHasArbApply>> {
 }
 
 declare module "@/product/tuple" {
-	export interface BaseProductShapedTuple<
-		Prod,
-		Shape extends AnyTuple<AnyApply>,
-	> {
+	export interface BaseProductShapedTuple<Prod, Shape extends AnyTuple<$A>> {
 		/**
 		 * Generator for the tuple's parts.
 		 * Used by `arbValue`/`arbChange`. Must be defined or else they throw.
@@ -131,7 +122,7 @@ declare module "@/product/tuple" {
 
 declare module "@/record" {
 	export interface ARecord<
-		Map extends Record<Key, AnyApply>,
+		Map extends Record<Key, $A>,
 		Key extends keyof Map = keyof Map,
 	> {
 		arbProductRecord: OmitRecursive<Map> extends Record<Key, AnyHasArbApply>
@@ -141,7 +132,7 @@ declare module "@/record" {
 }
 
 declare module "@/tuple/tuple" {
-	export interface ATuple<Shape extends AnyTuple<AnyApply>> {
+	export interface ATuple<Shape extends AnyTuple<$A>> {
 		arbProductTuple: Shape extends AnyTuple<AnyHasArbApply>
 			? () => Arb<DeriveTupleValue<Shape>>
 			: undefined;
@@ -150,7 +141,7 @@ declare module "@/tuple/tuple" {
 
 declare module "@/union" {
 	export interface AUnion<
-		Map extends Record<Key, AnyApply>,
+		Map extends Record<Key, $A>,
 		Key extends keyof Map = keyof Map,
 	> {
 		getArbApply: OmitRecursive<Map> extends Record<Key, AnyHasArbApply>
@@ -160,11 +151,7 @@ declare module "@/union" {
 }
 
 declare module "@/optional" {
-	export interface AOptional<
-		A extends Apply<T, DT>,
-		T = InferApplyValue<A>,
-		DT = InferApplyChange<A>,
-	> {
+	export interface AOptional<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>> {
 		getArbApply: A extends HasArbApply<T, DT> | RecBrand
 			? () => ArbApply<this>
 			: undefined;

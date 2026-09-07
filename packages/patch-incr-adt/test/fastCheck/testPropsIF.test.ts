@@ -9,7 +9,7 @@ import {
 	genValueWithChange,
 } from "@/props";
 import { makePropsIF, makePropsIFA, type PropsIF } from "@/props/func";
-import type { $T } from "@/types/abbr";
+import type { $T } from "@/types/algebra";
 import { type IF, type IF1, type IFA, IFKind, type IFR } from "@/types/func";
 
 const propTestCase = <A extends AnyHasArbApply, B extends AnyHasArbApply>(

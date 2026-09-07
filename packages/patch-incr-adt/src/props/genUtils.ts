@@ -1,6 +1,6 @@
 import fc, { type Arbitrary as Arb } from "fast-check";
 import type { AnyTuple, KeyOfTuple } from "@/tuple";
-import type { $A, $T } from "@/types/abbr";
+import type { $A, $T } from "@/types/algebra";
 
 export type { Arbitrary as Arb } from "fast-check";
 

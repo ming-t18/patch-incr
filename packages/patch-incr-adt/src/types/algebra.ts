@@ -134,18 +134,14 @@ export abstract class BaseApplyClass<T, DT, DTEmpty extends DT = DT> {
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: intentional
-export type AnyApply = Apply<any, any>;
+export type $A = Apply<any, any>;
 // biome-ignore lint/suspicious/noExplicitAny: intentional
-export type AnyApplyOf<T> = Apply<T, any>;
+export type $AOf<T> = Apply<T, any>;
 
-export type UnknownApply = Apply<unknown, unknown>;
+export type $AUnknown = Apply<unknown, unknown>;
 
-export type InferApplyValue<A extends AnyApply> = A["~apply"]["value"];
+export type $T<A extends $A> = A["~apply"]["value"];
 
-export type InferApplyChange<A extends AnyApply> = A["~apply"]["change"];
+export type $D<A extends $A> = A["~apply"]["change"];
 
-export type InferApplyInternalChange<A extends AnyApply> =
-	A["~apply"]["internal"];
-
-export type infer<A extends AnyApply> = InferApplyValue<A>;
-export type inferChange<A extends AnyApply> = InferApplyChange<A>;
+export type $Di<A extends $A> = A["~apply"]["internal"];

@@ -1,5 +1,5 @@
 import type { AMapValue } from "@/map";
-import type { $A } from "@/types/abbr";
+import type { $A } from "@/types";
 import { type IFA, IFKind } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
 

@@ -1,13 +1,9 @@
 import { BaseProductShaped } from "@/product";
-import type {
-	AnyApply,
-	InferApplyChange,
-	InferApplyValue,
-} from "@/types/algebra";
+import type { $A, $D, $T } from "@/types/algebra";
 import type { DeriveRecordChange, DeriveRecordValue } from "./types";
 
 export class ARecord<
-	Map extends Record<Key, AnyApply>,
+	Map extends Record<Key, $A>,
 	Key extends keyof Map = keyof Map,
 > extends BaseProductShaped<DeriveRecordValue<Map, Key>, Map, Key> {
 	readonly $type = "record";
@@ -25,7 +21,7 @@ export class ARecord<
 
 	override assign(
 		value: DeriveRecordValue<Map, Key>,
-		change: Readonly<Partial<{ [k in Key]: InferApplyValue<Map[k]> }>>,
+		change: Readonly<Partial<{ [k in Key]: $T<Map[k]> }>>,
 	): DeriveRecordValue<Map, Key> {
 		const value1: typeof value = { ...value };
 		for (const key of Object.keys(change)) {
@@ -38,12 +34,12 @@ export class ARecord<
 	override get<K extends Key>(
 		value: DeriveRecordValue<Map, Key>,
 		key: K,
-	): InferApplyValue<Map[K]> {
+	): $T<Map[K]> {
 		return value[key];
 	}
 
 	fromMap(
-		md: { readonly [k in Key]?: InferApplyChange<Map[k]> | undefined },
+		md: { readonly [k in Key]?: $D<Map[k]> | undefined },
 	): DeriveRecordChange<Map, Key> {
 		const m1: Partial<DeriveRecordChange<Map, Key>> = {};
 		for (const key of this.keys) {
@@ -55,7 +51,7 @@ export class ARecord<
 		return m1 as DeriveRecordChange<Map, Key>;
 	}
 	fromMapReplace(
-		mr: { readonly [k in Key]?: InferApplyValue<Map[k]> | undefined },
+		mr: { readonly [k in Key]?: $T<Map[k]> | undefined },
 	): DeriveRecordChange<Map, Key> {
 		const m1: Partial<DeriveRecordChange<Map, Key>> = {};
 		for (const key of this.keys) {
@@ -68,7 +64,7 @@ export class ARecord<
 	}
 }
 export const record = <
-	Map extends Record<Key, AnyApply>,
+	Map extends Record<Key, $A>,
 	Key extends keyof Map = keyof Map,
 >(
 	map: Map,

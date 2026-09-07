@@ -53,11 +53,11 @@ describe("union", () => {
 		testCasesPropsApply(nestedSingleton);
 	});
 	describe("string|number", () => {
-		const dl: s.inferChange<typeof union1> = {
+		const dl: s.$D<typeof union1> = {
 			type: "left",
 			change: union1.shape.left.fromReplace("test"),
 		};
-		const dr: s.inferChange<typeof union1> = {
+		const dr: s.$D<typeof union1> = {
 			type: "right",
 			change: union1.shape.right.fromReplace(1),
 		};

@@ -1,5 +1,5 @@
 import type { DeriveRecordValue } from "@/record/types";
-import type { AnyApply, InferApplyValue } from "@/types/algebra";
+import type { $A, $T } from "@/types/algebra";
 import { BaseProductShaped } from "./object";
 import type { DeriveProductChange, ProductImpl } from "./types";
 
@@ -9,7 +9,7 @@ export type * from "./types";
 
 export const product = <
 	Prod,
-	Shape extends Record<Key, AnyApply>,
+	Shape extends Record<Key, $A>,
 	Key extends keyof Shape = keyof Shape,
 >({
 	shape,
@@ -49,16 +49,11 @@ export const product = <
 
 		override assign(
 			value: Prod,
-			change: Readonly<
-				Partial<{ [k in keyof Shape]: InferApplyValue<Shape[k]> }>
-			>,
+			change: Readonly<Partial<{ [k in keyof Shape]: $T<Shape[k]> }>>,
 		): Prod {
 			return assign(value, change);
 		}
-		override get<K extends Key>(
-			value: Prod,
-			key: K,
-		): InferApplyValue<Shape[K]> {
+		override get<K extends Key>(value: Prod, key: K): $T<Shape[K]> {
 			return get(value, key);
 		}
 	}

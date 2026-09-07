@@ -31,12 +31,12 @@ export const merged = s.merge(item, {
 	isChanged: p.boolean(),
 });
 
-type _Merged = s.infer<typeof merged>;
+type _Merged = s.$T<typeof merged>;
 
 type _G = (typeof item)["~apply"];
 // { id: string, done: boolean, description: string }
-type Item = s.infer<typeof item>;
-type _ItemChange = s.inferChange<typeof item>;
+type Item = s.$T<typeof item>;
+type _ItemChange = s.$D<typeof item>;
 
 describe("record types", () => {
 	it.skip("type checking for gen", () => {
@@ -106,7 +106,7 @@ describe.skip("TEST", () => {
 
 describe("omit", () => {
 	// Should type check
-	const _omitted1: s.infer<typeof omitted> = {
+	const _omitted1: s.$T<typeof omitted> = {
 		id: 123,
 		done: false,
 	};
@@ -121,7 +121,7 @@ describe("omit", () => {
 
 describe("omit", () => {
 	// Should type check
-	const _omitted1: s.infer<typeof omitted> = {
+	const _omitted1: s.$T<typeof omitted> = {
 		id: 123,
 		done: false,
 	};
@@ -136,7 +136,7 @@ describe("omit", () => {
 
 describe("merge", () => {
 	// Should type check
-	const _merged1: s.infer<typeof merged> = {
+	const _merged1: s.$T<typeof merged> = {
 		id: 123,
 		done: false,
 		description: "test",

@@ -1,4 +1,4 @@
-import type { $A, IFA, InferApplyValue } from "@/types";
+import type { $A, $T, IFA } from "@/types";
 import { makeIFA, REEVAL } from "./helpers";
 
 /**
@@ -8,7 +8,7 @@ import { makeIFA, REEVAL } from "./helpers";
  */
 
 export const condA = <A extends $A, B extends $A>(
-	pred: (value: InferApplyValue<A>) => boolean,
+	pred: (value: $T<A>) => boolean,
 	fLeft: IFA<A, B>,
 	fRight: IFA<A, B>,
 	input = fLeft.input,

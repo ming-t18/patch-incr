@@ -1,5 +1,4 @@
-import type { IF, InferApplyValue } from "@/types";
-import type { $A, $T } from "@/types/abbr";
+import type { $A, $T, IF } from "@/types";
 import { type IF1, type IFA, IFKind } from "@/types/func";
 import type { IIsoA } from "@/types/func/iso";
 import { makeIF1, makeIFA, REEVAL } from "./helpers";
@@ -163,7 +162,7 @@ export const invertA = <A extends $A, B extends $A>({
 }: IIsoA<A, B>): IIsoA<B, A> => ({ inv: fwd, fwd: inv });
 
 export const condA = <A extends $A, B extends $A>(
-	pred: (value: InferApplyValue<A>) => boolean,
+	pred: (value: $T<A>) => boolean,
 	fLeft: IFA<A, B>,
 	fRight: IFA<A, B>,
 	input = fLeft.input,
@@ -183,7 +182,7 @@ export const condA = <A extends $A, B extends $A>(
 	});
 
 export const cond1 = <A extends $A, B extends $A>(
-	pred: (value: InferApplyValue<A>) => boolean,
+	pred: (value: $T<A>) => boolean,
 	fLeft: IF1<A, B>,
 	fRight: IF1<A, B>,
 	input = fLeft.input,

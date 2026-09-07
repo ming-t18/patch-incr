@@ -7,8 +7,8 @@ import type {
 import { type ARecord, record } from "@/record";
 import type { DeriveRecordValue } from "@/record/types";
 import { type AOmit, type APick, omit, pick } from "@/record/utils";
+import type { $A, $D, $T } from "@/types";
 import { type Evaluate, type IF1, type IFA, IFKind } from "@/types/func";
-import type { $A, $D, $T } from "../types/abbr";
 import { makeForward, makeForwardA, makeIFA, ShapePartition } from "./helpers";
 
 export class FProduct<

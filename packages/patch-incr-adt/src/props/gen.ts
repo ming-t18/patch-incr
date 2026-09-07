@@ -3,7 +3,6 @@ import { AAtomic } from "@/atomic";
 import { AConstant } from "@/constant";
 import { AOptional } from "@/optional";
 import type { AnyTuple, ATuple } from "@/tuple";
-import type { $D, $T } from "@/types/abbr";
 import { AUnion } from "@/union";
 
 export type { Arbitrary as Arb } from "fast-check";
@@ -18,7 +17,7 @@ import {
 } from "@/product";
 import { ARecord } from "@/record";
 import { makeReplaceOnly } from "@/replaceOnly";
-import type { Apply, InferApplyChange } from "@/types/algebra";
+import type { $D, $T, Apply } from "@/types/algebra";
 import {
 	ARB_VALUE_DEPTH,
 	arbEmptyOrReplace,
@@ -282,7 +281,7 @@ export class ArbUnion<
 		}
 
 		const valueIsProvided = opts && "value" in opts;
-		const entries: Arb<InferApplyChange<Shape[Key]>>[] = [];
+		const entries: Arb<$D<Shape[Key]>>[] = [];
 		const apply = this.apply;
 		const shape = apply.shape;
 		const keys = apply.keys;

@@ -1,7 +1,7 @@
 import { deepEquals } from "bun";
 import { fromIFA } from "@/funcs";
 import { evaluateAndForward, evaluateIF } from "@/funcs/eval";
-import type { $A, $D, $T } from "@/types/abbr";
+import type { $A, $D, $T } from "@/types/algebra";
 import { type IF, type IFA, IFKind, type IFR } from "@/types/func";
 import type { Eq } from "./change";
 

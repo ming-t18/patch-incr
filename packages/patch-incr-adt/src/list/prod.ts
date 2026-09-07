@@ -3,7 +3,7 @@ import type { BaseProductShaped } from "@/product";
 import { product } from "@/product";
 import type { RecBrand } from "@/props";
 import type { DeriveRecordValue } from "@/record/types";
-import type { AnyApply, InferApplyValue } from "@/types/algebra";
+import type { $A, $T } from "@/types/algebra";
 import { type AUnion, union } from "@/union";
 
 /** A cons-cell for a linked list. */
@@ -59,28 +59,28 @@ export const fromArray = <T>(xs: T[]): TList<T> => {
 	return l;
 };
 
-export interface ConsShape<A extends AnyApply, Rec extends AnyApply> {
+export interface ConsShape<A extends $A, Rec extends $A> {
 	head: A;
 	tail: Rec;
 }
 
-export interface ACons<A extends AnyApply, Rec extends AnyApply = AList<A>>
-	extends BaseProductShaped<Cons<InferApplyValue<A>>, ConsShape<A, Rec>> {
+export interface ACons<A extends $A, Rec extends $A = AList<A>>
+	extends BaseProductShaped<Cons<$T<A>>, ConsShape<A, Rec>> {
 	fromRecord: (rec: DeriveRecordValue<ConsShape<A, Rec>>) => Cons<A>;
 	toRecord: (cons: Cons<A>) => DeriveRecordValue<ConsShape<A, Rec>>;
 }
 
-export interface ListShape<A extends AnyApply, Rec extends AnyApply> {
+export interface ListShape<A extends $A, Rec extends $A> {
 	nil: AConstant<null, null>;
 	cons: ACons<A, Rec>;
 }
 
-export interface AList<A extends AnyApply>
+export interface AList<A extends $A>
 	extends AUnion<ListShape<A, AList<A>>>,
 		RecBrand {}
 
-export const list = <TA extends AnyApply>(apply: TA): AList<TA> => {
-	type T = InferApplyValue<TA>;
+export const list = <TA extends $A>(apply: TA): AList<TA> => {
+	type T = $T<TA>;
 	const rec: AList<TA> = union(
 		{
 			nil: nullType(),
@@ -99,9 +99,9 @@ export const list = <TA extends AnyApply>(apply: TA): AList<TA> => {
 					) as typeof c;
 				},
 				get: <K extends "head" | "tail">(
-					c: Cons<InferApplyValue<TA>>,
+					c: Cons<$T<TA>>,
 					k: K,
-				): InferApplyValue<ConsShape<TA, AList<TA>>[K]> => c[k] as never,
+				): $T<ConsShape<TA, AList<TA>>[K]> => c[k] as never,
 				fromRecord: ({ head, tail }) => new Cons(head, tail),
 				toRecord: ({ head, tail }) => ({ head, tail }),
 			}),

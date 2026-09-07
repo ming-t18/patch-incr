@@ -1,15 +1,15 @@
 import { type AOptional, optional } from "@/optional";
-import type { AnyApply, OverwriteShape } from "@/types";
+import type { $A, OverwriteShape } from "@/types";
 import { type ARecord, record } from ".";
 
 export type APick<
-	Shape extends Record<Key, AnyApply>,
+	Shape extends Record<Key, $A>,
 	Key extends keyof Shape = keyof Shape,
 	ToInclude extends Key = never,
 > = ARecord<Pick<Shape, ToInclude>, ToInclude>;
 
 export const pick = <
-	Map extends Record<Key, AnyApply>,
+	Map extends Record<Key, $A>,
 	Key extends keyof Map = keyof Map,
 	ToIncludeR extends Record<never, unknown> = Record<never, unknown>,
 >(
@@ -25,13 +25,13 @@ export const pick = <
 };
 
 export type AOmit<
-	Shape extends Record<Key, AnyApply>,
+	Shape extends Record<Key, $A>,
 	Key extends keyof Shape = keyof Shape,
 	ToExclude extends Key = never,
 > = ARecord<Omit<Shape, ToExclude>, Exclude<Key, ToExclude>>;
 
 export const omit = <
-	Map extends Record<Key, AnyApply>,
+	Map extends Record<Key, $A>,
 	Key extends keyof Map = keyof Map,
 	ToExcludeR extends Record<never, unknown> = Record<never, unknown>,
 >(
@@ -47,8 +47,8 @@ export const omit = <
 };
 
 export type MergeShapes<
-	Map extends Record<Key, AnyApply>,
-	Shape1 extends Record<Key1, AnyApply>,
+	Map extends Record<Key, $A>,
+	Shape1 extends Record<Key1, $A>,
 	Key extends keyof Map = keyof Map,
 	Key1 extends keyof Shape1 = keyof Shape1,
 > = Key & Key1 extends never
@@ -62,15 +62,15 @@ export type MergeShapes<
 		};
 
 export type ARecordMerge<
-	Map extends Record<Key, AnyApply>,
-	Shape1 extends Record<Key1, AnyApply>,
+	Map extends Record<Key, $A>,
+	Shape1 extends Record<Key1, $A>,
 	Key extends keyof Map = keyof Map,
 	Key1 extends keyof Shape1 = keyof Shape1,
 > = ARecord<{} & MergeShapes<Map, Shape1, Key, Key1>, Key | Key1>;
 
 export const merge = <
-	Map extends Record<Key, AnyApply>,
-	Shape1 extends Record<Key1, AnyApply>,
+	Map extends Record<Key, $A>,
+	Shape1 extends Record<Key1, $A>,
 	Key extends keyof Map = keyof Map,
 	Key1 extends keyof Shape1 = keyof Shape1,
 >(
@@ -88,8 +88,8 @@ export const merge = <
 };
 
 export const overwrite = <
-	Shape extends Record<Key, AnyApply>,
-	Shape1 extends Record<Key1, AnyApply>,
+	Shape extends Record<Key, $A>,
+	Shape1 extends Record<Key1, $A>,
 	Key extends keyof Shape = keyof Shape,
 	Key1 extends keyof Shape & keyof Shape1 = keyof Shape & keyof Shape1,
 >(
@@ -107,7 +107,7 @@ export const overwrite = <
 };
 
 export const partial = <
-	Map extends Record<Key, AnyApply>,
+	Map extends Record<Key, $A>,
 	Key extends keyof Map = keyof Map,
 >({
 	shape,

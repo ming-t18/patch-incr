@@ -4,13 +4,15 @@ import {
 	isReplaceOnly,
 	makeReplaceOnly,
 } from "@/replaceOnly";
+import type { DRO } from "@/types";
 import {
-	type AnyApply,
+	type $A,
+	type $D,
+	type $T,
 	type Apply,
 	BaseApplyClass,
 	type ReplaceOnly,
 } from "@/types";
-import type { $D, $T, DRO } from "@/types/abbr";
 import { SpliceTable } from "./splice";
 
 export * from "./func";
@@ -127,7 +129,7 @@ export class AArray<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>>
 	// }
 }
 
-export const array = <A extends AnyApply, T = $T<A>, DT = $D<A>>(inner: A) =>
+export const array = <A extends $A, T = $T<A>, DT = $D<A>>(inner: A) =>
 	new AArray<A, T, DT>(inner);
 
 export * from "./stack";

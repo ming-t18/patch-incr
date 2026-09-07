@@ -87,7 +87,7 @@ describe("tree", () => {
 	testCasesPropsApply(tree);
 
 	describe("example", () => {
-		const tree1: s.infer<typeof tree> = {
+		const tree1: s.$T<typeof tree> = {
 			name: "root",
 			children: s.List.fromArray([
 				{ name: "test1", children: undefined },
@@ -101,7 +101,7 @@ describe("tree", () => {
 				},
 			]),
 		};
-		const dTree1: s.inferChange<typeof tree> = {
+		const dTree1: s.$D<typeof tree> = {
 			children: tree.shape.children.fromReplace(s.List.empty()),
 		};
 		test("apply example", () => {

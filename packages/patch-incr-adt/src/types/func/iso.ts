@@ -1,6 +1,6 @@
 import type { AEither } from "@/either";
 import type { APair } from "@/pair";
-import type { $A } from "@/types/abbr";
+import type { $A } from "@/types/algebra";
 import type { IF, IFA } from "./incrFunc";
 
 /** An incremental isomorphism based on `IF`. */

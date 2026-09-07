@@ -1,9 +1,9 @@
 import { getReplaceOnly, isReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
 import {
+	type $D,
+	type $T,
 	type Apply,
 	BaseApplyClass,
-	type InferApplyChange,
-	type InferApplyValue,
 	type ReplaceOnly,
 } from "@/types";
 import { UnionCaseError } from "@/union";
@@ -14,8 +14,8 @@ export function isReplaceUndefined(x: unknown): x is ReplaceOnly<undefined> {
 
 export class AOptional<
 	A extends Apply<T, DT>,
-	T = InferApplyValue<A>,
-	DT = InferApplyChange<A>,
+	T = $T<A>,
+	DT = $D<A>,
 > extends BaseApplyClass<
 	T | undefined,
 	DT | ReplaceOnly<undefined>,
@@ -133,10 +133,6 @@ export class AOptional<
 	}
 }
 
-export const optional = <
-	A extends Apply<T, DT>,
-	T = InferApplyValue<A>,
-	DT = InferApplyChange<A>,
->(
+export const optional = <A extends Apply<T, DT>, T = $T<A>, DT = $D<A>>(
 	inner: A,
 ) => new AOptional<A, T, DT>(inner);

@@ -1,7 +1,6 @@
 import type { APair } from "@/pair";
 import { pair } from "@/pair";
-import type { UnknownApply } from "@/types";
-import type { $A, $D } from "@/types/abbr";
+import type { $A, $AUnknown, $D } from "@/types";
 import { type IF, type IF1, type IFA, IFKind, type IFR } from "@/types/func";
 
 export const composeA = <A extends $A, B extends $A, C extends $A>(
@@ -59,7 +58,7 @@ export const composeAR = <
 	A extends $A,
 	B extends $A,
 	C extends $A,
-	R extends $A = UnknownApply,
+	R extends $A = $AUnknown,
 >(
 	f1: IFA<A, B>,
 	f2: IFR<B, C, R>,
@@ -100,7 +99,7 @@ export const compose1R = <
 	A extends $A,
 	B extends $A,
 	C extends $A,
-	R extends $A = UnknownApply,
+	R extends $A = $AUnknown,
 >(
 	f1: IF1<A, B>,
 	f2: IFR<B, C, R>,
@@ -130,7 +129,7 @@ export const composeRA = <
 	A extends $A,
 	B extends $A,
 	C extends $A,
-	R extends $A = UnknownApply,
+	R extends $A = $AUnknown,
 >(
 	f1: IFR<A, B, R>,
 	f2: IFA<B, C>,
@@ -157,7 +156,7 @@ export const composeR1 = <
 	A extends $A,
 	B extends $A,
 	C extends $A,
-	R extends $A = UnknownApply,
+	R extends $A = $AUnknown,
 >(
 	f1: IFR<A, B, R>,
 	f2: IF1<B, C>,
@@ -179,8 +178,8 @@ export const composeR = <
 	A extends $A,
 	B extends $A,
 	C extends $A,
-	R1 extends $A = UnknownApply,
-	R2 extends $A = UnknownApply,
+	R1 extends $A = $AUnknown,
+	R2 extends $A = $AUnknown,
 >(
 	f1: IFR<A, B, R1>,
 	f2: IFR<B, C, R2>,

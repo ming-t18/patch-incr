@@ -1,5 +1,5 @@
 import type { RecBrand } from "@/props";
-import type { AnyApply } from "@/types/algebra";
+import type { $A } from "@/types/algebra";
 
 /** Add a brand for a type being recursive. */
-export const recBrand = <A extends AnyApply>(x: A): A & RecBrand => x;
+export const recBrand = <A extends $A>(x: A): A & RecBrand => x;

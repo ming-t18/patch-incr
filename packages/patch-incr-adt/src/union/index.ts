@@ -1,11 +1,10 @@
 import { getReplaceOnly, isReplaceOnly, makeReplaceOnly } from "@/replaceOnly";
-import type { $D } from "@/types";
 import {
-	type AnyApply,
+	type $A,
+	type $D,
+	type $T,
 	ApplyError,
 	BaseApplyClass,
-	type InferApplyChange,
-	type InferApplyValue,
 	type ReplaceOnly,
 } from "@/types/algebra";
 import type {
@@ -40,7 +39,7 @@ export type * from "./types";
  * `DRO<...> | { type: key1, change: DT1 } | { type: key2, change: DT2 } | ...`.
  */
 export class AUnion<
-	Map extends Record<Key, AnyApply>,
+	Map extends Record<Key, $A>,
 	Key extends keyof Map = keyof Map,
 > extends BaseApplyClass<
 	DeriveUnionValue<Map, Key>,
@@ -179,8 +178,8 @@ export class AUnion<
 
 	fromChangeCase<K extends Key>(
 		type: K,
-		change: InferApplyChange<Map[K]>,
-	): UnionChangeEntry<K, InferApplyChange<Map[K]>> {
+		change: $D<Map[K]>,
+	): UnionChangeEntry<K, $D<Map[K]>> {
 		return {
 			type,
 			change,
@@ -189,8 +188,8 @@ export class AUnion<
 
 	fromReplaceCase<K extends Key>(
 		type: K,
-		replace: InferApplyValue<Map[K]>,
-	): UnionChangeEntry<K, InferApplyChange<Map[K]>> {
+		replace: $T<Map[K]>,
+	): UnionChangeEntry<K, $D<Map[K]>> {
 		return {
 			type,
 			change: this.shape[type].fromReplace(replace),
@@ -215,7 +214,7 @@ export class AUnion<
 }
 
 export const union = <
-	Map extends Record<Key, AnyApply>,
+	Map extends Record<Key, $A>,
 	Key extends keyof Map = keyof Map,
 >(
 	map: Map,

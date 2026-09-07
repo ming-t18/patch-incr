@@ -1,9 +1,9 @@
 import type { APair } from "@/pair";
-import type { AnyApply } from "@/types/algebra";
+import type { $A } from "@/types/algebra";
 
 export type OverwriteShape<
-	Shape extends Record<Key, AnyApply>,
-	Shape1 extends Record<Key1, AnyApply>,
+	Shape extends Record<Key, $A>,
+	Shape1 extends Record<Key1, $A>,
 	Key extends keyof Shape = keyof Shape,
 	Key1 extends keyof Shape & keyof Shape1 = keyof Shape & keyof Shape1,
 > = {
@@ -11,8 +11,8 @@ export type OverwriteShape<
 };
 
 export type DistrShape<
-	Shape extends Record<Key, AnyApply>,
-	T extends AnyApply,
+	Shape extends Record<Key, $A>,
+	T extends $A,
 	Key extends keyof Shape = keyof Shape,
 > = {
 	readonly [key in Key]: APair<Shape[key], T>;

@@ -1,6 +1,6 @@
 import { Option } from "@/modules";
 import { type AOption, option } from "@/option";
-import type { $A, $T } from "@/types/abbr";
+import type { $A, $T } from "@/types";
 import type { IFA } from "@/types/func";
 import type { AUnion } from "@/union";
 import { type AUnionAssign, assign } from "@/union/utils";
