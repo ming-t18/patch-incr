@@ -29,6 +29,21 @@ describe("map", () => {
 		const arrPair = s.array(s.pair(p.integer(), p.string()));
 		testCasesIF(Arr.map(arrPair)(s.Pair.snd(arrPair.inner)));
 	});
+
+	describe("pair comm", () => {
+		const arr = s.array(s.pair(p.integer(), p.string()));
+		const comm = Arr.map(arr)(s.Pair.comm(arr.inner));
+		testCasesIF(comm);
+	});
+
+	describe("pair comm composed with pair comm", () => {
+		const arr = s.array(s.pair(p.integer(), p.string()));
+		const arr1 = s.array(s.Pair.flip(arr.inner));
+		const comm = Arr.map(arr)(s.Pair.comm(arr.inner));
+		const comm1 = Arr.map(arr1)(s.Pair.comm(arr1.inner));
+		const id1 = s.fn.compose(comm, comm1);
+		testCasesIF(id1);
+	});
 });
 
 describe("flatten", () => {
@@ -189,7 +204,6 @@ describe("distrMap", () => {
 	});
 });
 
-// TODO broken
 describe.skip("cartesian", () => {
 	describe("(integer, integer)", () => {
 		testCasesIF(

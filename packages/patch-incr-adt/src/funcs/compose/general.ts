@@ -35,12 +35,7 @@ export const compose1 = <A extends $A, B extends $A, C extends $A>(
 		forward: (x, dx, [z, y]) => {
 			const dy = f1.forward(x, dx, y);
 			const dz = f2.forward(y, dy, z);
-
-			// Required to pass prop test on empty patch
-			if (output.shape[0].isEmpty(dz) && output.shape[1].isEmpty(dy)) {
-				return f2.output.empty;
-			}
-			return [dz, dy];
+			return output.trim([dz, dy]);
 		},
 	};
 };
@@ -76,26 +71,30 @@ export const composeAR = <
 	forward: (x, dx, [z, r]) => {
 		const dy = f1.forward(x, dx);
 		const y = f1.evaluate(x);
-		return f2.forward(y, dy, [z, r]);
+		return f2.forward(y, dy, [z, r]) satisfies $D<APair<C, R>>;
 	},
 });
 
 export const compose1A = <A extends $A, B extends $A, C extends $A>(
 	f1: IF1<A, B>,
 	f2: IFA<B, C>,
-): IFR<A, C, B> => ({
-	kind: IFKind.IFR,
-	input: f1.input,
-	output: pair(f2.output, f1.output),
-	evaluate: (x) => {
-		const y = f1.evaluate(x);
-		return [f2.evaluate(y), y];
-	},
-	forward: (x, dx, [_, y]) => {
-		const dy = f1.forward(x, dx, y);
-		return f2.forward(y, dy);
-	},
-});
+): IFR<A, C, B> => {
+	const output = pair(f2.output, f1.output);
+	return {
+		kind: IFKind.IFR,
+		input: f1.input,
+		output,
+		evaluate: (x) => {
+			const y = f1.evaluate(x);
+			return [f2.evaluate(y), y];
+		},
+		forward: (x, dx, [_, y]) => {
+			const dy: $D<B> = f1.forward(x, dx, y);
+			const dc: $D<C> = f2.forward(y, dy);
+			return output.trim([dc, dy]);
+		},
+	};
+};
 
 export const compose1R = <
 	A extends $A,
@@ -108,29 +107,21 @@ export const compose1R = <
 ): IFR<A, C, APair<B, R>> => {
 	const br: APair<B, R> = pair(f1.output, f2.output.shape[1]);
 	const cr: APair<C, R> = f2.output;
-	const cbr: APair<C, APair<B, R>> = pair(f2.output.shape[0], br);
+	const output: APair<C, APair<B, R>> = pair(f2.output.shape[0], br);
 	return {
 		kind: IFKind.IFR,
 		input: f1.input,
-		output: cbr,
+		output,
 		evaluate: (x) => {
 			const y = f1.evaluate(x);
 			const [z, r] = f2.evaluate(y);
 			return [z, [y, r]];
 		},
-		forward: (x, dx, [z, [y, r]]): $D<typeof cbr> => {
+		forward: (x, dx, [z, [y, r]]): $D<typeof output> => {
 			const dy: $D<B> = f1.forward(x, dx, y);
 			const dzr: $D<APair<C, R>> = f2.forward(y, dy, [z, r]);
 			const [dz, dr] = cr.project(null, dzr);
-			// Required to pass prop test on empty patch
-			if (
-				cr.shape[0].isEmpty(dz) &&
-				cr.shape[1].isEmpty(dr) &&
-				f1.output.isEmpty(dy)
-			) {
-				return cbr.empty;
-			}
-			return [dz, [dy, dr]];
+			return output.trim([dz, [dy, dr]]);
 		},
 	};
 };
@@ -143,19 +134,24 @@ export const composeRA = <
 >(
 	f1: IFR<A, B, R>,
 	f2: IFA<B, C>,
-): IFR<A, C, APair<B, R>> => ({
-	kind: IFKind.IFR,
-	input: f1.input,
-	output: pair(f2.output, f1.output),
-	evaluate: (x) => {
-		const [y, r] = f1.evaluate(x);
-		return [f2.evaluate(y), r];
-	},
-	forward: (x, dx, [_, [y, r]]) => {
-		const dy = f1.forward(x, dx, [y, r]);
-		return f2.forward(y, dy);
-	},
-});
+): IFR<A, C, APair<B, R>> => {
+	const output = pair(f2.output, f1.output);
+	return {
+		kind: IFKind.IFR,
+		input: f1.input,
+		output,
+		evaluate: (x) => {
+			const [y, r] = f1.evaluate(x);
+			return [f2.evaluate(y), r];
+		},
+		forward: (x, dx, [_, [y, r]]) => {
+			const dyr: $D<APair<B, R>> = f1.forward(x, dx, [y, r]);
+			const dy: $D<B> = f1.output.project(["0"], dyr)[0];
+			const dc: $D<C> = f2.forward(y, dy);
+			return output.trim([dc, dyr]);
+		},
+	};
+};
 
 export const composeR1 = <
 	A extends $A,
@@ -289,6 +285,8 @@ export const composeNonOverload = <A extends $A, B extends $A, C extends $A>(
 			return compose1A(f1, f2);
 		}
 		if (f2.kind === IFKind.IF1) {
+			// console.error({ f1, f2 });
+			// throw new Error("here");
 			return compose1(f1, f2);
 		}
 		if (f2.kind === IFKind.IFR) {

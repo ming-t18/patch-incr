@@ -37,7 +37,7 @@ export const makeForward =
 		if (res === REEVAL) {
 			return output.fromReplace(evaluate(input.apply(x, dx)));
 		}
-		return res;
+		return output.trim(res);
 	};
 
 export const makeForwardA =
@@ -65,7 +65,7 @@ export const makeForwardA =
 		if (res === REEVAL) {
 			return output.fromReplace(evaluate(input.apply(x, dx)));
 		}
-		return res;
+		return output.trim(res);
 	};
 
 export const makeIFA = <

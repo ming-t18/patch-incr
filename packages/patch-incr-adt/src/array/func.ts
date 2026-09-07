@@ -190,7 +190,6 @@ export class FArray<A extends $A> {
 			evaluate: (xs: $T<AArray<A>>): $T<AArray<B>> =>
 				xs.map((x) => func.evaluate(x)),
 			forward: (xs, dxs, ys) =>
-				// TODO invalid but type checks for some reason
 				dxs.map({
 					evaluate: (_i, x) => func.evaluate(x),
 					forward: (i, dx) => func.forward(xs[i], dx, ys[i]),
@@ -203,7 +202,6 @@ export class FArray<A extends $A> {
 	): IFR<AArray<A>, AArray<B>, AArray<R>> {
 		const outArray: AArray<B> = array(func.output.shape[0]);
 		const outResidual: AArray<R> = array(func.output.shape[1]);
-
 		const outPair: APair<B, R> = func.output;
 		return makeIFR(this.array, outArray, outResidual, {
 			evaluate: (xs: $T<AArray<A>>): $T<APair<AArray<B>, AArray<R>>> => {
@@ -223,7 +221,7 @@ export class FArray<A extends $A> {
 					evaluate: (_i, p) => p[1],
 					forward: (_i, dp) => outPair.forwardGet("1", dp),
 				});
-				return [dys, drs];
+				return outPair.trim([dys, drs]);
 			},
 		});
 	}
@@ -268,7 +266,8 @@ export class FArray<A extends $A> {
 	distr<C extends $A>(c: C): IF1<APair<AArray<A>, C>, AArray<APair<A, C>>> {
 		const input = pair(this.array, c);
 		const pairInner = pair(this.inner, c);
-		return makeIF1(input, array(pairInner), {
+		const output = array(pairInner);
+		return makeIF1(input, output, {
 			evaluate: ([xs, c]) => xs.map((x) => [x, c]),
 			forward: ([xs0, c0], dp, _xcs0) => {
 				const [dxs, dc] = input.project(null, dp);
@@ -299,6 +298,47 @@ export class FArray<A extends $A> {
 							j: i,
 							dj: 1,
 							change: [null, dc],
+						})),
+				);
+				return output.trim(dxs1.combine(dxs2, pairInner));
+			},
+		});
+	}
+
+	distl<C extends $A>(c: C): IF1<APair<C, AArray<A>>, AArray<APair<C, A>>> {
+		const input = pair(c, this.array);
+		const pairInner = pair(c, this.inner);
+		return makeIF1(input, array(pairInner), {
+			evaluate: ([c, xs]) => xs.map((x) => [c, x]),
+			forward: ([xs0, c0], dp, _xcs0) => {
+				const [dc, dxs] = input.project(null, dp);
+				if (input.shape[0].isEmpty(dxs) && input.shape[1].isEmpty(dc)) {
+					return null;
+				}
+
+				if (isReplaceOnly(dxs)) {
+					return REEVAL;
+				}
+
+				const dxs1 = (
+					dxs ??
+					SpliceTable.identity<$T<typeof pairInner>, $D<typeof pairInner>>()
+				).map<$T<typeof pairInner>, $D<typeof pairInner>>({
+					evaluate: (_i, x) => [c0, x],
+					forward: (_i, dx) => [c.empty, dx],
+				});
+				const dxs2 = new SpliceTable<
+					$T<typeof pairInner>,
+					$D<typeof pairInner>
+				>(
+					Array(dxs1.mapLength(xs0.length))
+						.fill(null)
+						.map((_, i) => ({
+							i,
+							di: 1,
+							j: i,
+							dj: 1,
+							change: [dc, null],
 						})),
 				);
 				return dxs1.combine(dxs2, pairInner);
