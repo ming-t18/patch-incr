@@ -102,8 +102,19 @@ export class AArray<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>>
 	override trim(
 		x: SpliceTable<T, DT> | DRO<readonly T[]>,
 	): SpliceTable<T, DT> | DRO<readonly T[]> {
-		if (x instanceof SpliceTable && x.entries.length === 0) {
-			return null;
+		if (x instanceof SpliceTable) {
+			if (x.entries.length === 0) {
+				return null;
+			}
+			if (
+				x.entries.every((e) =>
+					"change" in e
+						? this.inner.isEmpty(e.change)
+						: e.di === 0 && e.dj === 0,
+				)
+			) {
+				return null;
+			}
 		}
 		return x;
 	}
