@@ -95,7 +95,7 @@ export class SpliceTable<T, DT> {
 	constructor(readonly entries: Readonly<SpliceEntries<T, DT>>) {}
 
 	[Symbol.for("nodejs.util.inspect.custom")]() {
-		return this.entries;
+		return { SpliceTable: this.entries };
 	}
 
 	/** Gets the minimum array length required to apply this `SpliceTable`. */

@@ -110,6 +110,9 @@ export class FArray<A extends $A> {
 				csum.evaluate(xss),
 			],
 			forward: (xss, dxss, [_ys, ss]) => {
+				if (!(dxss instanceof SpliceTable)) {
+					throw new Error("flat.forward: dxss not a SpliceTable");
+				}
 				const dss = csum.forward(xss, dxss, ss);
 				const ss1 = csum.output.apply(ss, dss);
 				const dys = new SpliceTable<$T<AArray<A>>, $D<AArray<A>>>(
