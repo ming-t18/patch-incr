@@ -14,7 +14,13 @@ import {
 } from "@/array/splice";
 import { arbEmptyOrReplace, DRO_WEIGHT, MAX_ARRAY_LEN } from "./genUtils";
 import { DEFAULT_DEPTH, diveArbChangeConfig } from "./opts";
-import type { Arb, ArbApply, ArbChangeConfig, HasArbApply } from "./types";
+import type {
+	AnyHasArbApply,
+	Arb,
+	ArbApply,
+	ArbChangeConfig,
+	HasArbApply,
+} from "./types";
 export class ArbArrayStack<
 	A extends AArrayStack<AInner, T, DT>,
 	AInner extends HasArbApply<T, DT>,
@@ -152,22 +158,23 @@ AArrayStack.prototype.getArbApply = function <
 	return new ArbArrayStack(this);
 };
 
-export class ArbArray<
-	A extends AArray<AInner, T, DT>,
-	AInner extends HasArbApply<T, DT>,
-	T = $T<AInner>,
-	DT = $D<AInner>,
-> implements ArbApply<A, readonly T[], DeriveArrayChange<T, DT>>
+export class ArbArray<A extends AArray<AnyHasArbApply>>
+	implements
+		ArbApply<
+			A,
+			readonly $T<A["inner"]>[],
+			DeriveArrayChange<$T<A["inner"]>, $D<A["inner"]>>
+		>
 {
 	constructor(readonly apply: A) {}
 
-	arbValue(depth: number): Arb<readonly T[]> {
+	arbValue(depth: number): Arb<readonly $T<A["inner"]>[]> {
 		return arbArrayValue(this.apply.inner, depth);
 	}
 
 	arbChange(
-		opts: ArbChangeConfig<readonly T[]>,
-	): Arb<DeriveArrayChange<T, DT>> {
+		opts: ArbChangeConfig<readonly $T<A["inner"]>[]>,
+	): Arb<DeriveArrayChange<$T<A["inner"]>, $D<A["inner"]>>> {
 		const inner = this.apply.inner;
 		const arbValue = inner.getArbApply().arbValue(opts.depth);
 		const droPart = {
@@ -186,7 +193,7 @@ export class ArbArray<
 								console.error("ArbArray: out of bounds", { arr: x, i });
 								throw new Error("ArbArray: index out of bounds");
 							}
-							return x[i] as T;
+							return x[i] as $T<A["inner"]>;
 						}, opts),
 					),
 			}),
@@ -196,11 +203,9 @@ export class ArbArray<
 	}
 }
 
-AArray.prototype.getArbApply = function <
-	AInner extends HasArbApply<T, DT>,
-	T = $T<AInner>,
-	DT = $D<AInner>,
->(this: AArray<AInner, T, DT>) {
+AArray.prototype.getArbApply = function <A extends AArray<AnyHasArbApply>>(
+	this: AArray<A["inner"]>,
+) {
 	return new ArbArray(this);
 };
 

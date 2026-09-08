@@ -24,29 +24,30 @@ export type DeriveArrayChange<T, DT> = SpliceTable<T, DT> | DRO<readonly T[]>;
  * (or internal changes at particular indexes.
  * @see `SpliceTable`
  */
-export class AArray<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>>
+export class AArray<A extends $A>
 	extends BaseApplyClass<
-		readonly T[],
-		SpliceTable<T, DT> | DRO<readonly T[]>,
+		readonly $T<A>[],
+		SpliceTable<$T<A>, $D<A>> | DRO<readonly $T<A>[]>,
 		null
 	>
-	implements Apply<readonly T[], SpliceTable<T, DT> | DRO<readonly T[]>>
+	implements
+		Apply<readonly $T<A>[], SpliceTable<$T<A>, $D<A>> | DRO<readonly $T<A>[]>>
 {
 	declare readonly "~apply": {
-		readonly value: readonly T[];
-		readonly change: SpliceTable<T, DT> | DRO<readonly T[]>;
+		readonly value: readonly $T<A>[];
+		readonly change: SpliceTable<$T<A>, $D<A>> | DRO<readonly $T<A>[]>;
 		readonly empty: null;
-		readonly replace: ReplaceOnly<readonly T[]>;
-		readonly internal: SpliceTable<T, DT>;
+		readonly replace: ReplaceOnly<readonly $T<A>[]>;
+		readonly internal: SpliceTable<$T<A>, $D<A>>;
 	};
 	constructor(readonly inner: A) {
 		super(null);
 	}
 
 	apply(
-		value: readonly T[],
-		change: SpliceTable<T, DT> | DRO<readonly T[]>,
-	): readonly T[] {
+		value: readonly $T<A>[],
+		change: SpliceTable<$T<A>, $D<A>> | DRO<readonly $T<A>[]>,
+	): readonly $T<A>[] {
 		if (change === null) {
 			return value;
 		}
@@ -57,23 +58,25 @@ export class AArray<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>>
 		return change.apply(value, this.inner);
 	}
 
-	fromReplace(value: readonly T[]): SpliceTable<T, DT> | DRO<readonly T[]> {
+	fromReplace(
+		value: readonly $T<A>[],
+	): SpliceTable<$T<A>, $D<A>> | DRO<readonly $T<A>[]> {
 		return makeReplaceOnly(value);
 	}
 
 	isReplace(
-		d: SpliceTable<T, DT> | DRO<readonly T[]>,
-	): ReplaceOnly<readonly T[]> | null {
+		d: SpliceTable<$T<A>, $D<A>> | DRO<readonly $T<A>[]>,
+	): ReplaceOnly<readonly $T<A>[]> | null {
 		return isReplaceOnly(d) ? d : null;
 	}
 
-	isEmpty(d: SpliceTable<T, DT> | DRO<readonly T[]>): boolean {
+	isEmpty(d: SpliceTable<$T<A>, $D<A>> | DRO<readonly $T<A>[]>): boolean {
 		return d === null;
 	}
 
 	override canApply(
-		value: readonly T[],
-		change: SpliceTable<T, DT> | DRO<readonly T[]>,
+		value: readonly $T<A>[],
+		change: SpliceTable<$T<A>, $D<A>> | DRO<readonly $T<A>[]>,
 	): boolean {
 		if (isDRO(change)) {
 			return true;
@@ -82,9 +85,9 @@ export class AArray<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>>
 	}
 
 	override combine(
-		a: SpliceTable<T, DT> | DRO<readonly T[]>,
-		b: SpliceTable<T, DT> | DRO<readonly T[]>,
-	): SpliceTable<T, DT> | DRO<readonly T[]> {
+		a: SpliceTable<$T<A>, $D<A>> | DRO<readonly $T<A>[]>,
+		b: SpliceTable<$T<A>, $D<A>> | DRO<readonly $T<A>[]>,
+	): SpliceTable<$T<A>, $D<A>> | DRO<readonly $T<A>[]> {
 		if (a === null) {
 			return b;
 		}
@@ -102,8 +105,8 @@ export class AArray<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>>
 	}
 
 	override trim(
-		x: SpliceTable<T, DT> | DRO<readonly T[]>,
-	): SpliceTable<T, DT> | DRO<readonly T[]> {
+		x: SpliceTable<$T<A>, $D<A>> | DRO<readonly $T<A>[]>,
+	): SpliceTable<$T<A>, $D<A>> | DRO<readonly $T<A>[]> {
 		if (x instanceof SpliceTable) {
 			if (x.entries.length === 0) {
 				return null;
@@ -129,7 +132,6 @@ export class AArray<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>>
 	// }
 }
 
-export const array = <A extends $A, T = $T<A>, DT = $D<A>>(inner: A) =>
-	new AArray<A, T, DT>(inner);
+export const array = <A extends $A>(inner: A) => new AArray<A>(inner);
 
 export * from "./stack";

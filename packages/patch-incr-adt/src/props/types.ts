@@ -172,8 +172,8 @@ declare module "@/map" {
 }
 
 declare module "@/array" {
-	export interface AArray<A extends Apply<T, DT>, T = $T<A>, DT = $D<A>> {
-		getArbApply: A extends HasArbApply<T, DT>
+	export interface AArray<A extends $A> {
+		getArbApply: A extends HasArbApply<$T<A>, $D<A>>
 			? () => ArbApply<this>
 			: undefined;
 	}
