@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { deepEquals } from "bun";
 import fc from "fast-check";
 import type { APair } from "@/pair";
 import {
@@ -33,22 +34,29 @@ const propTestCase = <A extends AnyHasArbApply, B extends AnyHasArbApply>(
 		it("single patch: f'(x @ dx) = f(x) @ f'(dx)", () => {
 			fc.assert(
 				fc.property(genValueWithChange(func.input), ({ x, dx }) => {
+					// try {
+					// 	expect(props.forwardSingle(x, dx)).toBe(true);
+					// } catch (e) {
+					const y = func.evaluate(x);
+					const dyActual = func.forward(x, dx, y);
+					const yActual = func.output.apply(y, dyActual);
+					const yReapply = func.evaluate(func.input.apply(x, dx));
 					try {
-						expect(props.forwardSingle(x, dx)).toBe(true);
+						expect(yActual).toEqual(yReapply);
 					} catch (e) {
-						const y = func.evaluate(x);
-						const dyActual = func.forward(x, dx, y);
-						const yActual = func.output.apply(y, dyActual);
-						const yReapply = func.evaluate(func.input.apply(x, dx));
-						console.error("Patch Coherence Failed", {
-							x,
-							dx,
-							y: func.evaluate(x),
-							dyActual,
-							yActual,
-							yReapply,
-						});
-						console.error(e);
+						if (deepEquals(yActual, yReapply)) {
+							console.error("Patch coherence succeeded with error", e);
+						} else {
+							console.error("Patch coherence failed", {
+								x,
+								dx,
+								y: func.evaluate(x),
+								dyActual,
+								yActual,
+								yReapply,
+							});
+							console.error("Error: ", e);
+						}
 						throw e;
 					}
 				}),

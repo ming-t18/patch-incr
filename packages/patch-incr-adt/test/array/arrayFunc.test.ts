@@ -146,6 +146,28 @@ describe("flatten", () => {
 		const flatten = Arr.flat(s.array(arr));
 		testCasesIF(flatten);
 	});
+
+	describe("of array", () => {
+		const arr = s.array(
+			s.array(s.pair(p.integer({ min: 0, max: 100 }), p.string())),
+		);
+		const flatten = Arr.flat(s.array(arr));
+		testCasesIF(flatten);
+	});
+});
+
+describe("double flatten", () => {
+	describe("of null", () => {
+		const arr = s.array(s.array(s.array(s.nullType())));
+		const flatten2 = s.fn.compose(Arr.flat(arr), Arr.flat(arr.inner));
+		testCasesIF(flatten2);
+	});
+
+	describe("of boolean", () => {
+		const arr = s.array(s.array(s.array(p.boolean())));
+		const flatten2 = s.fn.compose(Arr.flat(arr), Arr.flat(arr.inner));
+		testCasesIF(flatten2);
+	});
 });
 
 describe("flatMap", () => {
@@ -204,7 +226,41 @@ describe("distrMap", () => {
 	});
 });
 
+// TODO not working
 describe.skip("cartesian", () => {
+	test("FAILING", () => {
+		const f: s.IFR<
+			s.Pair.APair<
+				s.AArray<s.AConstant<null, null>>,
+				s.AArray<s.AConstant<null, null>>
+			>,
+			s.AArray<s.Pair.APair<s.AConstant<null, null>, s.AConstant<null, null>>>,
+			s.$A
+		> = Arr.cartesian(
+			s.pair(s.array(s.nullType()), s.array(s.nullType())),
+		) as never;
+		const x: s.$T<typeof f.input> = [[null], []];
+		const dx: s.$D<typeof f.input> = [
+			new s.SpliceTable([]),
+			new s.SpliceTable([{ i: 0, di: 0, j: 0, dj: 1, replace: [null] }]),
+		];
+		const y = f.evaluate(x);
+		const dy = f.forward(x, dx, y);
+		const yActual = f.output.apply(y, dy);
+		const yExpected = f.evaluate(f.input.apply(x, dx));
+		expect(yActual).toEqual(yExpected);
+	});
+
+	describe("(null, null)", () => {
+		testCasesIF(
+			Arr.cartesian(s.pair(s.array(s.nullType()), s.array(s.nullType()))),
+		);
+	});
+	describe("(boolean, boolean)", () => {
+		testCasesIF(
+			Arr.cartesian(s.pair(s.array(p.boolean()), s.array(p.boolean()))),
+		);
+	});
 	describe("(integer, integer)", () => {
 		testCasesIF(
 			Arr.cartesian(s.pair(s.array(p.integer()), s.array(p.integer()))),

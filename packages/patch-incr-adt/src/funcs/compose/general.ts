@@ -160,19 +160,24 @@ export const composeR1 = <
 >(
 	f1: IFR<A, B, R>,
 	f2: IF1<B, C>,
-): IFR<A, C, APair<B, R>> => ({
-	kind: IFKind.IFR,
-	input: f1.input,
-	output: pair(f2.output, f1.output),
-	evaluate: (x) => {
-		const [y, r] = f1.evaluate(x);
-		return [f2.evaluate(y), [y, r]];
-	},
-	forward: (x, dx, [z, [y, r]]) => {
-		const dy = f1.forward(x, dx, [y, r]);
-		return f2.forward(y, dy, z);
-	},
-});
+): IFR<A, C, APair<B, R>> => {
+	const output = pair(f2.output, f1.output);
+	return {
+		kind: IFKind.IFR,
+		input: f1.input,
+		output,
+		evaluate: (x) => {
+			const [y, r] = f1.evaluate(x);
+			return [f2.evaluate(y), [y, r]];
+		},
+		forward: (x, dx, [z, [y, r]]) => {
+			const dyr = f1.forward(x, dx, [y, r]);
+			const dy = f1.output.project(["0"], dyr)[0];
+			const dz = f2.forward(y, dy, z);
+			return output.trim([dz, dyr]);
+		},
+	};
+};
 
 export const composeR = <
 	A extends $A,
@@ -284,8 +289,6 @@ export const composeNonOverload = <A extends $A, B extends $A, C extends $A>(
 			return compose1A(f1, f2);
 		}
 		if (f2.kind === IFKind.IF1) {
-			// console.error({ f1, f2 });
-			// throw new Error("here");
 			return compose1(f1, f2);
 		}
 		if (f2.kind === IFKind.IFR) {

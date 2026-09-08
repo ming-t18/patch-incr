@@ -105,10 +105,13 @@ export class FArray<A extends $A> {
 		const getOff = (csum: readonly number[], i: number): number =>
 			i === 0 ? 0 : csum[i - 1]!;
 		return makeIFR(csum.input, this.inner, csum.output, {
-			evaluate: (xss: $T<AArray<AArray<A>>>): $T<APair<AArray<A>, ACsum>> => [
-				xss.flat(1),
-				csum.evaluate(xss),
-			],
+			evaluate: (xss: $T<AArray<AArray<A>>>): $T<APair<AArray<A>, ACsum>> => {
+				const flattened: $T<A>[] = [];
+				for (const xs of xss) {
+					flattened.push(...xs);
+				}
+				return [flattened, csum.evaluate(xss)];
+			},
 			forward: (xss, dxss, [_ys, ss]) => {
 				if (!(dxss instanceof SpliceTable)) {
 					throw new Error("flat.forward: dxss not a SpliceTable");
