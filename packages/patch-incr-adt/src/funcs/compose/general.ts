@@ -188,21 +188,27 @@ export const composeR = <
 >(
 	f1: IFR<A, B, R1>,
 	f2: IFR<B, C, R2>,
-): IFR<A, C, APair<APair<B, R1>, R2>> => ({
-	kind: IFKind.IFR,
-	input: f1.input,
-	output: pair(f2.output.shape[0], pair(f1.output, f2.output.shape[1])),
-	evaluate: (x) => {
-		const yr1 = f1.evaluate(x);
-		const [y, _r1] = yr1;
-		const [_z, r2] = f2.evaluate(x);
-		return [f2.evaluate(y), [yr1, r2]];
-	},
-	forward: (x, dx, [z, [yr1, r2]]) => {
-		const dy = f1.forward(x, dx, yr1);
-		return f2.forward(yr1[0], dy, [z, r2]);
-	},
-});
+): IFR<A, C, APair<APair<B, R1>, R2>> => {
+	const output = pair(f2.output.shape[0], pair(f1.output, f2.output.shape[1]));
+	return {
+		kind: IFKind.IFR,
+		input: f1.input,
+		output,
+		evaluate: (x) => {
+			const yr1 = f1.evaluate(x);
+			const [y, _r1] = yr1;
+			const [_z, r2] = f2.evaluate(x);
+			return [f2.evaluate(y), [yr1, r2]];
+		},
+		forward: (x, dx, [z, [yr1, r2]]) => {
+			const dyr1 = f1.forward(x, dx, yr1);
+			const [dy] = f1.output.project(["0"], dyr1);
+			const dzr2 = f2.forward(yr1[0], dy, [z, r2]);
+			const [dz, dr2] = f2.output.project(null, dzr2);
+			return output.trim([dz, [dyr1, dr2]]);
+		},
+	};
+};
 
 /**
  * The overload-based signature for the binary incremental function composition
