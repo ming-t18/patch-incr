@@ -16,7 +16,7 @@ The `forward` implementation must ensure the same sequence of control flow graph
 are visited (through residual if needed), and involking each node's `forward` to propagate
 the incremental changes.
 
-The problem is if the sequence of control flow nodes is different from before, 
+The problem is if the sequence of control flow nodes is different from before,
 the entire program must be re-evaluated unless there are specific methods to reconcile
 the differences.
 
@@ -29,16 +29,16 @@ linked lists will have their own helpers to incrementalize the sum operation eff
 
 ```ts
 sum = (xs) => {
-  let s = 0;
-  for (const x of xs) {
-    s += x;
-  }
-  return s;
-}
+	let s = 0;
+	for (const x of xs) {
+		s += x;
+	}
+	return s;
+};
 
 // "reduce" in general can'be incrementalized efficiently without the "scan",
 // but if commutative property can be applied, reduce can be incrementalized
-sum_fold = (xs) => xs.reduce((s, a) => s + a, 0)
+sum_fold = (xs) => xs.reduce((s, a) => s + a, 0);
 ```
 
 ## Example
@@ -102,6 +102,6 @@ F = () => {
 
 To incrementalize a program containing loops and control flow, the residual of the
 incremental function must containing information retracing the codepath of the
-evaluation. 
+evaluation.
 
 In the `forward` implementation, the incrementalized retraces each node visited and

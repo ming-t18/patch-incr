@@ -395,6 +395,12 @@ export const flat = <A extends $A>(
 	return FArray.ofArray(input).flat();
 };
 
+export const filter =
+	<A extends $A>(input: AArray<A>) =>
+	(f: (value: A) => boolean): IFR<AArray<A>, AArray<A>, ACsum> => {
+		return FArray.ofArray(input).filter(f);
+	};
+
 export const map =
 	<A extends $A>(input: AArray<A>) =>
 	<B extends $A>(func: IF<A, B>): IF<AArray<A>, AArray<B>> => {

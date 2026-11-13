@@ -135,7 +135,6 @@ export class FRecord<
 	Shape,
 	Key
 > {
-	// biome-ignore lint/complexity/noUselessConstructor: for reference
 	constructor(record: ARecord<Shape, Key>) {
 		super(record);
 	}

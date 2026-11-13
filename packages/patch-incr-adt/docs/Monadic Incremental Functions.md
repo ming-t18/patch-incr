@@ -1,7 +1,7 @@
 # Monadic Incremental Functions
 
 Incremental functions can exhibit monadic behaviors, which are represented using
-using **Kleisli arrows**. The monadic behaviors can be stacked together with 
+using **Kleisli arrows**. The monadic behaviors can be stacked together with
 arrow transformers but this library has a pre-composed stack to avoid designing
 an API with higher-kinded types.
 
@@ -9,31 +9,32 @@ To reduce the overhead of composing non-monadic functions, arrow transformers
 are represented using multi-case unions.
 
 The jq language is a JSON processor with a point-free syntax and an execution
-semantics requiring the reader monad (context variables: `$var`) and the 
-list monad (streaming `.[]`). 
+semantics requiring the reader monad (context variables: `$var`) and the
+list monad (streaming `.[]`).
 
 The `Ijq` arrow in this library allows the semantics of Ijq to be captured.
 
 ## In TypeScript
 
-For demonstration purposes, the type constraints are omitted and the union cases 
+For demonstration purposes, the type constraints are omitted and the union cases
 are simplified.
 
 ```ts
-
 // Residual
-type IF<A, B> = IFA<A, B> | IF1<A, B> | IFR<A, B, /* Residual */ unknown>
+type IF<A, B> = IFA<A, B> | IF1<A, B> | IFR<A, B, /* Residual */ unknown>;
 
 // Reader (context passing)
-type IReader<Ctx, A, B> = { lift: IF<A, B> } | { reads: IF<APair<A, Ctx>, B> }
+type IReader<Ctx, A, B> = { lift: IF<A, B> } | { reads: IF<APair<A, Ctx>, B> };
 
 // Ijq (context passing + multiple outputs)
-type Ijq<Ctx, A, B> = { lift: IReader<Ctx, A, B> } | { multi: IReader<Ctx, A, AArray<B>> }
+type Ijq<Ctx, A, B> =
+	| { lift: IReader<Ctx, A, B> }
+	| { multi: IReader<Ctx, A, AArray<B>> };
 ```
 
 ## In Rust
 
-In a language where there's no overhead to represent the unit type, the 
+In a language where there's no overhead to represent the unit type, the
 Residual and Reader monads can be baked into all incremental functions.
 
 ```rs

@@ -183,7 +183,7 @@ export class SpliceTable<T, DT> {
 					entryIndex: k,
 				};
 			}
-			const n = entry.dj < entry.di ? entry.dj : entry.di;
+			const n = Math.min(entry.dj, entry.di);
 			if (index < entry.i + n) {
 				return {
 					index: entry.j + (index - entry.i),
@@ -251,7 +251,7 @@ export class SpliceTable<T, DT> {
 					entryIndex: k,
 				};
 			}
-			const n = entry.dj < entry.di ? entry.dj : entry.di;
+			const n = Math.min(entry.dj, entry.di);
 			if (index < entry.j + n) {
 				return {
 					index: entry.i + (index - entry.j),
@@ -938,7 +938,7 @@ export function splitEntryLeft<T>(
 	// j        j+dj
 	const first: SpliceEntry<T> = {
 		i,
-		di: di < len ? di : len,
+		di: Math.min(di, len),
 		j,
 		dj: len,
 		replace: replace.slice(0, len),
@@ -979,7 +979,7 @@ function splitEntryRight<T>(
 	const first: Omit<SpliceEntry<T>, "j"> = {
 		i,
 		di: len,
-		dj: dj < len ? dj : len,
+		dj: Math.min(dj, len),
 		replace: len > replace.length ? replace : replace.slice(0, len),
 	};
 	if (len === di && len === dj) {
@@ -1033,7 +1033,7 @@ export function cutSpliceEntry<T>(
 		i,
 		di: len,
 		j: j,
-		dj: dj < len ? dj : len,
+		dj: Math.min(dj, len),
 		replace: len > replace.length ? replace : replace.slice(0, len),
 	};
 	if (len === di && len === dj) {

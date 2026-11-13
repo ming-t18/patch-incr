@@ -170,7 +170,7 @@ ARecord.prototype.arbProductRecord = function <
 	const shape = this.shape;
 	return fc.record<ArbRecordValueFromRecordArb<Map, Key>, Key>(
 		mapShape<Map, ArbRecordValueFromRecordArb<Map, Key>, Key>(
-			(_key, inner) => inner.getArbApply().arbValue(depth < 3 ? depth : 3),
+			(_key, inner) => inner.getArbApply().arbValue(Math.min(depth, 3)),
 			shape,
 		),
 		{ requiredKeys: keys as Key[] as never[], noNullPrototype: true },

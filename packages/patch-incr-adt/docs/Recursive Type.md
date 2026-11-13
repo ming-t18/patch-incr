@@ -6,9 +6,9 @@ during type checking.
 
 Example of recursive types:
 
- - Linked list: `list x = nil | cons(x, list x)`
-   - Alternative: `list x = cons(x, optional(list x))`
- - Binary trees: `tree x = leaf | branch(x, tree x, tree x)`
+- Linked list: `list x = nil | cons(x, list x)`
+  - Alternative: `list x = cons(x, optional(list x))`
+- Binary trees: `tree x = leaf | branch(x, tree x, tree x)`
 
 When constructing a recursive type, we must define a getter to
 reference to the type being defined.
@@ -40,7 +40,6 @@ all member types have `Eq`.
     - `tail`: `AList<A>` implements `Eq`?
       - ... infinite recursion
 
-
 ### With `RecBrand`
 
 Suppose `RecBrand` is applied on `AList` itself, the typeclass check for sum and
@@ -50,7 +49,7 @@ product types will explicitly filter inner types with `RecBrand`.
 interface AList<A> extends RecBrand, ... {}
 ```
 
-Now the "`AList<A>` implements `Eq`?" check will only depend on `A`. 
+Now the "`AList<A>` implements `Eq`?" check will only depend on `A`.
 
 The `OmitRecursive` helper type filters out `RecBrand` members from the shape.
 Unary types such as `AOptional` have their own checks against `RecBrand` as well.
@@ -64,6 +63,6 @@ Unary types such as `AOptional` have their own checks against `RecBrand` as well
 ## Derivation for `fast-check` generators
 
 The automatically derived `fast-check` generators are not written in terms of `fc.letrec`.
-`RecBrand` cannot be detected at runtime. To avoid infinite recursion of generators, a 
-`depth` counter is kept track of where some generators will return a trivial generator 
+`RecBrand` cannot be detected at runtime. To avoid infinite recursion of generators, a
+`depth` counter is kept track of where some generators will return a trivial generator
 if `depth` is sufficiently low.
