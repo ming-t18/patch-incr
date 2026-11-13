@@ -197,8 +197,8 @@ export const composeR = <
 		evaluate: (x) => {
 			const yr1 = f1.evaluate(x);
 			const [y, _r1] = yr1;
-			const [_z, r2] = f2.evaluate(x);
-			return [f2.evaluate(y), [yr1, r2]];
+			const [z, r2] = f2.evaluate(y);
+			return [z, [yr1, r2]];
 		},
 		forward: (x, dx, [z, [yr1, r2]]) => {
 			const dyr1 = f1.forward(x, dx, yr1);
